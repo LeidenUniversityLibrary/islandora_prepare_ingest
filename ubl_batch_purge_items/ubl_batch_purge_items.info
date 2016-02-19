@@ -1,0 +1,7 @@
+name = Batch purge items
+description = Adds functionality to delete all items of a specific content model from a collection or to purge all items of a specific set in the batch queue
+package = UBL
+version = "7.x-1.x-dev"
+core = "7.x"
+
+files[] = ubl_batch_purge_items.module
