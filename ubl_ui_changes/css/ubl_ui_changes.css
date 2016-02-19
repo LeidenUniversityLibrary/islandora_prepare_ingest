@@ -1,0 +1,20 @@
+
+/*
+ * limit the number of lines per object displayed in grid view
+ */
+
+dd.islandora-basic-collection-caption A {
+  display: block;
+  /* Fallback for non-webkit */
+  display: -webkit-box;
+  height: 112px; // font-size * line-height * -webkit-line-clamp
+  /* Fallback for non-webkit */
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

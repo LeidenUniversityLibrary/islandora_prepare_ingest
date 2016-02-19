@@ -1,0 +1,9 @@
+name = User Interface Changes
+description = Various user interface changes
+package = UBL
+version = "7.x-1.x-dev"
+core = "7.x"
+
+files[] = ubl_ui_changes.module
+scripts[] = js/ubl_ui_changes.js
+stylesheets[all][] = css/ubl_ui_changes.css
