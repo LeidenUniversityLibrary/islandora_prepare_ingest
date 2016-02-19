@@ -1,0 +1,28 @@
+<?php
+
+/**
+ * @file
+ * ubl_show_persistent_url module.
+ *
+ */
+
+/**
+ * Alter display output after it has been generated.
+ *
+ * @param AbstractObject $object
+ *   A Tuque AbstractObject being operated on.
+ * @param array $rendered
+ *   The array of rendered views.
+ */
+
+function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendered) {
+  if ($object) {
+    $title = drupal_get_title();
+    $label = t('persistent url');
+    $url = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . "/islandora/object/" . $object->id;
+    $class = "ublpersistentbutton";
+    $title .= " <A href=\"$url\" class=\"$class\" data-title=\"$label\"></A>";
+    drupal_set_title($title, PASS_THROUGH);
+  }
+}
+

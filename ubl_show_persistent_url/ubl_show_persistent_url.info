@@ -1,0 +1,9 @@
+name = Show persistent url
+description = Shows a button near the title of the islandora object that when pressed gives the user a persistent url to the object.
+package = UBL
+version = "7.x-1.x-dev"
+core = "7.x"
+
+files[] = ubl_show_persistent_url.module
+scripts[] = js/ubl_show_persistent_url.js
+stylesheets[all][] = css/ubl_show_persistent_url.css
