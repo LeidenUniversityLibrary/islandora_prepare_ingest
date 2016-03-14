@@ -19,7 +19,34 @@ function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendere
   if ($object) {
     $title = drupal_get_title();
     $label = t('persistent url');
-    $url = $_SERVER['REQUEST_SCHEME'] . '://' . $_SERVER['HTTP_HOST'] . "/islandora/object/" . $object->id;
+    $url = '';
+    if (module_exists("islandora_handle")) { 
+      if (isset($object['MODS'])) {
+        $xpath = "/mods:mods/mods:identifier[@type='hdl']";
+        $content = $object['MODS']->content;
+        $domdoc = new DOMDocument();
+        if ($domdoc->loadXML($content)) {
+          $domxpath = new DOMXPath($domdoc);
+          $domxpath->registerNamespace('mods','http://www.loc.gov/mods/v3');
+          $domnodelist = $domxpath->query($xpath);
+          if ($domnodelist->length > 0) {
+            foreach ($domnodelist as $domnode) {
+              $text = $domnode->textContent;
+              if (isset($text) && strlen($text) > 0) {
+                $url = $text;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    if (strlen($url) == 0) {
+      if (array_key_exists('REQUEST_SCHEME',$_SERVER) && strlen($_SERVER['REQUEST_SCHEME']) > 0) {
+        $url .= $_SERVER['REQUEST_SCHEME'] . '://';
+      }
+      $url .= $_SERVER['HTTP_HOST'] . "/islandora/object/" . $object->id;
+    }
     $class = "ublpersistentbutton";
     $title .= " <A href=\"$url\" class=\"$class\" data-title=\"$label\"></A>";
     drupal_set_title($title, PASS_THROUGH);
