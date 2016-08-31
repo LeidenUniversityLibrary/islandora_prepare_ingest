@@ -1,0 +1,8 @@
+name = Batch compound
+description = Adds functionality to add compound items in batch
+package = UBL
+dependencies[] = islandora
+dependencies[] = islandora_solr
+version = "7.x-1.x-dev"
+core = "7.x"
+

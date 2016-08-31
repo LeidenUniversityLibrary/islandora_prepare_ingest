@@ -1,0 +1,52 @@
+<?php
+
+/**
+ * @file
+ * Add compound items in batch
+ */
+
+// Permissions.
+define('UBL_BATCH_COMPOUND_IMPORT_CSV', 'Generate compound items from CSV file');
+
+/**
+ * Implements hook_menu().
+ */
+function ubl_batch_compound_menu() {
+  return array(
+    'ubl_batch_compound' => array(
+      'title' => 'Generate compound items from CSV file',
+      'type' => MENU_NORMAL_ITEM,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_batch_compound_import_form'),
+      'file' => 'includes/ubl_batch_compound_csv_import.form.inc',
+      'access arguments' => array(UBL_BATCH_COMPOUND_IMPORT_CSV),
+    ),
+    'ubl_batch_compound/confirm' => array(
+      'title' => 'Confirm batch compound items',
+      'type' => MENU_LOCAL_TASK,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_batch_compound_import_confirm_form'),
+      'file' => 'includes/ubl_batch_compound_csv_import.form.inc',
+      'access arguments' => array(UBL_BATCH_COMPOUND_IMPORT_CSV),
+    ),
+    //'import_entity_csv/autocomplete' => array(
+      //'page callback' => 'islandora_entities_get_collection_autocomplete',
+      //'access callback' => TRUE,
+      //'file' => 'includes/utilities.inc',
+      //'type' => MENU_CALLBACK,
+    //),
+  );
+}
+
+/**
+ * Implements hook_permission().
+ */
+function ubl_batch_compound_permission() {
+  return array(
+    UBL_BATCH_COMPOUND_IMPORT_CSV => array(
+      'title' => t('Generate compound items'),
+      'description' => t('Generate compound items from a user-supplied CSV file'),
+    ),
+  );
+}
+
