@@ -52,7 +52,9 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
   ini_set("auto_detect_line_endings", "1");
   $delimit = "\t";
   $parent2child = array();
+  $child2parent = array();
   $linenr = 0;
+  $rels_predicate = variable_get('islandora_compound_object_relationship', 'isConstituentOf');
   if (($fh = fopen($path, "r")) !== FALSE) {
     while (($data = fgetcsv($fh, 0, $delimit)) !== FALSE) {
       $linenr++;
@@ -60,6 +62,10 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
         // treat header special
         if (count($data) == 1) {
           $delimit = ",";
+          $data = str_getcsv($data[0],$delimit);
+        }
+        if (count($data) == 1) {
+          $delimit = ";";
           $data = str_getcsv($data[0],$delimit);
         }
         $parentid = $data[0];
@@ -123,6 +129,28 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
             }
           }
         }
+        foreach ($foundchildren as $foundchild) {
+            if (array_key_exists($foundchild,$child2parent)) {
+                drupal_set_message(t("Child (@childid) already belongs to parent (@parentid) so will not be added to parent (@otherparentid)", array("@childid" => $foundchild, "@parentid" => $child2parent[$foundchild], "@otherparentid" => $parentid)), 'warning');
+                $parent2child[$parentid]["children"][$childid][$foundchild] = false;
+                $parent2child[$parentid]["childselcount"]--;
+            }
+            else {
+              $child2parent[$foundchild] = $parentid;
+            }
+          $childobject = islandora_object_load($foundchild);
+          if ($childobject) {
+            $part_of = $childobject->relationships->get(FEDORA_RELS_EXT_URI, $rels_predicate);
+            // This object is part of a compound object.
+            if (!empty($part_of) && count($part_of) > 0) {
+              drupal_set_message(t("Child (@foundchild) already has a parent (@parentid)", array("@foundchild" => $foundchild, "@parentid" => $part_of[0]['object']['value'])), 'warning');
+              if ($parent2child[$parentid]["children"][$childid][$foundchild]) {
+                $parent2child[$parentid]["children"][$childid][$foundchild] = false;
+                $parent2child[$parentid]["childselcount"]--;
+              }
+            }
+          }
+        }
       }
     }
     fclose($fh);
@@ -156,7 +184,8 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
       if (count($foundchildrenids) == 0) {
         $rowid = $parentid . '//' . $cid . '//' . 'none';
         $options[$rowid]['childid'] = check_plain($cid);
-        $options[$rowid]['foundchildren'] = t('No children found');
+        $options[$rowid]['foundchildren'] = t('No child found');
+        $options[$rowid]['#disabled'] = TRUE;
       } 
       else {
         foreach ($foundchildrenids as $foundchildid => $isenabled) {
@@ -227,7 +256,13 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
         ),
       );
   
-      $defaultvalues[$pid] = true;
+      if ($values['childfoundcount'] == 0) {
+        $defaultvalues[$pid] = false;
+        $options[$pid]['#disabled'] = true;
+      }
+      else {
+        $defaultvalues[$pid] = true;
+      }
     }
     $table = array(
       '#type' => 'tableselect',
@@ -383,6 +418,20 @@ function find_fedora_object_ids($identifier,$query_field = "catch_all_fields_mt"
   module_load_include('inc','islandora_solr_search','includes/utilities');
   //module_load_include('inc','islandora');
 
+  if (preg_match('/^[a-z]+:\d+$/', $identifier) === 1) {
+    // looks like a islandora object id
+    if (array_key_exists($identifier,$alreadyfound)) {
+      return $alreadyfound[$identifier]; 
+    }
+
+    $obj = islandora_object_load($identifier);
+
+    if ($obj) {
+      $alreadyfound[$identifier] = array($identifier);
+
+      return $alreadyfound[$identifier]; 
+    }
+  }
   static $qp = NULL;
   if (is_null($qp)) {
     $qp = new IslandoraSolrQueryProcessor();
