@@ -19,6 +19,10 @@ function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendere
   if ($object) {
     $title = drupal_get_title();
     $label = t('persistent url');
+    $class = "ublpersistentbutton";
+    if ((strpos($title,$label) !== FALSE) && (strpos($title,$class) !== FALSE)) {
+      return;
+    }
     $url = '';
     if (module_exists("islandora_handle")) { 
       if (isset($object['MODS'])) {
@@ -42,12 +46,8 @@ function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendere
       }
     }
     if (strlen($url) == 0) {
-      if (array_key_exists('REQUEST_SCHEME',$_SERVER) && strlen($_SERVER['REQUEST_SCHEME']) > 0) {
-        $url .= $_SERVER['REQUEST_SCHEME'] . '://';
-      }
-      $url .= $_SERVER['HTTP_HOST'] . "/islandora/object/" . $object->id;
+      $url = url("islandora/object/" . $object->id, array('absolute' => TRUE));
     }
-    $class = "ublpersistentbutton";
     $title .= " <A href=\"$url\" class=\"$class\" data-title=\"$label\"></A>";
     drupal_set_title($title, PASS_THROUGH);
   }
