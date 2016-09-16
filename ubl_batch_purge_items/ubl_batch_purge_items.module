@@ -69,8 +69,8 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
     return confirm_form($form, t('Are you sure you want to @delete @count items?', array('@delete' => $deletetype, '@count' => $count)), current_path());
   }
 */
-  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_generate_collection_datastreams_get_child_content_models($collection));
-  $content_model = islandora_generate_collection_datastreams_get_current_content_model($collection, $form_state);
+  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_get_content_models());
+  //$content_model = islandora_generate_collection_datastreams_get_current_content_model($collection, $form_state);
   $form = array(
     '#action' => request_uri() . '#delete-items-by-model',
     'delete_items_by_model_wrapper' => array(
