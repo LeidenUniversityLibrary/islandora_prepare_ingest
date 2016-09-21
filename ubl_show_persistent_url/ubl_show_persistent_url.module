@@ -3,7 +3,6 @@
 /**
  * @file
  * ubl_show_persistent_url module.
- *
  */
 
 /**
@@ -14,24 +13,23 @@
  * @param array $rendered
  *   The array of rendered views.
  */
-
 function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendered) {
   if ($object) {
     $title = drupal_get_title();
     $label = t('persistent url');
     $class = "ublpersistentbutton";
-    if ((strpos($title,$label) !== FALSE) && (strpos($title,$class) !== FALSE)) {
+    if ((strpos($title, $label) !== FALSE) && (strpos($title, $class) !== FALSE)) {
       return;
     }
     $url = '';
-    if (module_exists("islandora_handle")) { 
+    if (module_exists("islandora_handle")) {
       if (isset($object['MODS'])) {
         $xpath = "/mods:mods/mods:identifier[@type='hdl']";
         $content = $object['MODS']->content;
         $domdoc = new DOMDocument();
         if ($domdoc->loadXML($content)) {
           $domxpath = new DOMXPath($domdoc);
-          $domxpath->registerNamespace('mods','http://www.loc.gov/mods/v3');
+          $domxpath->registerNamespace('mods', 'http://www.loc.gov/mods/v3');
           $domnodelist = $domxpath->query($xpath);
           if ($domnodelist->length > 0) {
             foreach ($domnodelist as $domnode) {
@@ -52,4 +50,3 @@ function ubl_show_persistent_url_islandora_view_object_alter(&$object, &$rendere
     drupal_set_title($title, PASS_THROUGH);
   }
 }
-
