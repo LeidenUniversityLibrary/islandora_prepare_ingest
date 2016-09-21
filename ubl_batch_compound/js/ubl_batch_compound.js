@@ -1,3 +1,8 @@
+/**
+ * @file
+ * JavaScript for doing a form submit when reviewing.
+ */
+
 (function ($) {
   Drupal.behaviors.ublBatchCompound = {
     attach: function (context, settings) {

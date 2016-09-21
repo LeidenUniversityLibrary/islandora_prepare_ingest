@@ -29,12 +29,6 @@ function ubl_batch_compound_menu() {
       'file' => 'includes/ubl_batch_compound_csv_import.form.inc',
       'access arguments' => array(UBL_BATCH_COMPOUND_IMPORT_CSV),
     ),
-    //'import_entity_csv/autocomplete' => array(
-      //'page callback' => 'islandora_entities_get_collection_autocomplete',
-      //'access callback' => TRUE,
-      //'file' => 'includes/utilities.inc',
-      //'type' => MENU_CALLBACK,
-    //),
   );
 }
 
@@ -49,4 +43,3 @@ function ubl_batch_compound_permission() {
     ),
   );
 }
-
