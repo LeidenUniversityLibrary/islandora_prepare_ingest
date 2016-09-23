@@ -3,7 +3,6 @@
 /**
  * @file
  * ubl_batch_purge_items
- *
  */
 
 /**
@@ -35,6 +34,17 @@ function ubl_batch_purge_items_menu() {
   return $items;
 }
 
+/**
+ * Implements islandora_basic_collection_build_manage_object().
+ *
+ * @param array $form_state
+ *   The current Form State being processed.
+ * @param AbstractObject $object
+ *   The Islandora Object being processed.
+ *
+ * @return array
+ *   The current Form State with manage_xacml element appended.
+ */
 function ubl_batch_purge_items_islandora_basic_collection_build_manage_object(array $form_state, AbstractObject $object) {
   $form_state['manage_collection_object']['delete_items_by_model'] = array(
     '#id' => 'delete_items_by_model',
@@ -48,6 +58,9 @@ function ubl_batch_purge_items_islandora_basic_collection_build_manage_object(ar
   return $form_state;
 }
 
+/**
+ * Make a form to delete/purge items by model.
+ */
 function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$form_state, AbstractObject $collection) {
   module_load_include('inc', 'islandora_basic_collection', 'includes/utilities');
   module_load_include('inc', 'islandora_generate_collection_datastreams', 'includes/utilities');
@@ -55,22 +68,8 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
   module_load_include('inc', 'islandora_basic_collection', 'includes/manage_collection');
   $form_state['collection'] = $collection;
 
-/* confirm
-  if(isset($form_state['values']['content_model']) && isset($form_state['values']['delete_type'])) {
-    // CONFIRMATION
-    $col = $form_state['collection'];
-    $type = 'manage';
-    $cmodel = $form_state['values']['content_model'];
-    $deletetype = $form_state['values']['delete_type'];
-    list($count,$colobjs) = islandora_basic_collection_get_member_objects($col,-1,-1,$type,$cmodel);
-
-    $form['process'] = array('#type' => 'hidden', '#value' => 'true');
-    
-    return confirm_form($form, t('Are you sure you want to @delete @count items?', array('@delete' => $deletetype, '@count' => $count)), current_path());
-  }
-*/
-  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_get_content_models());
-  //$content_model = islandora_generate_collection_datastreams_get_current_content_model($collection, $form_state);
+  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_generate_collection_datastreams_get_child_content_models($collection));
+  $content_model = islandora_generate_collection_datastreams_get_current_content_model($collection, $form_state);
   $form = array(
     '#action' => request_uri() . '#delete-items-by-model',
     'delete_items_by_model_wrapper' => array(
@@ -92,10 +91,10 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
         '#type' => 'select',
         '#title' => t('How to delete'),
         '#options' => array(
-            'do nothing' => t('choose a value'),
-            'delete' => t('delete from this collection, but purge if not in another collection'),
-            'purge' => t('purge objects from repository'),
-          ),
+          'do nothing' => t('choose a value'),
+          'delete' => t('delete from this collection, but purge if not in another collection'),
+          'purge' => t('purge objects from repository'),
+        ),
       ),
       'submit_all' => array(
         '#type' => 'submit',
@@ -106,68 +105,68 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
   return $form;
 }
 
+/**
+ * Validate the submitted content of the form to delete/purge items by model.
+ */
 function ubl_batch_purge_items_delete_items_by_model_form_validate(array $form, array &$form_state) {
   if (isset($form_state['clicked_button'])) {
     if (empty($form_state['values']['content_model'])) {
-      form_set_error('content_model',t('You did not read carefully!'));
-      drupal_set_message(t('Please select the content model of the items you want to delete.'),'error');
-      drupal_set_message(t('Be careful!! This can delete a lot of items!'),'error');
+      form_set_error('content_model', t('You did not read carefully!'));
+      drupal_set_message(t('Please select the content model of the items you want to delete.'), 'error');
+      drupal_set_message(t('Be careful!! This can delete a lot of items!'), 'error');
     }
     $deletetype = $form_state['values']['delete_type'];
     if ($deletetype != 'delete' && $deletetype != 'purge') {
-      form_set_error('delete_type',t('You did not read carefully!'));
-      drupal_set_message(t('Please select the way you want to delete items.'),'error');
-      drupal_set_message(t('Be careful!! This can delete a lot of items!'),'error');
+      form_set_error('delete_type', t('You did not read carefully!'));
+      drupal_set_message(t('Please select the way you want to delete items.'), 'error');
+      drupal_set_message(t('Be careful!! This can delete a lot of items!'), 'error');
     }
-  }  
+  }
 }
 
+/**
+ * Process the submitted content of the form to delete/purge items by model.
+ */
 function ubl_batch_purge_items_delete_items_by_model_form_submit(array $form, array &$form_state) {
   $col = $form_state['collection'];
-  $type = 'manage'; 
+  $type = 'manage';
   $cmodel = $form_state['values']['content_model'];
   $deletetype = $form_state['values']['delete_type'];
 
-/* confirm
-  if (isset($form_state['values']['process'])) {
-*/
-    /* what items to purge */
-    $purged = 0;
-    $operations = array();
-    list($count,$colobjs) = islandora_basic_collection_get_member_objects($col,-1,-1,$type,$cmodel);
-  
-    if ($deletetype == 'delete') {
-      foreach ($colobjs as $colobj) {
-        $itemid = $colobj['object']['value'];
-        $operations[] = array('islandora_batch_delete_single_item_operation',array($itemid,$col));
-        $purged++;
-      }
+  // Which items to purge.
+  $purged = 0;
+  $operations = array();
+  list($count, $colobjs) = islandora_basic_collection_get_member_objects($col, -1, -1, $type, $cmodel);
+
+  if ($deletetype === 'delete') {
+    foreach ($colobjs as $colobj) {
+      $itemid = $colobj['object']['value'];
+      $operations[] = array(
+        'islandora_batch_delete_single_item_operation',
+        array($itemid, $col),
+      );
+      $purged++;
     }
-    else if ($deletetype == 'purge') {
-      foreach ($colobjs as $colobj) {
-        $itemid = $colobj['object']['value'];
-        $operations[] = array('islandora_batch_purge_single_item_operation',array($itemid));
-        $purged++;
-      }
+  }
+  elseif ($deletetype === 'purge') {
+    foreach ($colobjs as $colobj) {
+      $itemid = $colobj['object']['value'];
+      $operations[] = array('islandora_batch_purge_single_item_operation', array($itemid));
+      $purged++;
     }
-  
-    $verb = ($deletetype == 'purge')?'Purging':'Deleting';
-    $batch = array(
-      'finished' => ($deletetype == 'purge')?'islandora_batch_purge_set_finished':'islandora_batch_delete_set_finished',
-      'progress_message' => t('Time elapsed: @elapsed <br/>Estimated time remaining @estimate.'),
-      'error_message' => t('An error has occurred.'),
-      'title' => format_plural($purged, $verb.' 1 item.', $verb.' @count items.'),
-      'file' => drupal_get_path('module', 'ubl_batch_purge_items') . '/includes/purge.inc',
-      'operations' => $operations,
-    );
-  
-    batch_set($batch);
-    return TRUE;
-/* confirm
   }
 
-  // needs confirmation
-  $form_state['rebuild'] = TRUE;
-*/
-}
+  $verb = ($deletetype === 'purge') ? 'Purging' : 'Deleting';
+  $batch = array(
+    'finished' => ($deletetype === 'purge') ? 'islandora_batch_purge_set_finished' : 'islandora_batch_delete_set_finished',
+    'progress_message' => t('Time elapsed: @elapsed <br/>Estimated time remaining @estimate.'),
+    'error_message' => t('An error has occurred.'),
+    'title' => format_plural($purged, $verb . ' 1 item.', $verb . ' @count items.'),
+    'file' => drupal_get_path('module', 'ubl_batch_purge_items') . '/includes/purge.inc',
+    'operations' => $operations,
+  );
 
+  batch_set($batch);
+
+  return TRUE;
+}
