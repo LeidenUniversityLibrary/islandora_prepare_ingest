@@ -1,7 +1,7 @@
 name = "ubl_context_theme_variables"
 dependencies[] = "context"
 description = "Allow contextual variables"
-package = "ubl"
+package = UBL
 version = "7.x-1.x-dev"
 core = "7.x"
 
