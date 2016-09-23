@@ -1,7 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
-
 
 /**
  * @file
@@ -59,85 +56,104 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
     while (($data = fgetcsv($fh, 0, $delimit)) !== FALSE) {
       $linenr++;
       if ($linenr == 1) {
-        // treat header special
+        // Treat header special.
         if (count($data) == 1) {
           $delimit = ",";
-          $data = str_getcsv($data[0],$delimit);
+          $data = str_getcsv($data[0], $delimit);
         }
         if (count($data) == 1) {
           $delimit = ";";
-          $data = str_getcsv($data[0],$delimit);
+          $data = str_getcsv($data[0], $delimit);
         }
         $parentid = $data[0];
         $childid = $data[1];
-       
-        $foundparents = find_fedora_object_ids($parentid); 
-        $foundchildren = find_fedora_object_ids($childid); 
-        
+
+        $foundparents = find_fedora_object_ids($parentid);
+        $foundchildren = find_fedora_object_ids($childid);
+
         if (count($foundparents) != 1 && count($foundchildren) == 0) {
-          // is header
+          // This is a header, so skip it.
           continue;
         }
       }
-      
+
       $parentid = $data[0];
       $childid = $data[1];
-     
-      $foundparents = find_fedora_object_ids($parentid); 
-      $foundchildren = find_fedora_object_ids($childid); 
+
+      $foundparents = find_fedora_object_ids($parentid);
+      $foundchildren = find_fedora_object_ids($childid);
 
       if (count($foundchildren) == 0) {
         drupal_set_message(t("Found no children for id @childid", array("@childid" => $childid)), 'warning');
       }
 
-      if ( ! array_key_exists($parentid,$parent2child)) {
-        $parent2child[$parentid] = array("childidcount" => 0, "childfoundcount" => 0, "childselcount" => 0, "parent" => $foundparents, "children" => array());
+      if (!array_key_exists($parentid, $parent2child)) {
+        $parent2child[$parentid] = array(
+          "childidcount" => 0,
+          "childfoundcount" => 0,
+          "childselcount" => 0,
+          "parent" => $foundparents,
+          "enabled" => TRUE,
+          "children" => array(),
+        );
         if (count($foundparents) == 1) {
           $foundparentid = $foundparents[0];
           $foundparent = islandora_object_load($foundparentid);
           $compound = FALSE;
-          if (variable_get('islandora_compound_object_compound_children', TRUE)) {
-            $compound = TRUE;
-          }
-          else {
-            foreach ($foundparent->models as $value) {
-              if ($value == "islandora:compoundCModel") {
-                $compound = TRUE;
+          if ($foundparent) {
+            if (variable_get('islandora_compound_object_compound_children', TRUE)) {
+              // Has setting that only compounds are allowed to have children.
+              foreach ($foundparent->models as $value) {
+                if ($value == "islandora:compoundCModel") {
+                  $compound = TRUE;
+                }
               }
             }
-          }
-          if ($compound) {
-            $parent2child[$parentid]["singleparentid"] = $foundparentid;
-          }
-          else {
-            drupal_set_message(t("Found for parent with id @parentid a Islandora object (@objectid) that is not an compound object", array("@parentid" => $parentid, "@objectid" => $foundparentid)), 'warning');
+            else {
+              // Has setting that all objects may have child objects.
+              $compound = TRUE;
+            }
+            if ($compound) {
+              $parent2child[$parentid]["singleparentid"] = $foundparentid;
+              $parent2child[$parentid]["usesingleparent"] = TRUE;
+            }
+            else {
+              drupal_set_message(t("Found for parent with id @parentid a Islandora object (@objectid) that is not an compound object", array("@parentid" => $parentid, "@objectid" => $foundparentid)), 'warning');
+            }
           }
         }
       }
       $parent2child[$parentid]["childidcount"]++;
-      if ( ! array_key_exists($childid,$parent2child[$parentid]["children"])) {
-        $parent2child[$parentid]["children"][$childid] = array_fill_keys($foundchildren,true);
+      if (!array_key_exists($childid, $parent2child[$parentid]["children"])) {
+        $parent2child[$parentid]["children"][$childid] = array_fill_keys($foundchildren, TRUE);
         $parent2child[$parentid]["childfoundcount"] += count($foundchildren);
         $parent2child[$parentid]["childselcount"] += count($foundchildren);
 
-        if (array_key_exists("singleparentid",$parent2child[$parentid])) {
+        if (array_key_exists("singleparentid", $parent2child[$parentid])
+           && (array_key_exists("usesingleparent", $parent2child[$parentid]) && $parent2child[$parentid]["usesingleparent"])) {
           $foundparentid = $parent2child[$parentid]["singleparentid"];
           foreach ($foundchildren as $foundchild) {
             if ($foundchild === $foundparentid) {
               drupal_set_message(t("Child (@childid) with itself as parent (@parentid) is not allowed", array("@childid" => $childid, "@parentid" => $parentid)), 'error');
-              unset($parent2child[$parentid]["singleparentid"]);
+              $parent2child[$parentid]["usesingleparent"] = FALSE;
             }
           }
         }
         foreach ($foundchildren as $foundchild) {
-            if (array_key_exists($foundchild,$child2parent)) {
-                drupal_set_message(t("Child (@childid) already belongs to parent (@parentid) so will not be added to parent (@otherparentid)", array("@childid" => $foundchild, "@parentid" => $child2parent[$foundchild], "@otherparentid" => $parentid)), 'warning');
-                $parent2child[$parentid]["children"][$childid][$foundchild] = false;
-                $parent2child[$parentid]["childselcount"]--;
-            }
-            else {
-              $child2parent[$foundchild] = $parentid;
-            }
+          if (array_key_exists($foundchild, $child2parent)) {
+            drupal_set_message(t("Child (@childid) already belongs to parent (@parentid) so will not be added to parent (@otherparentid)",
+              array(
+                "@childid" => $foundchild,
+                "@parentid" => $child2parent[$foundchild],
+                "@otherparentid" => $parentid)
+              ),
+              'warning');
+            $parent2child[$parentid]["children"][$childid][$foundchild] = FALSE;
+            $parent2child[$parentid]["childselcount"]--;
+          }
+          else {
+            $child2parent[$foundchild] = $parentid;
+          }
           $childobject = islandora_object_load($foundchild);
           if ($childobject) {
             $part_of = $childobject->relationships->get(FEDORA_RELS_EXT_URI, $rels_predicate);
@@ -145,7 +161,7 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
             if (!empty($part_of) && count($part_of) > 0) {
               drupal_set_message(t("Child (@foundchild) already has a parent (@parentid)", array("@foundchild" => $foundchild, "@parentid" => $part_of[0]['object']['value'])), 'warning');
               if ($parent2child[$parentid]["children"][$childid][$foundchild]) {
-                $parent2child[$parentid]["children"][$childid][$foundchild] = false;
+                $parent2child[$parentid]["children"][$childid][$foundchild] = FALSE;
                 $parent2child[$parentid]["childselcount"]--;
               }
             }
@@ -157,20 +173,14 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
   }
 
   $_SESSION['ubl_batch_compound_parent2child'] = $parent2child;
-  $_SESSION['ubl_batch_compound_finished'] = false;
+  $_SESSION['ubl_batch_compound_finished'] = FALSE;
 
   $form_state['redirect'] = 'ubl_batch_compound/confirm';
 }
 
 /**
  * The form for confirming the compound items.
- *
- * @param array $form
- *   The Drupal form definition.
- * @param array $form_state
- *   The Drupal form state.
  */
-
 function ubl_batch_compound_import_confirm_form(array $form, array &$form_state) {
   $parent2child = $_SESSION['ubl_batch_compound_parent2child'];
   $options = array();
@@ -178,24 +188,24 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
   if (count($form_state["build_info"]["args"]) == 1) {
     $parentid = $form_state["build_info"]["args"][0];
 
-    drupal_set_title(t("Generate compound: viewing parent \"@parentid\"", array("@parentid" => $parentid)));
+    drupal_set_title(t("Generate compound: viewing parent '@parentid'", array("@parentid" => $parentid)));
 
     foreach ($parent2child[$parentid]["children"] as $cid => $foundchildrenids) {
       if (count($foundchildrenids) == 0) {
-        $rowid = $parentid . '//' . $cid . '//' . 'none';
+        $rowid = "$parentid//$cid//none";
         $options[$rowid]['childid'] = check_plain($cid);
         $options[$rowid]['foundchildren'] = t('No child found');
         $options[$rowid]['#disabled'] = TRUE;
-      } 
+      }
       else {
         foreach ($foundchildrenids as $foundchildid => $isenabled) {
-          $rowid =  $parentid . '//' . $cid . '//' . $foundchildid;
+          $rowid = $parentid . '//' . $cid . '//' . $foundchildid;
           $options[$rowid]['childid'] = check_plain($cid);
           $options[$rowid]['foundchildren'] = array(
             'data' => array(
-               '#type' => 'link',
-               '#title' => filter_xss($foundchildid),
-               '#href' => "islandora/object/{$foundchildid}",
+              '#type' => 'link',
+              '#title' => filter_xss($foundchildid),
+              '#href' => "islandora/object/{$foundchildid}",
             ),
           );
           $defaultvalues[$rowid] = $isenabled;
@@ -205,14 +215,30 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
     $table = array(
       '#type' => 'tableselect',
       '#header' => array(
-         'childid' => t('Child ID in CSV'),
-         'foundchildren' => t('Found Children'),
+        'childid' => t('Child ID in CSV'),
+        'foundchildren' => t('Found Children'),
       ),
       '#options' => $options,
       '#default_value' => $defaultvalues,
       '#empty' => t('No data available.'),
       '#disabled' => ($_SESSION['ubl_batch_compound_finished']),
     );
+
+    $form['parentid'] = array(
+      '#type' => 'hidden',
+      '#value' => $parentid,
+    );
+
+    if (!$_SESSION['ubl_batch_compound_finished']) {
+      if (array_key_exists('singleparentid', $parent2child[$parentid])) {
+        $form['usesingleparent'] = array(
+          '#type' => 'checkbox',
+          '#title' => t("Use existing object @parentid as parent", array("@parentid" => $parent2child[$parentid]['singleparentid'])),
+          '#default_value' => $parent2child[$parentid]['usesingleparent'],
+          '#return_value' => $parent2child[$parentid]['singleparentid'],
+        );
+      }
+    }
 
     $form['child_table'] = $table;
 
@@ -228,7 +254,7 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
   else {
     foreach ($parent2child as $pid => $values) {
       $options[$pid]['parentid'] = check_plain($pid);
-      if (array_key_exists('singleparentid',$values)) {
+      if (array_key_exists('singleparentid', $values) && (array_key_exists('usesingleparent', $values) && $values['usesingleparent'])) {
         $foundparent = $values["singleparentid"];
         $options[$pid]['parentitem'] = array(
           'data' => array(
@@ -239,7 +265,12 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
         );
       }
       else {
-        $options[$pid]['parentitem'] = t('New parent');
+        if ($_SESSION['ubl_batch_compound_finished']) {
+          $options[$pid]['parentitem'] = t('No parent made');
+        }
+        else {
+          $options[$pid]['parentitem'] = t('New parent');
+        }
       }
       $options[$pid]['childids'] = format_plural($values['childidcount'], "1 child in CSV", "@count children in CSV");
       if ($values['childfoundcount'] !== $values['childselcount']) {
@@ -253,25 +284,26 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
           '#type' => 'link',
           '#title' => t("View"),
           '#href' => "ubl_batch_compound/confirm/{$pid}",
+          '#attributes' => array('class' => array('viewlinkclass')),
         ),
       );
-  
+
       if ($values['childfoundcount'] == 0) {
-        $defaultvalues[$pid] = false;
-        $options[$pid]['#disabled'] = true;
+        $defaultvalues[$pid] = FALSE;
+        $options[$pid]['#disabled'] = TRUE;
       }
       else {
-        $defaultvalues[$pid] = true;
+        $defaultvalues[$pid] = $values["enabled"];
       }
     }
     $table = array(
       '#type' => 'tableselect',
       '#header' => array(
-         'parentid' => t('Parent ID in CSV'),
-         'parentitem' => t('Parent item'),
-         'childids' => t('Child IDs in CSV'),
-         'foundchildren' => t('Found Children'),
-         'view' => '',
+        'parentid' => t('Parent ID in CSV'),
+        'parentitem' => t('Parent item'),
+        'childids' => t('Child IDs in CSV'),
+        'foundchildren' => t('Found Children'),
+        'view' => '',
       ),
       '#options' => $options,
       '#default_value' => $defaultvalues,
@@ -279,9 +311,17 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
       '#disabled' => ($_SESSION['ubl_batch_compound_finished']),
     );
 
+    if (!$_SESSION['ubl_batch_compound_finished']) {
+      drupal_add_js(drupal_get_path('module', 'ubl_batch_compound') . '/js/ubl_batch_compound.js');
+    }
+
+    $form['redirecturl'] = array(
+      '#type' => 'hidden',
+      '#default_value' => 'xxxxx',
+    );
     $form['parent_table'] = $table;
-  
-    if ( ! $_SESSION['ubl_batch_compound_finished']) {
+
+    if (!$_SESSION['ubl_batch_compound_finished']) {
       $form['submit'] = array(
         '#type' => 'submit',
         '#value' => t('Generate compound objects'),
@@ -292,19 +332,32 @@ function ubl_batch_compound_import_confirm_form(array $form, array &$form_state)
   return $form;
 }
 
+/**
+ * Submitting the form for confirming the compound items.
+ */
 function ubl_batch_compound_import_confirm_form_submit(array $form, array &$form_state) {
 
+  if (array_key_exists("redirecturl", $form_state["values"]) && $form_state["values"]["redirecturl"] !== 'xxxxx') {
+    if (array_key_exists("parent_table", $form_state["values"])) {
+      foreach ($form_state["values"]["parent_table"] as $parentid => $isneeded) {
+        $_SESSION['ubl_batch_compound_parent2child'][$parentid]['enabled'] = $isneeded;
+      }
+    }
+    $form_state['redirect'] = $form_state["values"]["redirecturl"];
+    return;
+  }
   if ($_SESSION['ubl_batch_compound_finished']) {
-    // do not change anything if already finished
-    if (array_key_exists("child_table",$form_state["values"])) {
+    // Do not change anything if already finished.
+    if (array_key_exists("child_table", $form_state["values"])) {
       $form_state['redirect'] = 'ubl_batch_compound/confirm';
     }
-    return; 
+    return;
   }
   $operations = array();
 
-  if (array_key_exists("parent_table",$form_state["values"])) {
+  if (array_key_exists("parent_table", $form_state["values"])) {
     foreach ($form_state["values"]["parent_table"] as $parentid => $isneeded) {
+      $_SESSION['ubl_batch_compound_parent2child'][$parentid]['enabled'] = $isneeded;
       if ($isneeded) {
         $operations[] = array('ubl_batch_compound_batch_set_children', array($parentid));
       }
@@ -324,9 +377,13 @@ function ubl_batch_compound_import_confirm_form_submit(array $form, array &$form
   }
   else {
     $parent2child = $_SESSION['ubl_batch_compound_parent2child'];
+    $parentid = $form_state["values"]["parentid"];
 
+    if (array_key_exists("usesingleparent", $form_state["values"])) {
+      $parent2child[$parentid]["usesingleparent"] = ($form_state["values"]["usesingleparent"] !== 0);
+    }
     foreach ($form_state["values"]["child_table"] as $childpath => $isneeded) {
-      $parts = explode("//",$childpath);
+      $parts = explode("//", $childpath);
       if (count($parts) == 3) {
         $parentid = $parts[0];
         $childcvsid = $parts[1];
@@ -349,16 +406,19 @@ function ubl_batch_compound_import_confirm_form_submit(array $form, array &$form
   }
 }
 
+/**
+ * Make the compound for one parentid and the children that were selected.
+ */
 function ubl_batch_compound_batch_set_children($parentid, &$context) {
-  module_load_include('inc','islandora_compound_object','includes/manage.form');
-  module_load_include('inc','islandora_basic_collection','includes/utilities');
-  module_load_include('inc','islandora','includes/utilities');
-  module_load_include('inc','islandora');
+  module_load_include('inc', 'islandora_compound_object', 'includes/manage.form');
+  module_load_include('inc', 'islandora_basic_collection', 'includes/utilities');
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  module_load_include('inc', 'islandora');
 
   $parent2child = $_SESSION['ubl_batch_compound_parent2child'];
   $oneparent2children = $parent2child[$parentid];
-  $parent = false;
-  if (array_key_exists('singleparentid',$oneparent2children)) {
+  $parent = FALSE;
+  if (array_key_exists('singleparentid', $oneparent2children) && (array_key_exists('usesingleparent', $oneparent2children) && $oneparent2children['usesingleparent'])) {
     $parent = islandora_object_load($oneparent2children['singleparentid']);
   }
   $childids = array();
@@ -369,30 +429,29 @@ function ubl_batch_compound_batch_set_children($parentid, &$context) {
       }
     }
   }
-  if ($parent === false) {
+  if ($parent === FALSE) {
     if (count($childids) > 0) {
       $firstchildid = $childids[0];
 
       $firstchild = islandora_object_load($firstchildid);
       if ($firstchild) {
-        //$collectionids = islandora_basic_collection_get_parent_pids($firstchild);
-        //$collection = islandora_object_load($collectionids[0]); 
-        $collection = islandora_object_load('islandora:compound_collection'); 
+        $collection = islandora_object_load('islandora:compound_collection');
         $tuque = islandora_get_tuque_connection();
         $parent = $tuque->repository->constructObject(islandora_get_namespace($firstchild->id));
-        $parent->label = "New compound object";
+        $parent->label = $parentid;
         $parent->models = 'islandora:compoundCModel';
-        islandora_basic_collection_add_to_collection($parent,$collection);
+        islandora_basic_collection_add_to_collection($parent, $collection);
         $tuque->repository->ingestObject($parent);
       }
     }
-    if ($parent === false) {
+    if ($parent === FALSE) {
       return;
     }
     $_SESSION['ubl_batch_compound_parent2child'][$parentid]['singleparentid'] = $parent->id;
+    $_SESSION['ubl_batch_compound_parent2child'][$parentid]['usesingleparent'] = TRUE;
   }
 
-  $context['message'] = t('Generating compound object @parentid', array( '@parentid' => $parent->id));
+  $context['message'] = t('Generating compound object @parentid', array('@parentid' => $parent->id));
 
   $child_objects = array();
   foreach ($childids as $childid) {
@@ -406,22 +465,28 @@ function ubl_batch_compound_batch_set_children($parentid, &$context) {
   islandora_compound_object_update_parent_thumbnail($parent);
 }
 
+/**
+ * Finish making the compounds.
+ */
 function ubl_batch_compound_batch_set_children_finished() {
-  $_SESSION['ubl_batch_compound_finished'] = true;
+  $_SESSION['ubl_batch_compound_finished'] = TRUE;
 }
 
 /* helper functions */
 
+/**
+ * Finding the Fedora object IDs of objects by identifier.
+ */
+function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt") {
+  module_load_include('inc', 'islandora_solr_search', 'includes/query_processor');
+  module_load_include('inc', 'islandora_solr_search', 'includes/utilities');
 
-function find_fedora_object_ids($identifier,$query_field = "catch_all_fields_mt") {
-  module_load_include('inc','islandora_solr_search','includes/query_processor');
-  module_load_include('inc','islandora_solr_search','includes/utilities');
-  //module_load_include('inc','islandora');
+  static $alreadyfound = array();
 
   if (preg_match('/^[a-z]+:\d+$/', $identifier) === 1) {
-    // looks like a islandora object id
-    if (array_key_exists($identifier,$alreadyfound)) {
-      return $alreadyfound[$identifier]; 
+    // This looks like a islandora object id.
+    if (array_key_exists($identifier, $alreadyfound)) {
+      return $alreadyfound[$identifier];
     }
 
     $obj = islandora_object_load($identifier);
@@ -429,32 +494,30 @@ function find_fedora_object_ids($identifier,$query_field = "catch_all_fields_mt"
     if ($obj) {
       $alreadyfound[$identifier] = array($identifier);
 
-      return $alreadyfound[$identifier]; 
+      return $alreadyfound[$identifier];
     }
   }
   static $qp = NULL;
   if (is_null($qp)) {
     $qp = new IslandoraSolrQueryProcessor();
   }
-  static $alreadyfound = array();
 
   $escapedid = islandora_solr_lesser_escape($identifier);
   $search = "$query_field:$escapedid";
 
-  if (array_key_exists($search,$alreadyfound)) {
-    return $alreadyfound[$search]; 
+  if (array_key_exists($search, $alreadyfound)) {
+    return $alreadyfound[$search];
   }
 
-  $qp->buildAndExecuteQuery($search); 
+  $qp->buildAndExecuteQuery($search);
 
   $r = $qp->islandoraSolrResult;
 
-  $numFound = $r['response']['numFound'];
+  $numfound = $r['response']['numFound'];
 
   $objectids = array();
-  for ($i = 0; $i < $numFound; $i++) {
+  for ($i = 0; $i < $numfound; $i++) {
     $objid = $r['response']['objects'][$i]['PID'];
-    //$obj = islandora_object_load($objid);
 
     if ($objid) {
       $objectids[] = $objid;
@@ -465,5 +528,3 @@ function find_fedora_object_ids($identifier,$query_field = "catch_all_fields_mt"
 
   return $objectids;
 }
-
-

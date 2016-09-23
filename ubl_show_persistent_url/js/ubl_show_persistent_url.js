@@ -1,3 +1,7 @@
+/**
+ * @file
+ * js/ubl_show_persistent_url.js
+ */
 
 jQuery(document).ready(function() {
   var pagetitle = jQuery('#page-title');

@@ -1,9 +1,21 @@
 <?php
 
+
+/**
+ * @file
+ * includes/purge
+ */
+
+/**
+ * Page callback for making the purge form.
+ */
 function islandora_batch_set_purge_items_page_callback($id, $management = FALSE) {
   return drupal_get_form('islandora_batch_purge_set_form', $id, $management);
 }
 
+/**
+ * Make the purge form.
+ */
 function islandora_batch_purge_set_form($form, &$form_state, $id, $management) {
   form_load_include($form_state, 'inc', 'islandora_batch', 'includes/menu');
   return confirm_form(
@@ -15,16 +27,19 @@ function islandora_batch_purge_set_form($form, &$form_state, $id, $management) {
   );
 }
 
+/**
+ * Process the purge form.
+ */
 function islandora_batch_purge_set_form_submit(&$form, &$form_state) {
   module_load_include('inc', 'islandora_batch', 'includes/db');
   list($id, $management) = $form_state['build_info']['args'];
-  
+
   /* what items to purge */
   $purged = 0;
   $operations = array();
   $itemids = islandora_batch_get_queued_items_for_set($id);
   foreach ($itemids as $itemid) {
-    $operations[] = array('islandora_batch_purge_single_item_operation',array($itemid));
+    $operations[] = array('islandora_batch_purge_single_item_operation', array($itemid));
     $purged++;
   }
 
@@ -45,6 +60,9 @@ function islandora_batch_purge_set_form_submit(&$form, &$form_state) {
 
 }
 
+/**
+ * Delete a single item inside a batch set.
+ */
 function islandora_batch_delete_single_item_operation($itemid, AbstractObject $collection, &$context) {
   if ($object = islandora_object_load($itemid)) {
     module_load_include('inc', 'islandora_basic_collection', 'includes/utilities');
@@ -68,10 +86,16 @@ function islandora_batch_delete_single_item_operation($itemid, AbstractObject $c
   }
 }
 
+/**
+ * Batch set for deleting is finished.
+ */
 function islandora_batch_delete_set_finished($success, $results, $operations) {
   ubl_batch_delete_purge_set_finished('Deleted', $success, $results, $operations);
 }
 
+/**
+ * Purge a single item inside a batch set.
+ */
 function islandora_batch_purge_single_item_operation($itemid, &$context) {
   if ($object = islandora_object_load($itemid)) {
     $context['message'] = t('Purging item with id @pid', array('@pid' => $itemid));
@@ -85,12 +109,19 @@ function islandora_batch_purge_single_item_operation($itemid, &$context) {
   }
 }
 
+/**
+ * Batch set for purging is finished.
+ */
 function islandora_batch_purge_set_finished($success, $results, $operations) {
   ubl_batch_delete_purge_set_finished('Purged', $success, $results, $operations);
 }
+
+/**
+ * Batch set for deleting/purging is finished.
+ */
 function ubl_batch_delete_purge_set_finished($verb, $success, $results, $operations) {
   if ($success) {
-    drupal_set_message(format_plural(count($results), $verb.' 1 item.', $verb.' @count items.'));
+    drupal_set_message(format_plural(count($results), $verb . ' 1 item.', $verb . ' @count items.'));
   }
   else {
     $error_operation = reset($operations);
