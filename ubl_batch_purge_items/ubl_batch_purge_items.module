@@ -68,8 +68,8 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
   module_load_include('inc', 'islandora_basic_collection', 'includes/manage_collection');
   $form_state['collection'] = $collection;
 
-  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_generate_collection_datastreams_get_child_content_models($collection));
-  $content_model = islandora_generate_collection_datastreams_get_current_content_model($collection, $form_state);
+  $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_get_content_models());
+
   $form = array(
     '#action' => request_uri() . '#delete-items-by-model',
     'delete_items_by_model_wrapper' => array(
