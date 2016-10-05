@@ -134,20 +134,24 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
           $foundparentid = $parent2child[$parentid]["singleparentid"];
           foreach ($foundchildren as $foundchild) {
             if ($foundchild === $foundparentid) {
-              drupal_set_message(t("Child (@childid) with itself as parent (@parentid) is not allowed", array("@childid" => $childid, "@parentid" => $parentid)), 'error');
+              drupal_set_message(t("Child (@childid) with itself as parent (@parentid) is not allowed", 
+                array(
+                  "@childid" => $childid,
+                  "@parentid" => $parentid,
+                )), 'error');
               $parent2child[$parentid]["usesingleparent"] = FALSE;
             }
           }
         }
         foreach ($foundchildren as $foundchild) {
           if (array_key_exists($foundchild, $child2parent)) {
-            drupal_set_message(t("Child (@childid) already belongs to parent (@parentid) so will not be added to parent (@otherparentid)",
+            drupal_set_message(t("Child (@foundchild, found for @childid) already belongs to parent (@parentid) so will not be added to parent (@otherparentid)",
               array(
-                "@childid" => $foundchild,
+                "@foundchild" => $foundchild,
+                "@childid" => $childid,
                 "@parentid" => $child2parent[$foundchild],
-                "@otherparentid" => $parentid)
-              ),
-              'warning');
+                "@otherparentid" => $parentid,
+              )), 'warning');
             $parent2child[$parentid]["children"][$childid][$foundchild] = FALSE;
             $parent2child[$parentid]["childselcount"]--;
           }
@@ -159,7 +163,12 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
             $part_of = $childobject->relationships->get(FEDORA_RELS_EXT_URI, $rels_predicate);
             // This object is part of a compound object.
             if (!empty($part_of) && count($part_of) > 0) {
-              drupal_set_message(t("Child (@foundchild) already has a parent (@parentid)", array("@foundchild" => $foundchild, "@parentid" => $part_of[0]['object']['value'])), 'warning');
+              drupal_set_message(t("Child (@foundchild, found for @childid) already has a parent (@parentid)",
+                array(
+                  "@foundchild" => $foundchild,
+                  "@childid" => $childid,
+                  "@parentid" => $part_of[0]['object']['value'],
+                )), 'warning');
               if ($parent2child[$parentid]["children"][$childid][$foundchild]) {
                 $parent2child[$parentid]["children"][$childid][$foundchild] = FALSE;
                 $parent2child[$parentid]["childselcount"]--;
