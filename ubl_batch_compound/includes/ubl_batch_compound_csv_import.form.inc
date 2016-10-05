@@ -478,12 +478,13 @@ function ubl_batch_compound_batch_set_children_finished() {
  * Finding the Fedora object IDs of objects by identifier.
  */
 function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt") {
+  module_load_include('inc', 'islandora', 'includes/utilities');
   module_load_include('inc', 'islandora_solr_search', 'includes/query_processor');
   module_load_include('inc', 'islandora_solr_search', 'includes/utilities');
 
   static $alreadyfound = array();
 
-  if (preg_match('/^[a-z]+:\d+$/', $identifier) === 1) {
+  if (islandora_is_valid_pid($identifier)) {
     // This looks like a islandora object id.
     if (array_key_exists($identifier, $alreadyfound)) {
       return $alreadyfound[$identifier];
@@ -498,9 +499,14 @@ function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt
     }
   }
   static $qp = NULL;
-  if (is_null($qp)) {
+  static $qpc = 0;
+  if (is_null($qp) || $qpc > 10) {
+    // Get a fresh copy the first time and after each 10 queries.
+    // Apparently there are limitations on the amount of queries it can handle.
     $qp = new IslandoraSolrQueryProcessor();
+    $qpc = 0;
   }
+  $qpc++;
 
   $escapedid = islandora_solr_lesser_escape($identifier);
   $search = "$query_field:$escapedid";
