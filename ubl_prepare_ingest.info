@@ -1,0 +1,9 @@
+name = Prepare Ingest
+description = Module for preparing data for ingest into Islandora
+package = UBL
+dependencies[] = islandora
+version = "7.x-1.x-dev"
+core = "7.x"
+scripts[] = js/ubl_prepare_ingest.js
+stylesheets[all][] = css/ubl_prepare_ingest.css
+
