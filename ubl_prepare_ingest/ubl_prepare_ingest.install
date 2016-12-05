@@ -1,0 +1,148 @@
+<?php
+
+/**
+ * @file
+ * Installation hooks.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function ubl_prepare_ingest_schema() {
+  $schema = array();
+
+  $schema['ubl_prepare_ingest_workflow'] = array(
+    'description' => 'Holds the prepare ingest workflows.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The name of the workflow.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+      ),
+      'description' => array(
+        'description' => 'The description of the workflow.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'length' => 4000,
+      ),
+      'type' => array(
+        'description' => 'The type of the workflow, active or full or partial.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 10,
+      ),
+      'checked' => array(
+        'description' => 'If this workflow was checked and approved.',
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+    ),
+  );  
+  $schema['ubl_prepare_ingest_step'] = array(
+    'description' => 'Holds one step of a prepare ingest workflow.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'workflow_id' => array(
+        'description' => 'The workflow where this step belongs to.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'step_name' => array(
+        'description' => 'The name of the step.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+      ),
+      'step_module' => array(
+        'description' => 'The module where the step resides in.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'length' => 4000,
+      ),
+      'weight' => array(
+        'description' => 'The order of the step.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+      'workflow_id_index' => array('workflow_id'),
+    ),
+    'foreign keys' => array(
+      'parent_entry' => array(
+        'table' => 'ubl_prepare_ingest_workflow',
+        'columns' => array(
+          'workflow_id' => 'id',
+        ),
+      ),
+    ),
+  );
+  $schema['ubl_prepare_ingest_step_config'] = array(
+    'description' => 'Holds one configuration field of a step of a prepare ingest workflow.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'step_id' => array(
+        'description' => 'The step where this config belongs to.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'config_key' => array(
+        'description' => 'The key of the configuration of the step.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 255,
+      ),
+      'config_value' => array(
+        'description' => 'The value of the configuration of the step.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'length' => 10000,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+      'step_id_index' => array('step_id'),
+    ),
+    'foreign keys' => array(
+      'parent_entry' => array(
+        'table' => 'ubl_prepare_ingest_step',
+        'columns' => array(
+          'step_id' => 'id',
+        ),
+      ),
+    ),
+  );
+
+
+  return $schema;
+}

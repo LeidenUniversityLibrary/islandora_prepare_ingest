@@ -1,0 +1,95 @@
+
+.workflow_step {
+  background-color: white;
+}
+
+/* make titles of workflowsteps respect case */
+.workflow_step .fieldset-title {
+  text-transform: none;
+}
+
+.workflow_step .fieldset-legend {
+  overflow: hidden;
+  width: 95%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* add step and add workflow steps buttons */
+#edit-add-step > DIV {
+  overflow: hidden;
+}
+#edit-add-step > DIV > DIV {
+  float:left;
+}
+#edit-add-step > DIV > INPUT {
+  float:left;
+}
+#edit-which-step {
+  position: relative;
+  top: -5px;
+}
+#add_step_button {
+  position: relative;
+  left: 10px;
+}
+#edit-which-workflow-steps {
+  position: relative;
+  top: -5px;
+  left: 100px;
+}
+#add_workflow_steps_button {
+  position: relative;
+  left: 110px;
+}
+
+/* move up, move down and remove buttons to the right */
+fieldset .fieldset-wrapper {
+  overflow: hidden;
+}
+fieldset .fieldset-wrapper .fields {
+  float:left;
+  min-height: 140px;
+}
+fieldset .fieldset-wrapper .buttons  {
+  float:right;
+  width:150px;
+}
+fieldset .fieldset-wrapper .buttons > INPUT  {
+  width:145px;
+}
+
+/* check data table */
+.checkdatatable {
+  width: auto;
+}
+.checkdatatable TH {
+  text-transform: none;
+}
+.checkdatatable TD {
+  border-width: 1px;
+  border-style: dotted;
+  border-color: #bebfb9;
+  padding: 3px 10px;
+}
+
+/* errors */
+.key_error, .config_error, .argument_error, .run_error, .check_error {
+  color: red;
+  border-width: 1px;
+  border-style: dotted;
+  border-color: red;
+  padding: 3px 10px;
+  margin-bottom: 1em;
+}
+.check_error {
+  border-style: solid;
+}
+.check_info {
+  color: blue;
+  border-width: 1px;
+  border-style: dotted;
+  border-color: blue;
+  padding: 3px 10px;
+  margin-bottom: 1em;
+}
