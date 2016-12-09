@@ -57,7 +57,9 @@ function ubl_prepare_ingest_active_workflows_form(array $form, array &$form_stat
   if (count($workflows) > 0) {
     $options[''] = t('Choose workflow');
     foreach ($workflows as $workflow) {
-      $options[$workflow['id']] = $workflow['name'];
+      if ($workflow['checked']) {
+        $options[$workflow['id']] = $workflow['name'];
+      }
     }
     $form['add_workflow']['choosen_workflow'] = array(
       '#type' => 'select',
