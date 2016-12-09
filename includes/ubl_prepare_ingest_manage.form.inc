@@ -26,6 +26,7 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
     $options[$workflow['id']] = array(
       'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflow['id']),
       'type' => $workflow['type'],
+      'checked' => $workflow['checked']?t('Checked'):'',
       'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/manage/copy/' . $workflow['id']),
     );
   }
@@ -34,6 +35,7 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
     '#header' => array(
       'name' => t('Workflows'),
       'type' => t('Type'),
+      'checked' => t('Checked'),
       'copy' => '',
     ),
     '#options' => $options,
@@ -283,6 +285,7 @@ function ubl_prepare_ingest_edit_workflow_form_back(array $form, array &$form_st
 
 function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
   module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.run_workflow');
+  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
   $workflowdata = array();
@@ -290,7 +293,11 @@ function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_s
   $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['workflowdata'] = $workflowdata; 
   if (ubl_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
+    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => TRUE));
     $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/check/' . $workflowid;
+  }
+  else {
+    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => FALSE));
   }
 }
 
