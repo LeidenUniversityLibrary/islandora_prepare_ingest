@@ -362,7 +362,7 @@ function ubl_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
   $stepsinfo = module_invoke_all('workflow_step_info');
   $stepinfo = $stepsinfo[$stepname];
   $labelfunc = ubl_prepare_ingest_callback_for_step($stepname, 'label');
-  if ($labelfunc !== FALSE && function_exists($labelfunc)) {
+  if ($labelfunc !== FALSE) {
     $label = $labelfunc($stepinfo, $stepconfig);
   }
   if (!$label) {
@@ -372,30 +372,10 @@ function ubl_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
   return $label;
 }
 
-function ubl_prepare_ingest_do_work_for_step($stepname, $stepconfig, &$data, &$context, $extent) {
-  $stepsinfo = module_invoke_all('workflow_step_info');
-  $stepinfo = $stepsinfo[$stepname];
-
-  $workfunc = ubl_prepare_ingest_callback_for_step($stepname, 'work');
-
-  if ($workfunc !== FALSE && function_exists($workfunc)) {
-    $workfunc($stepinfo, $stepconfig, $data, $context, $extent);
-  }
-}
-
 function ubl_prepare_ingest_callback_for_step($stepname, $callbacktype) {
-  $stepsinfo = module_invoke_all('workflow_step_info');
-  $stepinfo = $stepsinfo[$stepname];
   $func = FALSE;
-  if (array_key_exists($callbacktype . ' callback', $stepinfo)) {
-    if (function_exists($stepinfo[$callbacktype . ' callback'])) {
-      $func = $stepinfo[$callbacktype . ' callback'];
-    }
-  }
-  if ($func === FALSE) {
-    if (function_exists($callbacktype . '_' . $stepname)) {
-      $func = $callbacktype . '_' . $stepname;
-    }
+  if (function_exists($callbacktype . '_' . $stepname)) {
+    $func = $callbacktype . '_' . $stepname;
   }
   return $func;  
 }
