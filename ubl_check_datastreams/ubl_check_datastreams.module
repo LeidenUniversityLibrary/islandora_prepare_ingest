@@ -186,7 +186,7 @@ function ubl_check_datastreams_datastream_property_info($object, $includelink = 
     $results['HDL']['isrequired'] = (count($handle_results) > 0);
     if ($includelink) {
       $results['HDL']['isgeneratable'] = TRUE;
-      $results[$dsid]['generatelink'] = ubl_check_datastreams_generate_link($object, 'HDL');
+      $results['HDL']['generatelink'] = ubl_check_datastreams_generate_link($object, 'HDL');
     }
   }
   if (in_array('islandora:pageCModel', $object->models)) {
@@ -197,7 +197,7 @@ function ubl_check_datastreams_datastream_property_info($object, $includelink = 
       $results['DIMENSIONS']['isrequired'] = TRUE;
       if ($includelink) {
         $results['DIMENSIONS']['isgeneratable'] = TRUE;
-        $results[$dsid]['generatelink'] = ubl_check_datastreams_generate_link($object, 'DIMENSIONS');
+        $results['DIMENSIONS']['generatelink'] = ubl_check_datastreams_generate_link($object, 'DIMENSIONS');
       }
     }
   }
