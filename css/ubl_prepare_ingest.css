@@ -50,13 +50,17 @@ fieldset .fieldset-wrapper {
 fieldset .fieldset-wrapper .fields {
   float:left;
   min-height: 140px;
+  max-width: 80%;
 }
 fieldset .fieldset-wrapper .buttons  {
   float:right;
   width:150px;
+  max-width: 20%;
 }
 fieldset .fieldset-wrapper .buttons > INPUT  {
   width:145px;
+  float:right;
+  clear:both;
 }
 
 /* check data table */
