@@ -1194,7 +1194,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
         }
       } 
       elseif ($config['filter_type'] === 'matches') {
-        if (!(array_key_exists('filter_value', $config) && (@preg_match($config['filter_value'], "XXX") === false))) {
+        if (!(array_key_exists('filter_value', $config) && (@preg_match($config['filter_value'], "XXX") !== FALSE))) {
           $results[] = array('text' => t("Filter with type 'matches' should have a regular expression, but has '@value'.",
                              array('@value' => $config['filter_value'])), 'type' => 'argument_error');
         }
@@ -1488,7 +1488,7 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
  * end_filter
  **/
 function label_end_filter(array $info, array $config) {
-  return t('End filter');
+  return t('End filter.');
 }
 
 function work_end_filter(array $info, array $config, &$data, &$context, $extent) {

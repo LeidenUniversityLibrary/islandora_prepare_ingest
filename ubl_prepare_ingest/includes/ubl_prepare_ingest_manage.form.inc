@@ -212,7 +212,7 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
     ));
   }
   else {
-    $workflowid = ubl_prepare_ingest_insert_workflow($name, $description);  
+    $workflowid = ubl_prepare_ingest_insert_workflow($name, $description, $type);  
     $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflowid;
   }
   $updates = array();
@@ -293,11 +293,11 @@ function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_s
   $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['workflowdata'] = $workflowdata; 
   if (ubl_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
-    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => TRUE));
+    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
     $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/check/' . $workflowid;
   }
   else {
-    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => FALSE));
+    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
   }
 }
 
