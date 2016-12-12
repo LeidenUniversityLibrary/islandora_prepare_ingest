@@ -1721,14 +1721,11 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
 
     $importdirectory = $config['filepath'];
-    $bookrequiredmime2ds = array();
-    $bookoptionalmime2ds = array(
-      'application/xml'  => 'MODS',
-      'text/xml'         => 'MODS',
-      'image/jpeg'       => 'TN',
-      'image/png'        => 'TN',
-      'image/gif'        => 'TN',
-      'application/pdf'  => 'PDF',
+    $bookrequiredds2mimes = array();
+    $bookoptionalds2mimes = array(
+      'MODS' => array('application/xml', 'text/xml'),
+      'TN'   => array('image/jpeg', 'image/png', 'image/gif'),
+      'PDF'  => array('application/pdf'),
     );
     
     /* this does not work (yet)
@@ -1747,20 +1744,17 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
       }
     }
     */
-    $pagerequiredmime2ds = array(
-      'image/tiff' => 'OBJ',
-      'image/jpeg' => 'OBJ',
-      'image/jp2'  => 'OBJ',
+    $pagerequiredds2mimes = array(
+      'OBJ' => array('image/tiff', 'image/jpeg', 'image/jp2'),
     );
-    $pageoptionalmime2ds = array(
-      'application/xml' => 'MODS',
-      'text/xml' => 'MODS',
-      'image/jp2' => 'JP2',
-      'image/jpeg' => 'JPG',
-      'image/png' => 'TN',
-      'image/gif' => 'TN',
-      'text/plain' => 'OCR',
-      'text/html' => 'HOCR',
+    $pageoptionalds2mimes = array(
+      'MODS'  => array('application/xml', 'text/xml'),
+      'JP2'   => array('image/jp2'),
+      'JPG'   => array('image/jpeg'),
+      'TN'    => array('image/png', 'image/gif', 'image/jpeg'),
+      'OCR'   => array('text/plain'),
+      'HOCR'  => array('text/html', 'application/xml', 'text/xml', 'application/xhtml+xml'),
+      'ALTO'  => array('application/xml', 'text/xml'),
     );
     /* this does not wrok (yet)
     $pagemodels = array("islandora:pageCModel");
@@ -1804,45 +1798,47 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
         if (count($relpathparts) == 2) {
           // book
           $allowedfile = FALSE;
-          $mime = $mime_detect->getMimetype($filename);
-          $name = $relpathparts[1];
-          if (array_key_exists($mime, $bookrequiredmime2ds)) {
-            $dsid = $bookrequiredmime2ds[$mime];
-            if (substr($name, 0, strlen($dsid)) === $dsid) {
+          $name = pathinfo($filename, PATHINFO_FILENAME);
+          if (array_key_exists($name, $bookrequiredds2mimes)) {
+            $mime = $mime_detect->getMimetype($filename);
+            if (in_array($mime, $bookrequiredds2mimes[$name])) {
               $allowedfile = TRUE;
-            } 
+            }
           }
-          elseif (array_key_exists($mime, $bookoptionalmime2ds)) {
-            $dsid = $bookoptionalmime2ds[$mime];
-            if (substr($name, 0, strlen($dsid)) === $dsid) {
+          if (array_key_exists($name, $bookoptionalds2mimes)) {
+            $mime = $mime_detect->getMimetype($filename);
+            if (in_array($mime, $bookoptionalds2mimes[$name])) {
               $allowedfile = TRUE;
-            } 
+            }
           }
           if (!$allowedfile) {
-	    $results[] = array('text' => t("File '@file' found that should not be there", array('@file' => $filename)), 'type' => 'validate_error');
+	    $results[] = array('text' => t("File '@file' of mime '@mime' found that should not be there", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_error');
           }
         }
         elseif (count($relpathparts) == 3) {
           // page
           $allowedfile = FALSE;
-          $mime = $mime_detect->getMimetype($filename);
-          $pagenr = $relpathparts[1];
-          $name = $relpathparts[2];
-          if (array_key_exists($mime, $pagerequiredmime2ds)) {
-            $dsid = $pagerequiredmime2ds[$mime];
-            if ((substr($name, 0, strlen($dsid)) === $dsid) && (substr($name, strlen($dsid), 1) === '.')) {
+          $name = pathinfo($filename, PATHINFO_FILENAME);
+          $mime = '';
+          if (array_key_exists($name, $pagerequiredds2mimes)) {
+            $mime = $mime_detect->getMimetype($filename);
+            if (in_array($mime, $pagerequiredds2mimes[$name])) {
               $allowedfile = TRUE;
-              $booksarray[$bookname][$pagenr][$mime] = $filename; 
+              $booksarray[$bookname][$pagenr][$name] = $filename; 
             }
           }
-          elseif (array_key_exists($mime, $pageoptionalmime2ds)) {
-            $dsid = $pageoptionalmime2ds[$mime];
-            if ((substr($name, 0, strlen($dsid)) === $dsid) && (substr($name, strlen($dsid), 1) === '.')) {
+          if (array_key_exists($name, $pageoptionalds2mimes)) {
+            $mime = $mime_detect->getMimetype($filename);
+            if (in_array($mime, $pageoptionalds2mimes[$name])) {
               $allowedfile = TRUE;
+              $booksarray[$bookname][$pagenr][$name] = $filename; 
             }
           }
           if (!$allowedfile) {
-            $results[] = array('text' => t("File '@file' found that should not be there", array('@file' => $filename)), 'type' => 'validate_error');
+            if (!$mime) {
+              $mime = $mime_detect->getMimetype($filename);
+            }
+            $results[] = array('text' => t("File '@file' of mime '@mime' found that should not be there", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_error');
           }
         }
         else {
@@ -1854,19 +1850,18 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
     $stats = array();
     $pagecount = 0;
     foreach ($booksarray as $book => $pages) {
-      foreach ($pages as $page => $mime2file) {
+      foreach ($pages as $page => $ds2file) {
         $pagecount++;
-        $founddsids = array_intersect_key($pagerequiredmime2ds, $mime2file);
-        $notfound = array_diff($pagerequiredmime2ds, $founddsids);
+        $notfound = array_diff_key($pagerequiredds2mimes, $ds2file);
         if (count($notfound) > 0) {
-	  $results[] = array('text' => t("Missing required datastream for page @page of book '@book'.", array('@page' => $page, '@book' => $book)), 'type' => 'validate_error');
+	  $results[] = array('text' => t("Missing required datastream @ds for page @page of book '@book'.", array('@ds' => key($notfound), '@page' => $page, '@book' => $book)), 'type' => 'validate_error');
           $isbookstructure = FALSE;
         }
-        foreach ($mime2file as $mime => $file) {
-          if (!array_key_exists($mime, $stats)) {
-            $stats[$mime] = 0;
+        foreach ($ds2file as $ds => $file) {
+          if (!array_key_exists($ds, $stats)) {
+            $stats[$ds] = 0;
           }
-          $stats[$mime]++;
+          $stats[$ds]++;
         }
       }
     }
