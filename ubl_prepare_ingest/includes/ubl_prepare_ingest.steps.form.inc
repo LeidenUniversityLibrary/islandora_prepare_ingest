@@ -151,14 +151,21 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
        }
        elseif ($argvalues['type'] === 'collection') {
          module_load_include('inc', 'islandora_solution_pack_collection', 'includes/utilities');
-         $map_options = function($o) {
-           return filter_xss($o['label']);
-         };
-         $options = array('' => t('Choose a collection'));
-         $options = array_merge($options, array_map($map_options, islandora_basic_collection_get_collections()));
-   
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
+         $collections = islandora_basic_collection_get_collections();
+         if (count($collections) < 100) {
+           $map_options = function($o) {
+             return filter_xss($o['label']);
+           };
+           $options = array('' => t('Choose a collection'));
+           $options = array_merge($options, array_map($map_options, islandora_basic_collection_get_collections()));
+  
+           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
+         }
+         else {
+           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
+           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+         }
        }
        else {
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
