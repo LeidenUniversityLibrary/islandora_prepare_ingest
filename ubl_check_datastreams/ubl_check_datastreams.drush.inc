@@ -52,28 +52,28 @@ function drush_ubl_check_datastreams_check_datastreams_validate() {
   if ($objecttype === 'collection') {
     $collection = islandora_object_load($objectid);
     if (!($collection && in_array('islandora:collectionCModel', $collection->models))) {
-      return drush_set_error("Identifier '$objectid' does not resolve to a collection"); 
+      return drush_set_error("Identifier '$objectid' does not resolve to a collection");
     }
   }
   elseif ($objecttype === 'book') {
     $book = islandora_object_load($objectid);
     if (!($book && in_array('islandora:bookCModel', $book->models))) {
-      return drush_set_error("Identifier '$objectid' does not resolve to a book"); 
+      return drush_set_error("Identifier '$objectid' does not resolve to a book");
     }
   }
   elseif ($objecttype === 'compound') {
     $compound = islandora_object_load($objectid);
     if (!($compound && in_array('islandora:compoundCModel', $compound->models))) {
-      return drush_set_error("Identifier '$objectid' does not resolve to a compound"); 
+      return drush_set_error("Identifier '$objectid' does not resolve to a compound");
     }
   }
   elseif ($objecttype === 'batch') {
     $itemids = islandora_batch_get_queued_items_for_set($objectid);
     if (!($itemids && count($itemids) > 0)) {
-      return drush_set_error("Identifier '$objectid' does not resolve to a batch set"); 
+      return drush_set_error("Identifier '$objectid' does not resolve to a batch set");
     }
   }
-  return TRUE; 
+  return TRUE;
 }
 
 /**
@@ -87,19 +87,19 @@ function drush_ubl_check_datastreams_check_datastreams() {
   if ($objecttype === 'collection') {
     $collection = islandora_object_load($objectid);
     if ($collection && in_array('islandora:collectionCModel', $collection->models)) {
-      $children = ubl_check_datastreams_get_all_children($collection);
+      ubl_check_datastreams_retrieve_all_children($collection, $children);
     }
   }
   elseif ($objecttype === 'book') {
     $book = islandora_object_load($objectid);
     if ($book && in_array('islandora:bookCModel', $book->models)) {
-      $children = ubl_check_datastreams_get_all_children($book);
+      ubl_check_datastreams_retrieve_all_children($book, $children);
     }
   }
   elseif ($objecttype === 'compound') {
     $compound = islandora_object_load($objectid);
     if ($compound && in_array('islandora:compoundCModel', $compound->models)) {
-      $children = ubl_check_datastreams_get_all_children($compound);
+      ubl_check_datastreams_retrieve_all_children($compound, $children);
     }
   }
   elseif ($objecttype === 'batch') {
@@ -119,7 +119,7 @@ function drush_ubl_check_datastreams_check_datastreams() {
       $result .= format_plural($total, '1 object with content model @cmodel', '@count objects with content model @cmodel', array('@cmodel' => $cmodel)) . "\n";
       $isgood = TRUE;
       foreach ($dsids as $dsid => $counts) {
-        $required = $counts['isrequired']?t('required'):t('optional');
+        $required = $counts['isrequired'] ? t('required') : t('optional');
         if ($counts['found'] < $counts['total']) {
           $result .= format_plural(($counts['total'] - $counts['found']), 'Missing 1 @required @type datastream', 'Missing @count @required @type datastreams', array('@required' => $required, '@type' => $dsid)) . "\n";
           $isgood = FALSE;
@@ -146,13 +146,13 @@ function drush_ubl_check_datastreams_missing_datastreams_report_validate() {
   }
   $cmodel = drush_get_option('cmodel');
   $dsid = drush_get_option('dsid');
-  
+
   if ($cmodel === NULL || strlen($cmodel) == 0) {
-    return drush_set_error("cmodel should be a valid cmodel"); 
-  } 
+    return drush_set_error("cmodel should be a valid cmodel");
+  }
   if ($dsid === NULL || strlen($dsid) == 0) {
-    return drush_set_error("dsid should be a valid datastream ID"); 
-  } 
+    return drush_set_error("dsid should be a valid datastream ID");
+  }
   return TRUE;
 }
 

@@ -1,10 +1,9 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
 
 /**
  * @file
- * The forms for checking children of a book, collection or batch and for generating missing datastreams per object
+ * The forms for checking children of a book, collection or batch and for
+ * generating missing datastreams per object
  */
 
 module_load_include('inc', 'islandora', 'includes/utilities');
@@ -15,7 +14,7 @@ module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastre
 
 
 /**
- * The form for generating a datastream of an object
+ * The form for generating a datastream of an object.
  *
  * @param array $form
  *   The Drupal form definition.
@@ -46,6 +45,14 @@ function ubl_check_datastreams_generate_form(array $form, array &$form_state, $o
   return $form;
 }
 
+/**
+ * The form submit for generating a datastream of an object.
+ *
+ * @param array $form
+ *   The Drupal form definition.
+ * @param array $form_state
+ *   The Drupal form state.
+ */
 function ubl_check_datastreams_generate_form_submit(array $form, array &$form_state) {
   $objectid = $form_state['values']['objectid'];
   $dsid = $form_state['values']['dsid'];
@@ -54,47 +61,47 @@ function ubl_check_datastreams_generate_form_submit(array $form, array &$form_st
   if ($object) {
     if ($dsid === 'JPG') {
       if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
-	islandora_large_image_create_jpg_derivative($object, FALSE);
+        islandora_large_image_create_jpg_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'JP2') {
       if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
-	islandora_large_image_create_jp2_derivative($object, FALSE);
+        islandora_large_image_create_jp2_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'TN') {
       if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
-	islandora_large_image_create_tn_derivative($object, FALSE);
+        islandora_large_image_create_tn_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'PDF') {
       if (module_load_include('inc', 'islandora_solution_pack_pdf', 'includes/derivatives') !== FALSE) {
-	islandora_pdf_add_pdfa_derivative($object, FALSE);
+        islandora_pdf_add_pdfa_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'OCR') {
       if (module_load_include('inc', 'islandora_ocr', 'includes/derivatives') !== FALSE) {
-	islandora_ocr_derive_ocr($object, FALSE);
+        islandora_ocr_derive_ocr($object, FALSE);
       }
     }
     elseif ($dsid === 'HOCR') {
       if (module_load_include('inc', 'islandora_ocr', 'includes/derivatives') !== FALSE) {
-	islandora_ocr_derive_hocr($object, FALSE);
+        islandora_ocr_derive_hocr($object, FALSE);
       }
     }
     elseif ($dsid === 'HDL') {
       if (module_load_include('inc', 'islandora_handle', 'includes/derivatives') !== FALSE) {
-	$result = islandora_handle_append_handles_from_configuration($object);
-	if (isset($result) && $result['success'] === TRUE) {
-	  islandora_handle_add_to_dc_datastream($object);
-	}
+        $result = islandora_handle_append_handles_from_configuration($object);
+        if (isset($result) && $result['success'] === TRUE) {
+          islandora_handle_add_to_dc_datastream($object);
+        }
       }
     }
     elseif ($dsid === 'DIMENSIONS') {
       if ($object['JP2']) {
-	if (module_load_include('inc', 'islandora_paged_content', 'includes/utilities') !== FALSE) {
-	  islandora_paged_content_add_dimensions_relationships($object);
-	}
+        if (module_load_include('inc', 'islandora_paged_content', 'includes/utilities') !== FALSE) {
+          islandora_paged_content_add_dimensions_relationships($object);
+        }
       }
     }
   }
@@ -109,7 +116,7 @@ function ubl_check_datastreams_generate_form_submit(array $form, array &$form_st
   $form_state['redirect'] = 'islandora/object/' . $objectid . '/manage/datastreams';
 }
 /**
- * The form for checking the children of a book, collection or batch
+ * The form for checking the children of a book, collection or batch.
  *
  * @param array $form
  *   The Drupal form definition.
@@ -129,12 +136,12 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
     '#type' => 'select',
     '#title' => t('Type'),
     '#options' => array(
-           '' => t('Choose value'),
-           'collection' => t('Collection'),
-           'book' => t('Book'),
-           'compound' => t('Compound'),
-           'batch' => t('Batch set'),
-         ),
+      '' => t('Choose value'),
+      'collection' => t('Collection'),
+      'book' => t('Book'),
+      'compound' => t('Compound'),
+      'batch' => t('Batch set'),
+    ),
     '#default_value' => $objecttype,
   );
   $form['selection']['identifier'] = array(
@@ -153,20 +160,20 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
   if ($objecttype === 'collection') {
     $collection = islandora_object_load($objectid);
     if ($collection && in_array('islandora:collectionCModel', $collection->models)) {
-      $children = ubl_check_datastreams_get_all_children($collection);
-    } 
+      ubl_check_datastreams_retrieve_all_children($collection, $children);
+    }
   }
   elseif ($objecttype === 'book') {
     $book = islandora_object_load($objectid);
     if ($book && in_array('islandora:bookCModel', $book->models)) {
-      $children = ubl_check_datastreams_get_all_children($book);
-    } 
+      ubl_check_datastreams_retrieve_all_children($book, $children);
+    }
   }
   elseif ($objecttype === 'compound') {
     $compound = islandora_object_load($objectid);
     if ($compound && in_array('islandora:compoundCModel', $compound->models)) {
-      $children = ubl_check_datastreams_get_all_children($compound);
-    } 
+      ubl_check_datastreams_retrieve_all_children($compound, $children);
+    }
   }
   elseif ($objecttype === 'batch') {
     $children = array();
@@ -182,31 +189,36 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
       $vdsids = array_values($dsids);
       $total = $vdsids[0]['total'];
       $form[$cmodel] = array(
-	'#title' => format_plural($total, '1 object with content model @cmodel', '@count objects with content model @cmodel', array('@cmodel' => $cmodel)),
-	'#type' => 'fieldset',
-	'#collapsible' => FALSE,
-	'#collapsed' => FALSE,
+        '#title' => format_plural($total, '1 object with content model @cmodel', '@count objects with content model @cmodel', array('@cmodel' => $cmodel)),
+        '#type' => 'fieldset',
+        '#collapsible' => FALSE,
+        '#collapsed' => FALSE,
       );
       $options = array();
       foreach ($dsids as $dsid => $counts) {
         $remarks = '-';
-        $required = $counts['isrequired']?t('required'):t('optional');
+        $required = $counts['isrequired'] ? t('required') : t('optional');
         if ($counts['found'] < $counts['total']) {
           $remarks = format_plural(($counts['total'] - $counts['found']), 'Missing 1 @required @type datastream', 'Missing @count @required @type datastreams', array('@required' => $required, '@type' => $dsid));
         }
         $key = $cmodel . '//' . $dsid;
-        $options[$key] = array('dsid' => $dsid, 'required' => $required, 'found' => $counts['found'], 'remarks' => $remarks);
+        $options[$key] = array(
+          'dsid' => $dsid,
+          'required' => $required,
+          'found' => $counts['found'],
+          'remarks' => $remarks,
+        );
       }
       $form[$cmodel]['table'] = array(
-	'#type' => 'tableselect',
-	'#header' => array(
-	  'dsid' => t('ID'),
-	  'required' => t('Required'),
-	  'found' => t('Found'),
-	  'remarks' => t('Remarks'),
-	),
-	'#options' => $options,
-	'#empty' => t('No data available.'),
+        '#type' => 'tableselect',
+        '#header' => array(
+          'dsid' => t('ID'),
+          'required' => t('Required'),
+          'found' => t('Found'),
+          'remarks' => t('Remarks'),
+        ),
+        '#options' => $options,
+        '#empty' => t('No data available.'),
         '#validated' => TRUE,
       );
     }
@@ -219,6 +231,9 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
   return $form;
 }
 
+/**
+ * The form submit for checking the children of a book, collection or batch.
+ */
 function ubl_check_datastreams_children_form_submit(array $form, array &$form_state) {
   if ($form_state['clicked_button']['#id'] === 'filter') {
     $type = $form_state['values']['type'];

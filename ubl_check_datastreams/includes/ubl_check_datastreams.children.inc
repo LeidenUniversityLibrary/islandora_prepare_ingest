@@ -1,6 +1,4 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
 
 /**
  * @file
@@ -13,18 +11,19 @@ module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
 module_load_include('inc', 'islandora_batch', 'includes/db');
 
 
-function ubl_check_datastreams_get_all_children($parent) {
-  $children = array();
+/**
+ * Function that retrieves an associative array of all children of the parent.
+ */
+function ubl_check_datastreams_retrieve_all_children($parent, &$children) {
   if ($parent &&  in_array('islandora:collectionCModel', $parent->models)) {
     list($count, $colobjs) = islandora_basic_collection_get_member_objects($parent, -1, -1);
     foreach ($colobjs as $colobj) {
       $cid = $colobj['object']['value'];
-      $obj = islandora_object_load($cid);
-      if ($obj) {
-	$children[$cid] = $obj;
-        $otherchildren = ubl_check_datastreams_get_all_children($obj);
-        if (count($otherchildren) > 0) {
-          $children = array_merge($children, $otherchildren);
+      if (!isset($children[$cid])) {
+	$obj = islandora_object_load($cid);
+	if ($obj) {
+	  $children[$cid] = $obj;
+	  ubl_check_datastreams_retrieve_all_children($obj, $children);
         }
       }
     }
@@ -32,12 +31,11 @@ function ubl_check_datastreams_get_all_children($parent) {
   if ($parent &&  in_array('islandora:compoundCModel', $parent->models)) {
     $compoundparts = islandora_compound_object_get_parts($parent->id);
     foreach ($compoundparts as $partpid) {
-      $obj = islandora_object_load($partpid);
-      if ($obj) {
-        $children[$partpid] = $obj;
-        $otherchildren = ubl_check_datastreams_get_all_children($obj);
-        if (count($otherchildren) > 0) {
-          $children = array_merge($children, $otherchildren);
+      if (!isset($children[$partpid])) {
+	$obj = islandora_object_load($partpid);
+	if ($obj) {
+	  $children[$partpid] = $obj;
+	  ubl_check_datastreams_retrieve_all_children($obj, $children);
         }
       }
     }
@@ -45,13 +43,18 @@ function ubl_check_datastreams_get_all_children($parent) {
   if ($parent &&  in_array('islandora:bookCModel', $parent->models)) {
     $pages = islandora_paged_content_get_pages($parent);
     foreach ($pages as $pagepid => $pageinfo) {
-      $obj = islandora_object_load($pagepid);
-      $children[$pagepid] = $obj; 
+      if (!isset($children[$pagepid])) {
+	$obj = islandora_object_load($pagepid);
+	$children[$pagepid] = $obj;
+      }
     }
   }
   return $children;
 }
 
+/**
+ * Function that returns an associative array by cmodel, dsid and count.
+ */
 function ubl_check_datastreams_dsids_by_cmodel($children) {
   $dsidsbycmodel = array();
   foreach ($children as $child) {
@@ -81,6 +84,9 @@ function ubl_check_datastreams_dsids_by_cmodel($children) {
   return $dsidsbycmodel;
 }
 
+/**
+ * Function that returns a CSV formatted string of islandora IDs and DSIDs.
+ */
 function ubl_check_datastreams_make_csv_content($objectid, $objecttype, $cmodel2dsids) {
   $csv = '';
   if ($objecttype === 'batch') {
@@ -92,24 +98,28 @@ function ubl_check_datastreams_make_csv_content($objectid, $objecttype, $cmodel2
   }
   else {
     $parent = islandora_object_load($objectid);
-    $children = ubl_check_datastreams_get_all_children($parent);
+    $children = array();
+    ubl_check_datastreams_retrieve_all_children($parent, $children);
   }
   foreach ($children as $child) {
     foreach ($cmodel2dsids as $filtercmodel => $dsids) {
       foreach ($dsids as $filterdsid) {
-	$info = ubl_check_datastreams_datastream_property_info($child);
-	if (!(isset($info[$filterdsid]['isavailable']) && $info[$filterdsid]['isavailable'])) {
-	  $cmodels = ubl_check_datastreams_get_cmodel_string($child);
-	  if ($filtercmodel === $cmodels) {
-	    $csv .= $child->id . ";" . $filterdsid . ";\n";
-	  }
-	}
+        $info = ubl_check_datastreams_datastream_property_info($child);
+        if (!(isset($info[$filterdsid]['isavailable']) && $info[$filterdsid]['isavailable'])) {
+          $cmodels = ubl_check_datastreams_get_cmodel_string($child);
+          if ($filtercmodel === $cmodels) {
+            $csv .= $child->id . ";" . $filterdsid . ";\n";
+          }
+        }
       }
     }
   }
   return $csv;
 }
 
+/**
+ * Helper function to get the cmodels as a string.
+ */
 function ubl_check_datastreams_get_cmodel_string($object) {
   $cmodels = implode(',', $object->models);
   $cmodels = str_replace(',fedora-system:FedoraObject-3.0', '', $cmodels);
