@@ -42,7 +42,11 @@ function ubl_check_datastreams_menu() {
       'title' => 'Check datastreams of batch',
       'type' => MENU_LOCAL_ACTION,
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_check_datastreams_children_form', 3, 'batch'),
+      'page arguments' => array(
+        'ubl_check_datastreams_children_form',
+        3,
+        'batch',
+      ),
       'file' => 'includes/ubl_check_datastreams.form.inc',
       'access arguments' => array(UBL_CHECK_DATASTREAMS_CHILDREN),
     ),
@@ -50,7 +54,11 @@ function ubl_check_datastreams_menu() {
       'title' => 'Check datastreams of batch',
       'type' => MENU_LOCAL_ACTION,
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_check_datastreams_children_form', 3, 'batch'),
+      'page arguments' => array(
+        'ubl_check_datastreams_children_form',
+        3,
+        'batch',
+      ),
       'file' => 'includes/ubl_check_datastreams.form.inc',
       'access arguments' => array(UBL_CHECK_DATASTREAMS_CHILDREN),
     ),
@@ -79,8 +87,8 @@ function ubl_check_datastreams_permission() {
 function ubl_check_datastreams_theme_registry_alter(&$theme_registry) {
   $module_path = drupal_get_path('module', 'ubl_check_datastreams');
   $templatepath = $module_path . '/theme';
-  $theme_registry['islandora_default_edit']['template'] = 'ubl-object-edit'; 
-  $theme_registry['islandora_default_edit']['path'] = $templatepath; 
+  $theme_registry['islandora_default_edit']['template'] = 'ubl-object-edit';
+  $theme_registry['islandora_default_edit']['path'] = $templatepath;
 }
 
 /**
@@ -96,20 +104,20 @@ function ubl_check_datastreams_preprocess_islandora_default_edit(array &$variabl
     if (!$dsinfo['isavailable']) {
       $row = array();
       $row[] = array(
-	'class' => 'datastream-id',
-	'data' => $dsid,
+        'class' => 'datastream-id',
+        'data' => $dsid,
       );
       $row[] = array(
-	'class' => 'datastream-required',
-	'data' => $dsinfo['isrequired']?t('required'):t('optional'),
+        'class' => 'datastream-required',
+        'data' => $dsinfo['isrequired'] ? t('required') : t('optional'),
       );
       $row[] = array(
-	'class' => 'datastream-remarks',
-	'data' => $dsinfo['isrequired']?t('Missing required datastream'):t('-'),
+        'class' => 'datastream-remarks',
+        'data' => $dsinfo['isrequired'] ? t('Missing required datastream') : t('-'),
       );
       $row[] = array(
-	'class' => 'datastream-operations',
-	'data' => ($dsinfo['isgeneratable'] && isset($dsinfo['generatelink']))?$dsinfo['generatelink']:'',
+        'class' => 'datastream-operations',
+        'data' => ($dsinfo['isgeneratable'] && isset($dsinfo['generatelink'])) ? $dsinfo['generatelink'] : '',
       );
       $rows[] = $row;
     }
@@ -146,6 +154,9 @@ function ubl_check_datastreams_preprocess_islandora_default_edit(array &$variabl
   }
 }
 
+/**
+ * Helper function to get the info about the properties of a datastream.
+ */
 function ubl_check_datastreams_datastream_property_info($object, $includelink = FALSE) {
   static $generatable = NULL;
   if (is_null($generatable)) {
@@ -182,7 +193,7 @@ function ubl_check_datastreams_datastream_property_info($object, $includelink = 
   }
   if (module_load_include('inc', 'islandora_handle', 'includes/handle') !== FALSE) {
     $handle_results = islandora_handle_retrieve_configurations_by_cmodels($object->models);
-    $results['HDL']['isavailable'] = islandora_handle_query_for_handle($object);  
+    $results['HDL']['isavailable'] = islandora_handle_query_for_handle($object);
     $results['HDL']['isrequired'] = (count($handle_results) > 0);
     if ($includelink) {
       $results['HDL']['isgeneratable'] = TRUE;
@@ -192,8 +203,8 @@ function ubl_check_datastreams_datastream_property_info($object, $includelink = 
   if (in_array('islandora:pageCModel', $object->models)) {
     if (module_load_include('inc', 'islandora_paged_content', 'includes/utilities') !== FALSE) {
       $hasjp2 = isset($object['JP2']);
-      $isavailable = $hasjp2 && $object['JP2']->relationships->get(ISLANDORA_RELS_EXT_URI, 'width'); 
-      $results['DIMENSIONS']['isavailable'] = $isavailable; 
+      $isavailable = $hasjp2 && $object['JP2']->relationships->get(ISLANDORA_RELS_EXT_URI, 'width');
+      $results['DIMENSIONS']['isavailable'] = $isavailable;
       $results['DIMENSIONS']['isrequired'] = TRUE;
       if ($includelink) {
         $results['DIMENSIONS']['isgeneratable'] = TRUE;
@@ -204,6 +215,9 @@ function ubl_check_datastreams_datastream_property_info($object, $includelink = 
   return $results;
 }
 
+/**
+ * Helper function for generating a link for regeneration of a datastream.
+ */
 function ubl_check_datastreams_generate_link($object, $dsid) {
   $url = '';
   $options = array();
@@ -251,8 +265,6 @@ function ubl_check_datastreams_generate_link($object, $dsid) {
 
   if (!$url && $cangenerate) {
     $url = 'admin/islandora/ubl_check_datastreams/object/' . $object->id . '/datastream/' . $dsid . '/generate';
-    //$options = array('query' => array('confirm' => 1));
- //voor boek: islandora_paged_content_update_paged_content_thumbnail($object)
   }
 
   if ($url) {
