@@ -4,8 +4,6 @@
  * Functions for checking datastreams via drush.
  */
 
-module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
-
 /**
  * Implements hook_drush_command().
  */
@@ -43,6 +41,8 @@ function ubl_check_datastreams_drush_command() {
  * Implements drush_hook_COMMAND_validate().
  */
 function drush_ubl_check_datastreams_check_datastreams_validate() {
+  module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
+
   $objectid = drush_get_option('objectid');
   $objecttype = drush_get_option('objecttype');
 
@@ -80,6 +80,8 @@ function drush_ubl_check_datastreams_check_datastreams_validate() {
  * Implements drush_hook_COMMAND().
  */
 function drush_ubl_check_datastreams_check_datastreams() {
+  module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
+
   $objectid = drush_get_option('objectid');
   $objecttype = drush_get_option('objecttype');
 
@@ -160,6 +162,8 @@ function drush_ubl_check_datastreams_missing_datastreams_report_validate() {
  * Implements drush_hook_COMMAND().
  */
 function drush_ubl_check_datastreams_missing_datastreams_report() {
+  module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
+
   $objectid = drush_get_option('objectid');
   $objecttype = drush_get_option('objecttype');
   $cmodel = drush_get_option('cmodel');
