@@ -5,16 +5,16 @@
  * Function to retrieve the children and missing datastreams info
  */
 
-module_load_include('inc', 'islandora', 'includes/utilities');
-module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
-module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
-module_load_include('inc', 'islandora_batch', 'includes/db');
-
 
 /**
  * Function that retrieves an associative array of all children of the parent.
  */
 function ubl_check_datastreams_retrieve_all_children($parent, &$children) {
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
+  module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+  module_load_include('inc', 'islandora_batch', 'includes/db');
+
   if ($parent &&  in_array('islandora:collectionCModel', $parent->models)) {
     list($count, $colobjs) = islandora_basic_collection_get_member_objects($parent, -1, -1);
     foreach ($colobjs as $colobj) {
@@ -93,7 +93,10 @@ function ubl_check_datastreams_make_csv_content($objectid, $objecttype, $cmodel2
     $children = array();
     $itemids = islandora_batch_get_queued_items_for_set($objectid);
     foreach ($itemids as $itemid) {
-      $children[$itemid] = islandora_object_load($itemid);
+      $obj = islandora_object_load($itemid);
+      if ($obj) {
+        $children[$itemid] = $obj;
+      }
     }
   }
   else {

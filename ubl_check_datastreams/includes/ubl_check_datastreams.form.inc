@@ -6,13 +6,6 @@
  * generating missing datastreams per object
  */
 
-module_load_include('inc', 'islandora', 'includes/utilities');
-module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
-module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
-module_load_include('inc', 'islandora_batch', 'includes/db');
-module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
-
-
 /**
  * The form for generating a datastream of an object.
  *
@@ -115,6 +108,7 @@ function ubl_check_datastreams_generate_form_submit(array $form, array &$form_st
 
   $form_state['redirect'] = 'islandora/object/' . $objectid . '/manage/datastreams';
 }
+
 /**
  * The form for checking the children of a book, collection or batch.
  *
@@ -124,6 +118,12 @@ function ubl_check_datastreams_generate_form_submit(array $form, array &$form_st
  *   The Drupal form state.
  */
 function ubl_check_datastreams_children_form(array $form, array &$form_state, $objectid = FALSE, $objecttype = FALSE) {
+  module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
+  module_load_include('inc', 'islandora_batch', 'includes/db');
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
+  module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+
   $form = array();
 
   $form['selection'] = array(
@@ -179,7 +179,10 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
     $children = array();
     $itemids = islandora_batch_get_queued_items_for_set($objectid);
     foreach ($itemids as $itemid) {
-      $children[$itemid] = islandora_object_load($itemid);
+      $obj = islandora_object_load($itemid);
+      if ($obj) {
+        $children[$itemid] = $obj;
+      }
     }
   }
 
@@ -260,7 +263,8 @@ function ubl_check_datastreams_children_form_submit(array $form, array &$form_st
       $objecttype = $form_state['values']['type'];
       $objectid = $form_state['values']['identifier'];
       $csv = ubl_check_datastreams_make_csv_content($objectid, $objecttype, $cmodel2dsids);
-      $file = file_save_data($csv, "temporary://missing.csv", FILE_EXISTS_RENAME);
+      $filepath = "temporary://missing.csv";
+      $file = file_save_data($csv, $filepath, FILE_EXISTS_REPLACE);
       $headers = array(
         'Content-Type' => 'text/csv',
         'Content-Disposition' => 'attachment; filename="' . $file->filename . '"',
@@ -276,6 +280,8 @@ function ubl_check_datastreams_children_form_submit(array $form, array &$form_st
       }
 
       file_transfer($file->uri, $headers);
+  
+      file_delete($filepath);
     }
   }
 }
