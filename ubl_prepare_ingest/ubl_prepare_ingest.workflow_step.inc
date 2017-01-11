@@ -1484,6 +1484,17 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
   return FALSE;
 }
 
+function get_output_keys_read_csv_file(array $info, array $config) {
+  if (array_key_exists('column_keys', $config) && strlen($config['column_keys']) > 0) {
+    $columnkeys = $config['column_keys'];
+    $outputkeys = explode(';', $columnkeys);
+    if (count($outputkeys) > 0) {
+      return $outputkeys;
+    }
+  }
+  return array();
+}
+
 /**
  * end_filter
  **/
