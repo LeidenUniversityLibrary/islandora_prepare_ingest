@@ -460,7 +460,7 @@ function check_arguments(array $info, array $config, $extent) {
   $results = array();
   $outputkeys = array();
   if (array_key_exists('output keys callback', $info)) {
-    $outputkeys = $info['output keys callback']();
+    $outputkeys = $info['output keys callback']($info, $config);
   }
   elseif (array_key_exists('output keys', $info)) {
     $outputkeys = $info['output keys'];
