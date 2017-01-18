@@ -1,0 +1,6 @@
+name = Islandora Export
+description = Exports Islandora content via a drush command
+package = UBL
+version = "7.x-1.x-dev"
+core = "7.x"
+
