@@ -101,7 +101,7 @@ function ubl_prepare_ingest_active_workflow_form(array $form, array &$form_state
     '#value' => $workflowid,
   );
 
-  if ($action === 'edit') {
+  if ($action === 'activeedit') {
     # name, description
     $form['workflowinfo'] = array(
       '#title' => t('Workflow'),
@@ -165,7 +165,7 @@ function ubl_prepare_ingest_active_workflow_form(array $form, array &$form_state
     $form['back'] = array(
       '#type' => 'submit',
       '#value' => t('Back'),
-      '#submit' => array('ubl_prepare_ingest_active_workflow_form_back'),
+      '#submit' => array('ubl_prepare_ingest_active_workflow_form_back_dryrun'),
     );
   }
 
@@ -228,6 +228,13 @@ function ubl_prepare_ingest_active_workflow_form_back(array $form, array &$form_
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
   $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/active_workflows';
+}
+
+function ubl_prepare_ingest_active_workflow_form_back_dryrun(array $form, array &$form_state) {
+  unset($_SESSION['workflowresults']);
+  unset($_SESSION['workflowdata']);
+  $workflowid = $form_state['values']['workflowid'];
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/active_workflow/' . $workflowid . '/edit';
 }
 
 function ubl_prepare_ingest_prepare_delete_selected_workflows(array $form, array &$form_state) {

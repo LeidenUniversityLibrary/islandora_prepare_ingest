@@ -34,7 +34,7 @@ function ubl_prepare_ingest_menu() {
     'admin/islandora/ubl_prepare_ingest/active_workflow/%/edit' => array(
       'title' => 'Active workflows',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_active_workflow_form', 4, 'edit'),
+      'page arguments' => array('ubl_prepare_ingest_active_workflow_form', 4, 'activeedit'),
       'file' => 'includes/ubl_prepare_ingest_active_workflows.form.inc',
       'access arguments' => array(UBL_PREPARE_INGEST_PREPARE),
       'type' => MENU_NORMAL_ITEM,

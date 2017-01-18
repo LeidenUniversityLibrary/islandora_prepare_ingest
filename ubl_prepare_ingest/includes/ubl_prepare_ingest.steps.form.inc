@@ -21,7 +21,8 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
   $ischecking = ($type === 'check');
   $istesting = ($type === 'test');
   $canmovesteps = ($type === 'edit');
-  $canchangeconfig = ($type === 'edit' || $type === 'check' || $type === 'test');
+  $canchangeconfig = ($type === 'edit' || $type === 'activeedit' || $type === 'check' || $type === 'test');
+  $isactiveedit = ($type === 'activeedit');
   $isdryrun = ($type === 'dryrun');
 
   $form = array();
@@ -123,6 +124,11 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	   continue; // skip filled in arguments when testing or checking
 	 }
 	 $showcontent = TRUE;
+       }
+       if ($isactiveedit) {
+	 if (strlen($value) == 0) {
+           $showcontent = TRUE;
+         }
        }
        $title = $argvalues['label'];
        if ($istesting || $ischecking) {
