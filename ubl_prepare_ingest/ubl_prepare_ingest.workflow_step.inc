@@ -156,7 +156,7 @@ function ubl_prepare_ingest_workflow_step_info() {
       'target_keys_template' => array(
 	'label' => t('Target keys template'),
 	'description' => t('Template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}'),
-	'type' => 'template',
+	'type' => 'keystemplate',
       ),
     ),
     'input keys' => array('source_key_name'),

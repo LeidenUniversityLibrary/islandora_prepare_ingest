@@ -89,7 +89,7 @@ jQuery(document).ready(function() {
     var hasValue = [];
     if ($textfield.hasClass('input_key') || $textfield.hasClass('template')) {
       $menu.append('<DIV class="autosuggestmenuheader">Possible values:</DIV>');
-      $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys').each(function(i, element) {
+      $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys, .keystemplate').each(function(i, element) {
         var menuMaker = function(value) {
 	  if (value.length > 0 && !hasValue[value]) {
 	    $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="'+value+'">'+value+'</A></DIV>');
@@ -101,6 +101,13 @@ jQuery(document).ready(function() {
           var keys = outputvalue.split(";");
           for (var i=0; i<keys.length; i++) {
             menuMaker(keys[i]);
+          }
+        }
+        else if (jQuery(element).hasClass('keystemplate')) {
+          var re = /[^{]*{([^}]+)}/g;
+          var match;
+          while ((match = re.exec(outputvalue)) != null) {
+            menuMaker(match[1]);
           }
         }
         else {

@@ -150,7 +150,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $argvalues['options'];
        }
-       elseif ($argvalues['type'] === 'template' || $argvalues['type'] === 'text') {
+       elseif ($argvalues['type'] === 'template' || $argvalues['type'] === 'keystemplate' || $argvalues['type'] === 'text') {
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
