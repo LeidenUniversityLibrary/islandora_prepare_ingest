@@ -147,6 +147,54 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes keys' => TRUE,
     'changes files' => FALSE,
   );
+  $info['extract_keys_template'] = array(
+    'arguments' => array(
+      'source_key_name' => array(
+	'label' => t('Source key name'),
+	'type' => 'key',
+      ),
+      'target_keys_template' => array(
+	'label' => t('Target keys template'),
+	'description' => t('Template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}'),
+	'type' => 'template',
+      ),
+    ),
+    'input keys' => array('source_key_name'),
+    'output keys callback' => 'get_output_keys_extract_keys_template',
+    'changes count' => FALSE,
+    'changes keys' => TRUE,
+    'changes files' => FALSE,
+  );
+  $info['modify_key_value'] = array(
+    'arguments' => array(
+      'source_key_name' => array(
+	'label' => t('Source key name'),
+	'type' => 'key',
+      ),
+      'type' => array(
+	'label' => t('Type'),
+	'type' => 'select',
+	'options' => array(
+	  '' => t('-'),
+	  'uppercase' => t('uppercase'),
+	  'lowercase' => t('lowercase'),
+	  'removehyphen' => t('remove -'),
+	  'removeline' => t('remove - and _'),
+	  'removespaces' => t('remove spaces'),
+	  'replacehyphen' => t('replace - with space'),
+	  'replaceline' => t('replace - and _ with space'),
+	  'striptags' => t('strip tags'),
+	  'sha1' => t('SHA1 hash'),
+	  'trim' => t('trim spaces'),
+	),
+      ),
+    ),
+    'input keys' => array('source_key_name'),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => TRUE,
+    'changes files' => FALSE,
+  );
   $info['make_directory'] = array(
     'arguments' => array(
       'directory_key_name' => array(
@@ -410,6 +458,7 @@ function fill_data_for_check_input_keys_if_needed(array $info, array $config, ar
 function check_input_keys_in_data(array $info, array $config, array $data) {
   $results = array();
   $inputkeys = array();
+
   if (array_key_exists('input keys callback', $info)) {
     $inputkeys = $info['input keys callback']($info, $config);
     foreach ($inputkeys as $key) {
@@ -558,7 +607,7 @@ function check_arguments(array $info, array $config, $extent) {
       }
       else {
         if (in_array($argkey, $outputkeys) || ($extent & WORK_EXTENT_ONLY_CHECK_FOR_EMPTY_ARGUMENTS)) {
-          $results[] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'type' => 'argument_error');
+          $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'type' => 'argument_error');
         }
       }
     } 
@@ -573,7 +622,7 @@ function check_arguments(array $info, array $config, $extent) {
  * read_file_names
  **/
 function label_read_file_names(array $info, array $config) {
-  $title = t('Read file names');
+  $title = t('Add items by reading file names');
   if (array_key_exists('directory_path', $config) && strlen($config['directory_path']) > 0) {
     $title .= ' ' . t('from "@path"', array('@path' => $config['directory_path']));
   }
@@ -581,7 +630,7 @@ function label_read_file_names(array $info, array $config) {
     $title .= ' ' . t('filtered by "@filter"', array('@filter' => $config['filter']));
   }
   if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
-    $title .= ' ' . t('and insert as key "@key"', array('@key' => $config['target_key_name']));
+    $title .= ' ' . t('and insert item with key "@key"', array('@key' => $config['target_key_name']));
   }
   $title .= '.';
 
@@ -820,6 +869,215 @@ function work_add_key_counter(array $info, array $config, &$data, &$context, $ex
   }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
+  return FALSE;
+}
+
+/**
+* extract_keys_template
+**/
+function label_extract_keys_template(array $info, array $config) {
+  $title = t('Add key(s) using template');
+  if (array_key_exists('target_keys_template', $config) && strlen($config['target_keys_template']) > 0) {
+    $title .= ' ' . t('"@template"', array('@template' => $config['target_keys_template']));
+  }
+  if (array_key_exists('source_key_name', $config) && strlen($config['source_key_name']) > 0) {
+    $title .= ' ' . t('from value of key "@key"', array('@key' => $config['source_key_name']));
+  }
+  return $title;
+}
+
+function work_extract_keys_template(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    $sourcekey = $config['source_key_name'];
+    $targetkeystemplate = $config['target_keys_template'];
+    $outputkeys = get_output_keys_extract_keys_template($info, $config);
+    $templateregexp = preg_replace('/\\\{[a-zA-Z0-9_-]+\\\}/', '(.+)', preg_quote($targetkeystemplate, '/'));
+    foreach ($data as $current => $d) {
+      if (array_key_exists($sourcekey, $d)) {
+	$outputvalues = array();
+	if (preg_match('/' . $templateregexp . '/', $d[$sourcekey], $outputvalues)) {
+	  array_shift($outputvalues);
+	  $output = array_combine($outputkeys, $outputvalues);
+	  foreach ($output as $key => $value) {
+	    $data[$current][$key] = $value;
+	  }
+	}
+      }
+    }
+  }
+  fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
+
+  return FALSE;
+}
+
+function get_output_keys_extract_keys_template(array $info, array $config) {
+  if (array_key_exists('target_keys_template', $config) && strlen($config['target_keys_template']) > 0) {
+    $template = $config['target_keys_template'];
+    $outputkeys = array();
+    if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $outputkeys)) {
+      return array_unique($outputkeys[1]);
+    }
+  }
+  return array();
+}
+
+function label_modify_key_value(array $info, array $config) {
+  $title = '';
+
+  if (array_key_exists('type', $config) && strlen($config['type']) > 0) {
+    $type = $config['type'];
+
+    switch ($type) {
+      case 'uppercase':
+	$title = t('Uppercase');
+	break;
+      case 'lowercase':
+	$title = t('Lowercase');
+	break;
+      case 'removehyphen':
+	$title = t('Remove - from');
+	break;
+      case 'removeline':
+	$title = t('Remove - and _ from');
+	break;
+      case 'removespaces':
+	$title = t('Remove spaces from');
+	break;
+      case 'replacehyphen':
+	$title = t('Replace - with space in');
+	break;
+      case 'replaceline':
+	$title = t('Replace - and _ with space in');
+	break;
+      case 'striptags':
+	$title = t('Strip tags from');
+	break;
+      case 'sha1':
+	$title = t('SHA1 hash');
+	break;
+      case 'trim':
+	$title = t('Trim spaces of');
+	break;
+    }
+  }
+  else {
+    $title = t('Change');
+  }
+  if (array_key_exists('source_key_name', $config) && strlen($config['source_key_name']) > 0) {
+    $title .= ' ' . t('the value of key @key', array('@key' => $config['source_key_name']));
+  }
+  else {
+    $title .= ' ' . t('the value of a key');
+  }
+  return $title;
+}
+
+function work_modify_key_value(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    $sourcekey = $config['source_key_name'];
+    $targetkey = $sourcekey;
+    $type = $config['type'];
+
+    switch ($type) {
+      case 'uppercase':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = strtoupper($d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'lowercase':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = strtolower($d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'removehyphen':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = str_replace('-', '', $d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'removeline':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = str_replace(array('-', '_'), '', $d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'removespaces':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = str_replace(' ', '', $d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'replacehyphen':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = str_replace('-', ' ', $d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'replaceline':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = str_replace(array('-', '_'), ' ', $d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'striptags':
+	$title = t('Strip tags from');
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = strip_tags($d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'sha1':
+	$title = t('SHA1 hash');
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = sha1($d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'trim':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = trim($d[$sourcekey]);
+	  }
+	}
+	break;
+    }
+
+  }
   return FALSE;
 }
 
@@ -1106,7 +1364,8 @@ function work_group_items(array $info, array $config, &$data, &$context, $extent
       return $results;
     }
   }
-  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+  // do this for every other extent
+  if (isset($config['group_key_name'])) {
     $groupkey = $config['group_key_name'];
 
     $grouparray = array();
@@ -1125,7 +1384,6 @@ function work_group_items(array $info, array $config, &$data, &$context, $extent
       $data[] = $d;
     }
   }
-  fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
   return FALSE;
 }
@@ -1183,10 +1441,8 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
     $results = check_arguments($info, $config, $extent);
     if (array_key_exists('filter_type', $config) && strlen($config['filter_type']) > 0) {
       if ($config['filter_type'] === 'exists') {
-        if (array_key_exists('filter_value', $config) && strlen($config['filter_value']) > 0) {
-          $results[] = array('text' => t("Filter with type 'key exists' should not have a value, but has '@value'.",
-                    array('@value' => $config['filter_value'])), 'type' => 'argument_error');
-        }
+        // no check needed, filter_value does not matter.
+        unset($results['filter_value']);
       } 
       elseif ($config['filter_type'] === 'equals') {
         if (!(array_key_exists('filter_value', $config) && strlen($config['filter_value']) > 0)) {
@@ -1248,7 +1504,41 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
       'remove' => $remove,
     );
   }
-  fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
+
+  if (!(($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL))) {
+    $filterkey = $config['filter_key_name'];
+    $negate = $config['negate'];
+    
+    $keep = array();
+    $remove = array();
+    $newdata = array();
+    $newindex = 0;
+    foreach ($data as $current => $d) {
+      $shouldkeep = FALSE;
+      $shouldkeep = array_key_exists($filterkey, $d);
+      if ($negate) {
+        $shouldkeep = !$shouldkeep;
+      } 
+      if ($shouldkeep) {
+        $keep[$current] = $newindex;
+        $newdata[$newindex] = $d;
+        $newindex++;
+      }
+      else {
+        $remove[$current] = $d;
+      }
+    }
+    // Remove all items from the data array and replace by newdata
+    array_splice($data, 0, count($data), $newdata); 
+
+    if (!array_key_exists('_filters', $context)) {
+      $context['_filters'] = array();
+    }
+    $context['_filters'][] = array(
+      'keep' => $keep,
+      'remove' => $remove,
+    );
+  }
 
   return FALSE;
 }
@@ -1321,7 +1611,7 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
  * value_from_xml_dom
  **/
 function label_value_from_xml_dom(array $info, array $config) {
-  $title = t('Value from XML DOM');
+  $title = t('Add key from XML DOM');
   if (array_key_exists('source_dom_key_name', $config) && strlen($config['source_dom_key_name']) > 0) {
     $title .= ' ' . t('at key "@key"', array('@key' => $config['source_dom_key_name']));
   }
@@ -1415,7 +1705,7 @@ function work_value_from_xml_dom(array $info, array $config, &$data, &$context, 
  * read_csv_file
  **/
 function label_read_csv_file(array $info, array $config) {
-  $title = t('Read CSV file');
+  $title = t('Add items by reading CSV file');
   if (array_key_exists('csv_filepath', $config) && strlen($config['csv_filepath']) > 0) {
     $title .= ' ' . t('located at "@value"', array('@value' => $config['csv_filepath']));
   }
@@ -1453,17 +1743,17 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
       $linenr = 0;
       $delimit = "\t";
       if (($fh = fopen($csvfilepath, "r")) !== FALSE) {
-	while (($data = fgetcsv($fh, 0, $delimit)) !== FALSE) {
+	while (($csvdata = fgetcsv($fh, 0, $delimit)) !== FALSE) {
 	  $linenr++;
 	  if ($linenr == 1) {
 	    // Treat header special.
-	    if (count($data) == 1) {
+	    if (count($csvdata) == 1) {
 	      $delimit = ",";
-	      $data = str_getcsv($data[0], $delimit);
+	      $csvdata = str_getcsv($csvdata[0], $delimit);
 	    }
-	    if (count($data) == 1) {
+	    if (count($csvdata) == 1) {
 	      $delimit = ";";
-	      $data = str_getcsv($data[0], $delimit);
+	      $csvdata = str_getcsv($csvdata[0], $delimit);
 	    }
 	    if ($hasheader) {
 	      // This is a header, so skip it.
@@ -1472,7 +1762,12 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
 	  }
 	  $d = array();
 	  foreach ($columnkeys as $columnindex => $columnkey) {
-	    $d[$columnkey] = $data[$columnindex]; 
+            if (isset($csvdata[$columnindex])) {
+	      $d[$columnkey] = $csvdata[$columnindex]; 
+            }
+            else {
+	      $d[$columnkey] = ''; 
+            }
 	  }
 	  $data[] = $d;
 	}
@@ -1499,7 +1794,7 @@ function get_output_keys_read_csv_file(array $info, array $config) {
  * end_filter
  **/
 function label_end_filter(array $info, array $config) {
-  return t('End filter.');
+  return t('Filter: end.');
 }
 
 function work_end_filter(array $info, array $config, &$data, &$context, $extent) {
@@ -1516,7 +1811,8 @@ function work_end_filter(array $info, array $config, &$data, &$context, $extent)
       return $results;
     }
   }
-  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+  // do this for every other extent
+  if (TRUE) {
     if (!(array_key_exists('_filters', $context) && count($context['_filters']) > 0)) {
         $results[] = array('text' => t("No filter to end"), 'type' => 'run_error');
     }
@@ -1538,7 +1834,6 @@ function work_end_filter(array $info, array $config, &$data, &$context, $extent)
     // Any data that was added in the filter will remain.
     array_splice($data, 0, count($keep), $newdata);
   }
-  fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
   return FALSE;
 }

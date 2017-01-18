@@ -218,11 +218,17 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	$table .= '<th>' . $i . '</th>';
 	foreach ($header as $h) {
 	  $value = (array_key_exists($h, $row)?$row[$h]:'-');
-	  if (strlen($value) > 45) {
-	    $value = substr($value, 0, 20) . '...' . substr($value, -23);
+	  if (strlen($value) > 28) {
+	    $shortvalue = substr($value, 0, 13) . '...' . substr($value, -12);
+	    $shortvalue = check_plain($shortvalue);
+	    $value = check_plain($value);
+            $value = str_replace("\n", "<BR/>", $value);
+	    $table .= '<td><span class="upi_fullvalue">' . $value . '</span><span class="upi_shortvalue">' . $shortvalue . '</span></td>';
 	  }
-	  $value = check_plain($value);
-	  $table .= '<td>' . $value . '</td>';
+          else {
+	    $value = check_plain($value);
+	    $table .= '<td>' . $value . '</td>';
+          }
 	}
 	$table .= '</tr>';
       }
