@@ -130,10 +130,16 @@ jQuery(document).ready(function() {
     var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')}; 
     $menu.css(newPos);
     $menu.show(500);
+
+    setTimeout(function() {
+      var hidefunc = function() {
+        jQuery('#autosuggestmenu').hide(500);
+      };
+      jQuery('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
+      jQuery('BODY').one('click', hidefunc);
+    }, 500);
   };
   jQuery('INPUT, TEXTAREA').change(autosuggestfunc).focus(autosuggestfunc);
-  var hidefunc = function() { jQuery('#autosuggestmenu').hide(500) };
-  jQuery('SELECT, INPUT[type="submit"], BUTTON').focus(hidefunc).click(hidefunc);
 
   // check value of key field
   var checkvaluefunc = function($textfield, regexp) {
