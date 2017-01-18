@@ -133,6 +133,8 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
     foreach ($stepsinfo as $stepname => $stepinfo) {
       $options[$stepname] = ubl_prepare_ingest_label_for_step($stepname);
     }
+    asort($options);
+
     $form['steps']['add_step'] = array(
       '#type' => 'fieldset',
       '#collapsible' => FALSE,

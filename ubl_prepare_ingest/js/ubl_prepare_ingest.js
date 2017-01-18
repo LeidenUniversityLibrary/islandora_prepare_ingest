@@ -181,6 +181,15 @@ jQuery(document).ready(function() {
       }
     }
   });
+
+  // display full value
+  jQuery('.upi_shortvalue').click(function(e) {
+    e.stopPropagation();
+    jQuery(this).prev('.upi_fullvalue').css('display', 'block');
+  });
+  jQuery('.upi_fullvalue').click(function(e) {
+    jQuery(this).hide();
+  });
 });
 
 {
@@ -203,7 +212,7 @@ function swapElements($elem1, $elem2) {
   var betweenSize = elem2y - elem1y - elem1h;
   var displacement1 = elem2h + betweenSize;
   var displacement2 = elem1y - elem2y; 
-  var animtime = 800;
+  var animtime = 400;
   $elem1.animate({
     opacity: 0.8
   }, 100, function() {

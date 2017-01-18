@@ -77,6 +77,15 @@ fieldset .fieldset-wrapper .buttons > INPUT  {
   padding: 3px 10px;
 }
 
+/* short and full values */
+.upi_fullvalue {
+  display: none;
+  position: absolute;
+  background-color: white;
+  border: 1px solid gray;
+  padding: 0.5em; 
+}
+
 /* errors */
 .key_error, .config_error, .argument_error, .run_error, .check_error {
   color: red;
