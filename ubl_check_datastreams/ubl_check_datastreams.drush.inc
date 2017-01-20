@@ -85,35 +85,35 @@ function drush_ubl_check_datastreams_check_datastreams() {
   $objectid = drush_get_option('objectid');
   $objecttype = drush_get_option('objecttype');
 
-  $children = array();
+  $childids = array();
   if ($objecttype === 'collection') {
     $collection = islandora_object_load($objectid);
     if ($collection && in_array('islandora:collectionCModel', $collection->models)) {
-      ubl_check_datastreams_retrieve_all_children($collection, $children);
+      ubl_check_datastreams_retrieve_all_child_ids($collection, $childids);
     }
   }
   elseif ($objecttype === 'book') {
     $book = islandora_object_load($objectid);
     if ($book && in_array('islandora:bookCModel', $book->models)) {
-      ubl_check_datastreams_retrieve_all_children($book, $children);
+      ubl_check_datastreams_retrieve_all_child_ids($book, $childids);
     }
   }
   elseif ($objecttype === 'compound') {
     $compound = islandora_object_load($objectid);
     if ($compound && in_array('islandora:compoundCModel', $compound->models)) {
-      ubl_check_datastreams_retrieve_all_children($compound, $children);
+      ubl_check_datastreams_retrieve_all_child_ids($compound, $childids);
     }
   }
   elseif ($objecttype === 'batch') {
-    $children = array();
     $itemids = islandora_batch_get_queued_items_for_set($objectid);
     foreach ($itemids as $itemid) {
-      $children[$itemid] = islandora_object_load($itemid);
+      $childids[] = $itemid;
     }
   }
 
-  if (count($children) > 0) {
-    $dsidsbycmodel = ubl_check_datastreams_dsids_by_cmodel($children);
+  drush_log(t("Found !count objects, checking...", array('!count' => count($childids))), "ok");
+  if (count($childids) > 0) {
+    $dsidsbycmodel = ubl_check_datastreams_dsids_by_cmodel($childids);
     foreach ($dsidsbycmodel as $cmodel => $dsids) {
       $result = '';
       $vdsids = array_values($dsids);
