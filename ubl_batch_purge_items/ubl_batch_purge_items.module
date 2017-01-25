@@ -69,7 +69,6 @@ function ubl_batch_purge_items_delete_items_by_model_form(array $form, array &$f
   $form_state['collection'] = $collection;
 
   $content_models = islandora_basic_collection_get_content_models_as_form_options(islandora_get_content_models());
-
   $form = array(
     '#action' => request_uri() . '#delete-items-by-model',
     'delete_items_by_model_wrapper' => array(
