@@ -9,38 +9,48 @@ function pifs_file_exists($filepath, $context) {
   if (file_exists($filepath)) {
     return TRUE;
   }
-  elseif  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
+  if  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
+    return TRUE;
+  }
+  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
+  if  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
     return TRUE;
   }
   return FALSE;
 }
 
 function pifs_entry_exists($filepath, $context) {
-  return (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS']));
+  if (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
+    return TRUE;
+  }
+  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
+  if (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 function pifs_entry_is_file($filepath, $context) {
-  return (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS']) 
-          && array_key_exists('type', $context['_PIFS'][$filepath]) && $context['_PIFS'][$filepath]['type'] === 'file');
+  return (pifs_entry_exists($filepath, $context)
+          && array_key_exists('type', $context['_PIFS'][$filepath]) && ($context['_PIFS'][$filepath]['type'] === 'file'));
 }
 
 function pifs_is_file($filepath, $context) {
   if (is_file($filepath)) {
     return TRUE;
   }
-  elseif  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
-    if ($context['_PIFS'][$filepath]['type'] === 'file') {
-      return TRUE;
-    }
+  if (pifs_entry_is_file($filepath, $context)) {
+    return TRUE;
   }
   return FALSE;
 }
 
 function pifs_is_dir($filepath, $context) {
+  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
   if (is_dir($filepath)) {
     return TRUE;
   }
-  elseif  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
+  elseif (pifs_entry_exists($filepath, $context)) {
     if ($context['_PIFS'][$filepath]['type'] === 'directory') {
       return TRUE;
     }
@@ -49,6 +59,7 @@ function pifs_is_dir($filepath, $context) {
 }
 
 function pifs_mkdir($filepath, &$context) {
+  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
   $context['_PIFS'][$filepath] = array('type' => 'directory');
 }
 
@@ -95,7 +106,7 @@ function pifs_full_filenames_from_directory($directorypath, $context, $filter = 
           if (strlen($filter) === 0) {
             $filenames[] = $filepath;
           }
-          elseif (preg_match('/' . $regexfilter . '/', $filepath)) {
+          elseif (preg_match('/' . $regexfilter . '$/', $filepath)) {
             $filenames[] = $filepath;
           }
         }
