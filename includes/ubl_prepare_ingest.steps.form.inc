@@ -204,7 +204,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	else {
 	  $islimited = TRUE;
 	}
-	$header += array_flip($d);
+	$header = array_merge($header, array_keys($d));
       }
       $header = array_unique($header);
       $hasdata = (count($header) > 0);
@@ -224,16 +224,19 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	$table .= '<th>' . $i . '</th>';
 	foreach ($header as $h) {
 	  $value = (array_key_exists($h, $row)?$row[$h]:'-');
-	  if (strlen($value) > 28) {
-	    $shortvalue = substr($value, 0, 13) . '...' . substr($value, -12);
-	    $shortvalue = check_plain($shortvalue);
-	    $value = check_plain($value);
+          if (!is_string($value)) {
+	    $value = (string)$value;
+          }
+          if (strlen($value) > 28) {
+            $shortvalue = substr($value, 0, 13) . '...' . substr($value, -12);
+            $shortvalue = check_plain($shortvalue);
+            $value = check_plain($value);
             $value = str_replace("\n", "<BR/>", $value);
 	    $table .= '<td><span class="upi_fullvalue">' . $value . '</span><span class="upi_shortvalue">' . $shortvalue . '</span></td>';
-	  }
+          }
           else {
-	    $value = check_plain($value);
-	    $table .= '<td>' . $value . '</td>';
+            $value = check_plain($value);
+            $table .= '<td>' . $value . '</td>';
           }
 	}
 	$table .= '</tr>';

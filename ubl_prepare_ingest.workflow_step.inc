@@ -181,11 +181,12 @@ function ubl_prepare_ingest_workflow_step_info() {
 	  'removehyphen' => t('remove -'),
 	  'removeline' => t('remove - and _'),
 	  'removespaces' => t('remove spaces'),
+	  'trim' => t('trim spaces'),
 	  'replacehyphen' => t('replace - with space'),
 	  'replaceline' => t('replace - and _ with space'),
+          'pad5zeros' => t('pad zero\s to number to get 5 digits'),
 	  'striptags' => t('strip tags'),
 	  'sha1' => t('SHA1 hash'),
-	  'trim' => t('trim spaces'),
 	),
       ),
     ),
@@ -288,7 +289,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'input keys' => array('filter_key_name'),
     'output keys' => array(),
     'changes count' => TRUE,
-    'changes keys' => TRUE,
+    'changes keys' => FALSE,
     'changes files' => FALSE,
   );
   $info['parse_xml'] = array(
@@ -298,23 +299,23 @@ function ubl_prepare_ingest_workflow_step_info() {
         'description' => t('The value for this key should hold an absolute path to an existing XML file.'),
         'type' => 'key',
       ),
-      'dom_key_name' => array(
-        'label' => t('DOM key name'),
-        'description' => t('The key where the DOM should be stored.'),
+      'xml_key_name' => array(
+        'label' => t('XML key name'),
+        'description' => t('The key where the XML should be stored.'),
         'type' => 'key',
       ),
     ),
     'input keys' => array('filepath_key_name'),
-    'output keys' => array('dom_key_name'),
-    'changes count' => TRUE,
+    'output keys' => array('xml_key_name'),
+    'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
   );
-  $info['value_from_xml_dom'] = array(
+  $info['value_from_xml'] = array(
     'arguments' => array(
-      'source_dom_key_name' => array(
-        'label' => t('DOM key name'),
-        'description' => t('The key name where the DOM is stored.'),
+      'source_xml_key_name' => array(
+        'label' => t('XML key name'),
+        'description' => t('The key name where the XML is stored.'),
         'type' => 'key',
       ),
       'target_key_name' => array(
@@ -333,7 +334,36 @@ function ubl_prepare_ingest_workflow_step_info() {
         'type' => 'text',
       ),
     ),
-    'input keys' => array('source_dom_key_name'),
+    'input keys' => array('source_xml_key_name'),
+    'output keys' => array('target_key_name'),
+    'changes count' => FALSE,
+    'changes keys' => TRUE,
+    'changes files' => FALSE,
+  );
+  $info['xml_parts_from_xml'] = array(
+    'arguments' => array(
+      'source_xml_key_name' => array(
+        'label' => t('XML key name'),
+        'description' => t('The key name where the XML is stored.'),
+        'type' => 'key',
+      ),
+      'target_key_name' => array(
+        'label' => t('Target key name'),
+        'description' => t('The key that should be used to hold the new XML parts.'),
+        'type' => 'key',
+      ),
+      'xpath' => array(
+        'label' => t('XPath'),
+        'description' => t('An XPath to a repeating element.'),
+        'type' => 'xpath',
+      ),
+      'namespaces' => array(
+        'label' => t('namespaces'),
+        'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
+        'type' => 'text',
+      ),
+    ),
+    'input keys' => array('source_xml_key_name'),
     'output keys' => array('target_key_name'),
     'changes count' => TRUE,
     'changes keys' => TRUE,
@@ -564,14 +594,8 @@ function check_arguments(array $info, array $config, $extent) {
                   array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
-            case "DOM":
-              if (!is_a($value, 'SimpleXMLElement')) {
-                $results[] = array('text' => t("Argument '@key' should be a DOM, but is '@value' of type '@type'", 
-                  array('@key' => $argkey, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
-              }
-              break;
             case "xpath":
-              // is there a better way to validate xpath's, without removing the namespaces.
+              // is there a better way to validate xpath's, without removing the namespaces?
               $doc = new DOMDocument;
               $xpath = new DOMXPath($doc);
               $valuewons = preg_replace('#[^/:\\]\\[]+:#', '', $value);
@@ -970,6 +994,9 @@ function label_modify_key_value(array $info, array $config) {
       case 'trim':
 	$title = t('Trim spaces of');
 	break;
+      case 'pad5zeros':
+	$title = t('Pad zero\'s to 5 digits');
+	break;
     }
   }
   else {
@@ -1072,6 +1099,13 @@ function work_modify_key_value(array $info, array $config, &$data, &$context, $e
 	foreach ($data as $current => $d) {
 	  if (array_key_exists($sourcekey, $d)) {
 	    $data[$current][$targetkey] = trim($d[$sourcekey]);
+	  }
+	}
+	break;
+      case 'pad5zeros':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+	    $data[$current][$targetkey] = sprintf("%05d", $d[$sourcekey]);
 	  }
 	}
 	break;
@@ -1551,8 +1585,8 @@ function label_parse_xml(array $info, array $config) {
   if (array_key_exists('filepath_key_name', $config) && strlen($config['filepath_key_name']) > 0) {
     $title .= ' ' . t('located at the value of key "@key"', array('@key' => $config['filepath_key_name']));
   }
-  if (array_key_exists('dom_key_name', $config) && strlen($config['dom_key_name']) > 0) {
-    $title .= ' ' . t('and store the DOM in key "@key"', array('@key' => $config['dom_key_name']));
+  if (array_key_exists('xml_key_name', $config) && strlen($config['xml_key_name']) > 0) {
+    $title .= ' ' . t('and store the XML in key "@key"', array('@key' => $config['xml_key_name']));
   }
   $title .= '.';
 
@@ -1575,7 +1609,7 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
     $filepathkey = $config['filepath_key_name'];
-    $domkey = $config['dom_key_name'];
+    $xmlkey = $config['xml_key_name'];
     foreach ($data as $current => $d) {
       $filepath = $d[$filepathkey];
       if (!pifs_is_file($filepath, $context)) {
@@ -1599,7 +1633,7 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
       if (count($results) > 0) {
         return $results;
       }
-      $d[$domkey] = $domdoc;
+      $data[$current][$xmlkey] = $domdoc->saveXML();
     }
   }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
@@ -1608,12 +1642,12 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
 }
 
 /**
- * value_from_xml_dom
+ * value_from_xml
  **/
-function label_value_from_xml_dom(array $info, array $config) {
-  $title = t('Add key from XML DOM');
-  if (array_key_exists('source_dom_key_name', $config) && strlen($config['source_dom_key_name']) > 0) {
-    $title .= ' ' . t('at key "@key"', array('@key' => $config['source_dom_key_name']));
+function label_value_from_xml(array $info, array $config) {
+  $title = t('Add key from XML');
+  if (array_key_exists('source_xml_key_name', $config) && strlen($config['source_xml_key_name']) > 0) {
+    $title .= ' ' . t('at key "@key"', array('@key' => $config['source_xml_key_name']));
   }
   if (array_key_exists('xpath', $config) && strlen($config['xpath']) > 0) {
     $title .= ' ' . t('located by XPath "@value"', array('@value' => $config['xpath']));
@@ -1655,7 +1689,7 @@ function _parse_namespaces_string($nsstr) {
   return $namespaces;
 }
 
-function work_value_from_xml_dom(array $info, array $config, &$data, &$context, $extent) {
+function work_value_from_xml(array $info, array $config, &$data, &$context, $extent) {
   if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
     $results = check_input_keys_in_data($info, $config, $data);
     if (count($results) > 0) {
@@ -1669,12 +1703,14 @@ function work_value_from_xml_dom(array $info, array $config, &$data, &$context, 
     }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
-    $domdockey = $config['source_dom_key_name'];
+    $xmlkey = $config['source_xml_key_name'];
     $targetkey = $config['target_key_name'];
     $xpath = $config['xpath'];
     $namespaces = _parse_namespaces_string($config['namespaces']);
     foreach ($data as $current => $d) {
-      $domdoc = $d[$domdockey];
+      $xml = $d[$xmlkey];
+      $domdoc = new DOMDocument();
+      $domdoc->loadXML($xml);
       $domxpath = new DOMXPath($domdoc);
       foreach ($namespaces as $prefix => $nsuri) {
         $domxpath->registerNamespace($prefix, $nsuri);
@@ -1691,6 +1727,88 @@ function work_value_from_xml_dom(array $info, array $config, &$data, &$context, 
           if (isset($text) && strlen($text) > 0) {
             $data[$current][$targetkey] = $text;
             break;
+          }
+        }
+      }
+    } 
+  }
+  fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
+
+  return FALSE;
+}
+
+/**
+ * xml_parts_from_xml
+ **/
+function label_xml_parts_from_xml(array $info, array $config) {
+  $title = t('Add items by extracting XML parts from XML');
+  if (array_key_exists('source_xml_key_name', $config) && strlen($config['source_xml_key_name']) > 0) {
+    $title .= ' ' . t('at key "@key"', array('@key' => $config['source_xml_key_name']));
+  }
+  if (array_key_exists('xpath', $config) && strlen($config['xpath']) > 0) {
+    $title .= ' ' . t('located by XPath "@value"', array('@value' => $config['xpath']));
+  }
+  if (array_key_exists('namespaces', $config) && strlen($config['namespaces']) > 0) {
+    $namespaces = _parse_namespaces_string($config['namespaces']);
+    if (count($namespaces) > 0) {
+      $title .= ' ' . format_plural(count($namespaces), 'with namespace prefix:', 'with namespace prefixes:');
+      foreach ($namespaces as $prefix => $nsuri) {
+        $title .= ' ' . $prefix;
+      }
+    }
+  }
+  if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
+    $title .= ' ' . t('and insert item with key "@key"', array('@key' => $config['target_key_name']));
+  }
+
+  $title .= '.';
+
+  return $title; 
+}
+
+function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    $xmlkey = $config['source_xml_key_name'];
+    $targetkey = $config['target_key_name'];
+    $xpath = $config['xpath'];
+    $namespaces = _parse_namespaces_string($config['namespaces']);
+    foreach ($data as $current => $d) {
+      $xml = $d[$xmlkey];
+      $domdoc = new DOMDocument();
+      if ($domdoc->loadXML($xml) === FALSE) {
+        $result[] = array('text' => t("Failed to parse xml at '@key' with '@value'.",
+                  array('@key' => $info['arguments']['step']['label'], '@value' => $config['source_xml_key_name'])), 'type' => 'argument_error');
+        return $result;
+      }
+      $domxpath = new DOMXPath($domdoc);
+      foreach ($namespaces as $prefix => $nsuri) {
+        $domxpath->registerNamespace($prefix, $nsuri);
+      } 
+      $domnodelist = $domxpath->query($xpath);
+      if ($domnodelist === FALSE) {
+        $result[] = array('text' => t("Malformed XPath at '@key' with '@value'.",
+                  array('@key' => $info['arguments']['step']['label'], '@value' => $config['xpath'])), 'type' => 'argument_error');
+        return $result;
+      }
+      if ($domnodelist->length > 0) {
+        foreach ($domnodelist as $domnode) {
+          $newdomdoc = new DOMDocument;
+          $newnode = $newdomdoc->importNode($domnode, true);
+          if ($newnode) {
+            $newdomdoc->appendChild($newnode);
+            $data[][$targetkey] = $newdomdoc->saveXML();
           }
         }
       }
