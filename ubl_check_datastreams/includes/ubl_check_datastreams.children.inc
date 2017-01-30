@@ -11,7 +11,6 @@
  */
 function ubl_check_datastreams_retrieve_all_child_ids($parent, &$childids) {
   module_load_include('inc', 'islandora', 'includes/utilities');
-  module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
   module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
   module_load_include('inc', 'islandora_batch', 'includes/db');
 

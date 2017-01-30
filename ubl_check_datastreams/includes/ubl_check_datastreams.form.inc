@@ -121,7 +121,6 @@ function ubl_check_datastreams_children_form(array $form, array &$form_state, $o
   module_load_include('inc', 'ubl_check_datastreams', 'includes/ubl_check_datastreams.children');
   module_load_include('inc', 'islandora_batch', 'includes/db');
   module_load_include('inc', 'islandora', 'includes/utilities');
-  module_load_include('module', 'islandora_solution_pack_compound', 'islandora_compound_object');
   module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
 
   $form = array();
