@@ -79,6 +79,14 @@ function ubl_prepare_ingest_menu() {
       'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
       'type' => MENU_NORMAL_ITEM,
     ),
+    'admin/islandora/ubl_prepare_ingest/manage/export/%' => array(
+      'title' => 'Manage workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_export_workflow_form',5),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
     'admin/islandora/ubl_prepare_ingest/manage/check/%' => array(
       'title' => 'Manage workflows',
       'page callback' => 'drupal_get_form',

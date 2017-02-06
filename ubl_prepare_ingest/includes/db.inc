@@ -155,7 +155,7 @@ function ubl_prepare_ingest_insert_step($workflowid, $name, $module) {
       'step_module' => $module,
       'weight' => $newweight,
     ));
-  $insert->execute();
+  return $insert->execute();
 }
 
 /**
@@ -216,7 +216,7 @@ function ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value) {
       'config_key' => $key,
       'config_value' => $value,
     ));
-  $insert->execute();
+  return $insert->execute();
 }
 
 /**
@@ -241,3 +241,80 @@ function ubl_prepare_ingest_delete_step_configuration($stepid) {
     ->execute();
 }
 
+/**
+ * Return the workflow data as JSON
+ */
+function ubl_prepare_ingest_workflow_json($workflowid) {
+  $result = array('version' => '1.0');
+  $workflowdata = ubl_prepare_ingest_select_workflow($workflowid);
+  unset($workflowdata['id']);
+  $result = array_merge($result, $workflowdata); 
+  $steps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+  $result['steps'] = array();
+  foreach ($steps as $step) {
+    $stepid =  $step['id'];
+    unset($step['id']);
+    unset($step['workflow_id']);
+
+    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+    $step['config'] = $stepconfig;
+    $result['steps'][] = $step;
+  }
+
+  return drupal_json_encode($result);
+}
+
+/**
+ * Insert a workflow based on workflow data as JSON
+ */
+function ubl_prepare_ingest_insert_new_workflow_from_json($json) {
+  $data = drupal_json_decode($json);
+  
+  if ($data === NULL) {
+    return FALSE;
+  }
+  if ($data['version'] !== '1.0') {
+    return FALSE;
+  }
+
+  $wfname = $data['name'];
+  $wfdesc = $data['description'];
+  $wftype = $data['type'];
+  $wfsteps = $data['steps']; 
+
+  if (!(is_string($wfname) && strlen($wfname) > 0)) {
+    return FALSE;
+  }
+  if ($wftype !== 'partial' && $wftype !== 'full' && $wftype !== 'active') {
+    return FALSE;
+  }
+  if (!is_array($wfsteps)) {
+    return FALSE;
+  }
+  $steps = array();
+  usort($wfsteps, function($a, $b) { return ($a['weight'] < $b['weight'])?-1:1; });
+  foreach ($wfsteps as $wfstep) {
+    $stepmodule = $wfstep['step_module']; 
+    $stepname = $wfstep['step_name']; 
+    $stepconfig = $wfstep['config']; 
+    if (!(is_string($stepname) && strlen($stepname) > 0)) {
+      return FALSE;
+    }
+    if (!is_array($stepconfig)) {
+      return FALSE;
+    }
+    $steps[] = array('step_name' => $stepname, 'step_module' => $stepmodule, 'config' => $stepconfig);
+  }
+  
+  $wfid = ubl_prepare_ingest_insert_workflow($wfname, $wfdesc, $wftype);
+  foreach ($steps as $step) {
+    $stepname = $step['step_name'];
+    $stepmodule = $step['step_module'];
+    $stepid = ubl_prepare_ingest_insert_step($wfid, $stepname, $stepmodule);
+    foreach ($step['config'] as $key => $value) {
+      ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value); 
+    }
+  }
+
+  return TRUE;
+}
