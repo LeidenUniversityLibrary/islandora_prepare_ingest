@@ -6,6 +6,26 @@
  */
 
 /**
+ * Implements hook_install().
+ */
+function ubl_prepare_ingest_install() {
+  drupal_mkdir('public://ubl_prepare_ingest_import');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function ubl_prepare_ingest_uninstall() {
+  $upload_path = 'public://ubl_prepare_ingest_import';
+  $removal_files = file_scan_directory($upload_path, '/(.*)/');
+
+  foreach ($removal_files as $file) {
+    @file_delete($file);
+  }
+  drupal_rmdir($upload_path);
+}
+
+/**
  * Implements hook_schema().
  */
 function ubl_prepare_ingest_schema() {

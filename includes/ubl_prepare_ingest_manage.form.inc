@@ -28,6 +28,7 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
       'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/manage/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/manage/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -37,6 +38,7 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
       'type' => t('Type'),
       'checked' => t('Checked'),
       'copy' => '',
+      'export' => '',
     ),
     '#options' => $options,
     '#empty' => t('No workflows available.'),
@@ -52,6 +54,26 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
     '#type' => 'submit',
     '#value' => t('Add New Workflow'),
     '#submit' => array('ubl_prepare_ingest_manage_add_workflow'),
+  );
+
+  $form['import'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Import workflow'),
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['import']['workflow_upload_import'] = array(
+    '#type' => 'file',
+    '#title' => t('Upload a JSON file to import'),
+    '#upload_location' => 'public://ubl_prepare_ingest_import',
+    '#upload_validators' => array(
+      'file_validate_extensions' => array('json'),
+    ),
+  );
+  $form['import']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Import'),
+    '#submit' => array('ubl_prepare_ingest_manage_upload_import'),
   );
 
   return $form;
@@ -70,6 +92,43 @@ function ubl_prepare_ingest_manage_delete_selected_workflows(array $form, array 
 function ubl_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
   $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/make';
 }
+
+/**
+ * Submit handler for uploading a file.
+ *
+ * @param array $form
+ *   An array representing a Drupal form.
+ * @param array $form_state
+ *   An array containing the Drupal form state.
+ */
+function ubl_prepare_ingest_manage_upload_import($form, $form_state) {
+  $file = file_save_upload('workflow_upload_import', array('file_validate_extensions' => array('json')), 'public://ubl_prepare_ingest_import');
+  if ($file) {
+    $path = drupal_realpath($file->uri);
+    $json = file_get_contents($path);
+    if ($json === FALSE) {
+      drupal_set_message(t("Cannot get contents of file"), 'error');
+      return;
+    }
+    $isimported = ubl_prepare_ingest_insert_new_workflow_from_json($json);
+    if (!$isimported) {
+      $errortype = json_last_error(); 
+      if ($errortype === JSON_ERROR_NONE) {
+        drupal_set_message(t("Imported file is JSON, but does not contain valid workflow data."), 'error');
+      }
+      else {
+        drupal_set_message(t("Imported file is not valid JSON: @error.", array('@error' => json_last_error_msg())), 'error');
+      }
+      return;
+    }
+    drupal_set_message(t("The file @filename was imported successfully.",
+      array(
+        '@filename' => $file->filename,
+      )
+    ));
+  }
+}
+
 
 /**
  * The form for making a workflow
@@ -360,5 +419,63 @@ function ubl_prepare_ingest_edit_workflow_form_copy_workflow(array $form, array 
 
     $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $newworkflowid;
   }
+}
+
+function ubl_prepare_ingest_export_workflow_form(array $form, array &$form_state, $workflowid) {
+  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+
+  $form = array();
+  $workflowjson = ubl_prepare_ingest_workflow_json($workflowid);
+
+  $form['workflowid'] = array(
+    '#type' => 'hidden',
+    '#value' => $workflowid,
+  );
+  $form['workflow_export'] = array(
+    '#title' => t('Workflow export'),
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['workflow_export']['json'] = array(
+    '#title' => t('JSON'),
+    '#type' => 'textarea',
+    '#default_value' => $workflowjson,
+    '#attributes' => array('readonly' => 'readonly'),
+    '#size' => 60,
+  );
+  $form['workflow_export']['download'] = array(
+    '#type' => 'submit',
+    '#value' => t('Download JSON export'),
+    //'#submit' => array('ubl_prepare_ingest_export_workflow_form_submit'),
+  );
+
+  return $form;
+}
+
+function ubl_prepare_ingest_export_workflow_form_submit(array $form, array &$form_state) {
+  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+
+  $workflowid = $form_state['values']['workflowid'];
+  $workflowjson = ubl_prepare_ingest_workflow_json($workflowid);
+  $filepath = "temporary://workflow.json";
+  $file = file_save_data($workflowjson, $filepath, FILE_EXISTS_REPLACE);
+  $headers = array(
+    'Content-Type' => 'application/json',
+    'Content-Disposition' => 'attachment; filename="' . $file->filename . '"',
+    'Content-Length' => strlen($workflowjson),
+  );
+
+  if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE')) {
+    $headers['Cache-Control'] = 'must-revalidate, post-check=0, pre-check=0';
+    $headers['Pragma'] = 'public';
+  }
+  else {
+    $headers['Pragma'] = 'no-cache';
+  }
+
+  file_transfer($file->uri, $headers);
+
+  file_delete($filepath);
 }
 
