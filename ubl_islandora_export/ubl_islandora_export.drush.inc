@@ -146,12 +146,13 @@ function drush_ubl_islandora_export_islandora_export() {
   $formatfile = drush_get_option('format_file');
   $directory = drush_get_option('directory');
 
+  if (isset($cmodels)) {
+    $cmodelarray = explode(',', $cmodels);
+  }
+
   $formatconfig = parse_ini_file($formatfile, TRUE);
   if (isset($collections)) {
     $colarray = explode(',', $collections);
-    if (isset($cmodels)) {
-      $cmodelarray = explode(',', $cmodels);
-    }
     foreach ($colarray as $collection) {
       $collectionobj = islandora_object_load($collection);
       if ($collectionobj && in_array('islandora:collectionCModel', $collectionobj->models)) {
@@ -167,7 +168,7 @@ function drush_ubl_islandora_export_islandora_export() {
 	      } 
 	    }
 	    ubl_islandora_export_object_export($obj, $formatconfig, $directory);
-	    if (in_array('islandora:bookCModel', $obj->models)) {
+	    if (in_array('islandora:bookCModel', $obj->models) && (!isset($cmodelarray) || in_array('islandora:pageCModel', $cmodelarray))) {
 	      module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
 	      $pages = islandora_paged_content_get_pages($obj);
 	      foreach ($pages as $pagepid => $pageinfo) {
@@ -184,9 +185,6 @@ function drush_ubl_islandora_export_islandora_export() {
   }
   if (isset($batchsets)) {
     $batchsetarray = explode(',', $batchsets);
-    if (isset($cmodels)) {
-      $cmodelarray = explode(',', $cmodels);
-    }
     foreach ($batchsetarray as $batchset) {
       $itemids = islandora_batch_get_queued_items_for_set($batchset);
       foreach ($itemids as $itemid) {
@@ -207,11 +205,11 @@ function drush_ubl_islandora_export_islandora_export() {
     foreach ($ids as $itemid) {
       $obj = islandora_object_load($itemid);
       if ($obj) {
-        if (isset($cmodel)) {
-          if (!in_array($cmodel, $obj->models)) {
-            continue;
-          }
-        }
+        if (isset($cmodelarray)) { 
+         if (!array_intersect($cmodelarray, $obj->models)) { 
+           continue;
+         } 
+        } 
         ubl_islandora_export_object_export($obj, $formatconfig, $outputdirectory);
       }
     }
