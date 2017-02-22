@@ -215,7 +215,7 @@ function drush_ubl_islandora_export_islandora_export() {
            continue;
          } 
         } 
-        ubl_islandora_export_object_export($obj, $formatconfig, $outputdirectory);
+        ubl_islandora_export_object_export($obj, $formatconfig, $directory);
       }
     }
   }
