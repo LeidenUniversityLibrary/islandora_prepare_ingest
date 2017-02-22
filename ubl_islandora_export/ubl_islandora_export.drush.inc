@@ -116,12 +116,17 @@ function drush_ubl_islandora_export_islandora_export_validate() {
  
   // Check batchset option.
   if (isset($batchsets)) {
-    $batchsetarray = explode(',', $batchsets);
-    foreach ($batchsetarray as $batchset) {
-      $itemids = islandora_batch_get_queued_items_for_set($batchset);
-      if (!($itemids && count($itemids) > 0)) {
-	return drush_set_error("Identifier '$batchset' does not resolve to a batch set");
+    if (module_load_include('inc', 'islandora_batch', 'includes/db')) {
+      $batchsetarray = explode(',', $batchsets);
+      foreach ($batchsetarray as $batchset) {
+        $itemids = islandora_batch_get_queued_items_for_set($batchset);
+        if (!($itemids && count($itemids) > 0)) {
+	  return drush_set_error("Identifier '$batchset' does not resolve to a batch set");
+        }
       }
+    }
+    else {
+      return drush_set_error("Required module 'islandora_batch' failed to load.");
     }
   }
 
