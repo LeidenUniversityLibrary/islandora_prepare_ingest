@@ -168,6 +168,12 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
+	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+           'autocomplete' => 'off',
+           'autocorrect' => 'off',
+           'autocapitalize' => 'off',
+           'spellcheck' => 'false',
+         );
        }
        elseif ($argvalues['type'] === 'collection') {
          module_load_include('inc', 'islandora_solution_pack_collection', 'includes/utilities');
@@ -190,6 +196,12 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
        else {
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
 	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+           'autocomplete' => 'off',
+           'autocorrect' => 'off',
+           'autocapitalize' => 'off',
+           'spellcheck' => 'false',
+         );
        }
        $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
        if (array_key_exists('input keys', $stepsinfo[$stepname]) && in_array($argname, $stepsinfo[$stepname]['input keys'])) {
