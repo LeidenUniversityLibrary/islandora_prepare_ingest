@@ -363,8 +363,14 @@ function ubl_prepare_ingest_workflow_step_info() {
         'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
         'type' => 'text',
       ),
+      'related_key_name' => array(
+        'label' => t('Related key name'),
+        'description' => t('Optionally, a key that will be included in the new items so they are related.'),
+        'type' => 'key',
+        'optional' => TRUE,
+      ),
     ),
-    'input keys' => array('source_xml_key_name'),
+    'input keys' => array('source_xml_key_name','related_key_name'),
     'output keys' => array('target_key_name'),
     'changes count' => TRUE,
     'changes keys' => TRUE,
@@ -512,7 +518,21 @@ function check_input_keys_in_data(array $info, array $config, array $data) {
   elseif (array_key_exists('input keys', $info)) {
     $inputkeys = $info['input keys'];
     foreach ($inputkeys as $ikey) {
-      if (!array_key_exists($ikey, $config)) {
+      if (isset($info['arguments'][$ikey]['optional'])) {
+        if (is_array($info['arguments'][$ikey]['optional'])) {
+          foreach ($info['arguments'][$ikey]['optional'] as $optkey => $optvalues) {
+            if (in_array($config[$optkey], $optvalues)) {
+              continue 2;
+            }
+          }
+        }
+        else {
+          if ($info['arguments'][$ikey]['optional']) {
+            continue;
+          }
+        }
+      }
+      if (!array_key_exists($ikey, $config) || (strlen($config[$ikey]) == 0)) {
 	$results[] = array('text' => t('Key @key not defined in configuration.', array('@key' => $ikey)), 'type' => 'config_error');
 	continue;
       }
@@ -631,6 +651,20 @@ function check_arguments(array $info, array $config, $extent) {
         }
       }
       else {
+        if (isset($argconfig['optional'])) {
+          if (is_array($argconfig['optional'])) {
+            foreach ($argconfig['optional'] as $optkey => $optvalues) {
+              if (in_array($config[$optkey], $optvalues)) {
+                continue 2;
+              }
+            }
+          }
+          else {
+            if ($argconfig['optional']) {
+              continue;
+            }
+          }
+        }
         if (in_array($argkey, $outputkeys) || ($extent & WORK_EXTENT_ONLY_CHECK_FOR_EMPTY_ARGUMENTS)) {
           $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'type' => 'argument_error');
         }
@@ -1761,6 +1795,9 @@ function label_xml_parts_from_xml(array $info, array $config) {
   if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
     $title .= ' ' . t('and insert item with key "@key"', array('@key' => $config['target_key_name']));
   }
+  if (array_key_exists('related_key_name', $config) && strlen($config['related_key_name']) > 0) {
+    $title .= ' ' . t('and related key "@key"', array('@key' => $config['related_key_name']));
+  }
 
   $title .= '.';
 
@@ -1785,6 +1822,7 @@ function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, 
     $targetkey = $config['target_key_name'];
     $xpath = $config['xpath'];
     $namespaces = _parse_namespaces_string($config['namespaces']);
+    $relatedkey = isset($config['related_key_name'])?$config['related_key_name']:'';
     foreach ($data as $current => $d) {
       $xml = $d[$xmlkey];
       $domdoc = new DOMDocument();
@@ -1809,7 +1847,12 @@ function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, 
           $newnode = $newdomdoc->importNode($domnode, true);
           if ($newnode) {
             $newdomdoc->appendChild($newnode);
-            $data[][$targetkey] = $newdomdoc->saveXML();
+            $newd = array();
+            $newd[$targetkey] = $newdomdoc->saveXML();
+            if ($relatedkey) {
+              $newd[$relatedkey] = $d[$relatedkey];
+            }
+            $data[] = $newd;
           }
         }
       }
