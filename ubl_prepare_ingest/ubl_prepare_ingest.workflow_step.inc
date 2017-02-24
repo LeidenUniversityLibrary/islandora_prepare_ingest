@@ -371,7 +371,7 @@ function ubl_prepare_ingest_workflow_step_info() {
       ),
     ),
     'input keys' => array('source_xml_key_name','related_key_name'),
-    'output keys' => array('target_key_name'),
+    'output keys' => array('target_key_name','related_key_name'),
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
