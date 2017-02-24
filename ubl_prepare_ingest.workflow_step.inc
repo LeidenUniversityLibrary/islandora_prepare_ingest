@@ -1823,7 +1823,8 @@ function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, 
     $xpath = $config['xpath'];
     $namespaces = _parse_namespaces_string($config['namespaces']);
     $relatedkey = isset($config['related_key_name'])?$config['related_key_name']:'';
-    foreach ($data as $current => $d) {
+    $olddata = $data; // make a copy and iterate over the copy, because items will be added to $data
+    foreach ($olddata as $current => $d) {
       $xml = $d[$xmlkey];
       $domdoc = new DOMDocument();
       if ($domdoc->loadXML($xml) === FALSE) {
