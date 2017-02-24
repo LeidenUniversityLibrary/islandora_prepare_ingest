@@ -279,6 +279,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Filter value'),
         'description' => t('The value to filter by.'),
         'type' => 'string',
+        'optional' => array('filter_type' => array('exists')),
       ),
       'negate' => array(
         'label' => t('Negate'),

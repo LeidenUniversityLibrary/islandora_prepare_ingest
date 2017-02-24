@@ -123,6 +123,20 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	 if (strlen($value) > 0) {
 	   continue; // skip filled in arguments when testing or checking
 	 }
+         if (array_key_exists('optional', $argvalues)) {
+           if (is_array($argvalues['optional'])) {
+             foreach ($argvalues['optional'] as $optkey => $optvalues) {
+               if (in_array($stepconfig[$optkey], $optvalues)) {
+                 continue 2;
+               }
+             }
+           }
+           else {
+             if ($argvalues['optional']) {
+               continue;
+             }
+           }
+         }
 	 $showcontent = TRUE;
        }
        if ($isactiveedit) {
