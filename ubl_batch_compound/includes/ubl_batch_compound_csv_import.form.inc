@@ -68,7 +68,7 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
         $parentid = $data[0];
         $childid = $data[1];
 
-        $foundparents = find_fedora_object_ids($parentid);
+        $foundparents = find_fedora_object_ids($parentid, TRUE);
         $foundchildren = find_fedora_object_ids($childid);
 
         if (count($foundparents) != 1 && count($foundchildren) == 0) {
@@ -80,7 +80,7 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
       $parentid = $data[0];
       $childid = $data[1];
 
-      $foundparents = find_fedora_object_ids($parentid);
+      $foundparents = find_fedora_object_ids($parentid, TRUE);
       $foundchildren = find_fedora_object_ids($childid);
 
       if (count($foundchildren) == 0) {
@@ -486,7 +486,7 @@ function ubl_batch_compound_batch_set_children_finished() {
 /**
  * Finding the Fedora object IDs of objects by identifier.
  */
-function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt") {
+function find_fedora_object_ids($identifier, $exactmatch = FALSE, $query_field = FALSE) {
   module_load_include('inc', 'islandora', 'includes/utilities');
   module_load_include('inc', 'islandora_solr_search', 'includes/query_processor');
   module_load_include('inc', 'islandora_solr_search', 'includes/utilities');
@@ -518,7 +518,12 @@ function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt
   $qpc++;
 
   $escapedid = islandora_solr_lesser_escape($identifier);
-  $search = "$query_field:$escapedid";
+  if ($query_field) {
+    $search = "$query_field:$escapedid";
+  }
+  else {
+    $search = "catch_all_fields_mt:$escapedid";
+  }
 
   if (array_key_exists($search, $alreadyfound)) {
     return $alreadyfound[$search];
@@ -527,12 +532,42 @@ function find_fedora_object_ids($identifier, $query_field = "catch_all_fields_mt
   $qp->buildAndExecuteQuery($search);
 
   $r = $qp->islandoraSolrResult;
-
   $numfound = $r['response']['numFound'];
 
   $objectids = array();
   for ($i = 0; $i < $numfound; $i++) {
     $objid = $r['response']['objects'][$i]['PID'];
+    
+    if ($exactmatch) {
+      $hasexactmatch = FALSE;
+      $solrdoc = $r['response']['objects'][$i]['solr_doc'];
+      if ($query_field) {
+        if ($solrdoc[$query_field] === $identifier) {
+          $hasexactmatch = TRUE;
+        }
+      }
+      else {
+        foreach ($solrdoc as $solrkey => $solrval) {
+          if (is_array($solrval)) {
+            foreach ($solrval as $sv) {
+              if ($sv === $identifier) {
+                $hasexactmatch = TRUE;
+                break 2;
+              }
+            }
+          }
+          else {
+            if ($solrval === $identifier) {
+              $hasexactmatch = TRUE;
+              break;
+            }
+          }
+        }
+      }
+      if (!$hasexactmatch) {
+        continue;
+      }
+    }
 
     if ($objid) {
       $objectids[] = $objid;
