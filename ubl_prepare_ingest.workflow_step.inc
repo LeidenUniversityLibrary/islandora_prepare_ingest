@@ -1542,13 +1542,13 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
     foreach ($data as $current => $d) {
       $shouldkeep = FALSE;
       if ($type === 'exists') {
-        $shouldkeep = array_key_exists($filterkey, $d);
+        $shouldkeep = is_array($d) && array_key_exists($filterkey, $d);
       }
       elseif ($type === 'equals') {
-        $shouldkeep = (array_key_exists($filterkey, $d) && ($d[$filterkey] === $value));
+        $shouldkeep = (is_array($d) && array_key_exists($filterkey, $d) && ($d[$filterkey] === $value));
       }
       elseif ($type === 'matches') {
-        $shouldkeep = (array_key_exists($filterkey, $d) && preg_match($value, $d[$filterkey]));
+        $shouldkeep = (is_array($d) && array_key_exists($filterkey, $d) && preg_match($value, $d[$filterkey]));
       }
       if ($negate) {
         $shouldkeep = !$shouldkeep;
@@ -1987,7 +1987,9 @@ function work_end_filter(array $info, array $config, &$data, &$context, $extent)
     $keep = $filter['keep'];
     $remove = $filter['remove'];
     foreach ($keep as $toindex => $fromindex) {
-      $newdata[$toindex] = $data[$fromindex];
+      if (array_key_exists($fromindex, $data)) {
+        $newdata[$toindex] = $data[$fromindex];
+      }
     }
     foreach ($remove as $toindex => $d) {
       $newdata[$toindex] = $d;
