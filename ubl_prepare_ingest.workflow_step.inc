@@ -140,8 +140,14 @@ function ubl_prepare_ingest_workflow_step_info() {
         'type' => 'number',
         'default_value' => 1,
       ),
+      'foreach_value' => array(
+        'label' => t('Foreach value of key name'),
+        'description' => t('Optional, start counting for each unique value of this key.'),
+        'type' => 'key',
+        'optional' => TRUE,
+      ),
     ),
-    'input keys' => array(),
+    'input keys' => array('foreach_value'),
     'output keys' => array('target_key_name'),
     'changes count' => FALSE,
     'changes keys' => TRUE,
@@ -880,6 +886,9 @@ function label_add_key_counter(array $info, array $config) {
   if (array_key_exists('width', $config) && strlen($config['width']) > 0) {
     $title .= ' ' . t('and width "@width"', array('@width' => $config['width']));
   }
+  if (array_key_exists('foreach_value', $config) && strlen($config['foreach_value']) > 0) {
+    $title .= ' ' . t('and start for each unique value of "@key"', array('@key' => $config['foreach_value']));
+  }
 
   if (strlen($title) == 0) {
     $title = t('Add key with counter value');
@@ -916,10 +925,16 @@ function work_add_key_counter(array $info, array $config, &$data, &$context, $ex
     $start = intval($config['start']);
     $step = intval($config['step']);
     $width = intval($config['width']);
+    $foreachkey = $config['foreach_value'];
     $format = '%0' . $width . 'd';
+    $counter = array();
     foreach ($data as $current => $d) {
-      $newvalue = sprintf($format, $start);
-      $start += $step;
+      $foreachvalue = isset($d[$foreachkey])?$d[$foreachkey]:'_GLOB_COUNTER_';
+      if (!array_key_exists($foreachvalue, $counter)) {
+        $counter[$foreachvalue] = $start; 
+      }
+      $newvalue = sprintf($format, $counter[$foreachvalue]);
+      $counter[$foreachvalue] += $step;
       $data[$current][$targetkey] = $newvalue;
     }
   }
