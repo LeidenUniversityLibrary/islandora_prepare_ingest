@@ -414,6 +414,30 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes keys' => TRUE,
     'changes files' => FALSE,
   );
+  $info['visual_group_start'] = array(
+    'arguments' => array(
+      'description' => array(
+        'label' => t('Description'),
+        'description' => t('A description of this visual grouping.'),
+        'type' => 'template',
+      ),
+    ),
+    'input keys' => array(),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => FALSE,
+    'changes files' => FALSE,
+    'visual' => array('groupstart','nomove','groupremove','ungroup'),
+  );
+  $info['visual_group_end'] = array(
+    'arguments' => array(),
+    'input keys' => array(),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => FALSE,
+    'changes files' => FALSE,
+    'visual' => array('groupend','nomove','noremove'),
+  );
   $validateconfig = array(
     'arguments' => array(
       'filepath' => array(
@@ -1599,7 +1623,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
     $newindex = 0;
     foreach ($data as $current => $d) {
       $shouldkeep = FALSE;
-      $shouldkeep = array_key_exists($filterkey, $d);
+      $shouldkeep = is_array($d) && array_key_exists($filterkey, $d);
       if ($negate) {
         $shouldkeep = !$shouldkeep;
       } 
@@ -1972,7 +1996,7 @@ function get_output_keys_read_csv_file(array $info, array $config) {
  * end_filter
  **/
 function label_end_filter(array $info, array $config) {
-  return t('Filter: end.');
+  return t('Filter end.');
 }
 
 function work_end_filter(array $info, array $config, &$data, &$context, $extent) {
@@ -2015,6 +2039,34 @@ function work_end_filter(array $info, array $config, &$data, &$context, $extent)
     array_splice($data, 0, count($keep), $newdata);
   }
 
+  return FALSE;
+}
+
+/**
+ * visual_group_start
+ **/
+function label_visual_group_start(array $info, array $config) {
+  if (array_key_exists('description', $config) && strlen($config['description']) > 0) {
+    $title = $config['description'];
+  }
+  else {
+    $title = t('Visual group  start.'); // two spaces for sorting...
+  }
+  return $title;
+}
+
+function work_visual_group_start(array $info, array $config, &$data, &$context, $extent) {
+  return FALSE;
+}
+
+/**
+ * visual_group_end
+ **/
+function label_visual_group_end(array $info, array $config) {
+  return t('Visual group end.');
+}
+
+function work_visual_group_end(array $info, array $config, &$data, &$context, $extent) {
   return FALSE;
 }
 

@@ -63,6 +63,11 @@ fieldset .fieldset-wrapper .buttons > INPUT  {
   clear:both;
 }
 
+/* grouped steps */
+fieldset .grouped_steps {
+  clear: both;
+}
+
 /* check data table */
 .checkdatatable {
   width: auto;
