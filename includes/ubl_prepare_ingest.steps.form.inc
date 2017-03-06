@@ -27,6 +27,8 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 
   $form = array();
 
+  $groups = array();
+
   # steps
   $form['steps'] = array(
     '#title' => t('Steps'), 
@@ -54,7 +56,15 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       $showdata = ($stepsinfo[$stepname]['changes count'] || $stepsinfo[$stepname]['changes keys']);
       $showfiles = ($stepsinfo[$stepname]['changes files']);
     }
-    $form['steps']['step_' . $stepid] = array(
+    if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('groupend', $stepsinfo[$stepname]['visual'])) {
+      array_pop($groups);
+      array_pop($groups);
+    }
+    $steps =& $form['steps'];
+    foreach ($groups as $group) {
+      $steps =& $steps[$group];
+    }
+    $steps['step_' . $stepid] = array(
       '#title' => ubl_prepare_ingest_label_for_step($stepname, $stepconfig),
       '#type' => 'fieldset',
       '#collapsible' => TRUE,
@@ -69,13 +79,13 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
         if ($i >= 10) {
           break;
         }
-	$form['steps']['step_' . $stepid]['check_description' . '_' . $i] = array(
+	$steps['step_' . $stepid]['check_description' . '_' . $i] = array(
 	  '#type' => 'item',
 	  '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
 	);
       }
       if (count($workflowresults[$stepid]) >= 10) {
-	$form['steps']['step_' . $stepid]['check_description' . '_' . count($workflowresults[$stepid])] = array(
+	$steps['step_' . $stepid]['check_description' . '_' . count($workflowresults[$stepid])] = array(
 	  '#type' => 'item',
 	  '#markup' => '<SPAN class="warning">Other ' . (count($workflowresults[$stepid]) - 10) . ' errors suppressed</SPAN>',
 	);
@@ -87,21 +97,24 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       }
     }
     if ($canmovesteps) {
-      $form['steps']['step_' . $stepid]['fields'] = array(
+      $steps['step_' . $stepid]['fields'] = array(
 	'#type' => 'container',
 	'#attributes' => array(
 	  'class' => array('fields'),
 	),
+        '#weight' => 1,
       );
-      $form['steps']['step_' . $stepid]['fields']['remove_step_' . $stepid] = array(
-	'#type' => 'hidden',
+      $steps['step_' . $stepid]['fields']['remove_step_' . $stepid] = array(
+	//'#type' => 'hidden',
+	'#type' => 'textfield',
 	'#default_value' => '0',
 	'#attributes' => array(
 	  'class' => array('remove_step'),
 	),
       );
-      $form['steps']['step_' . $stepid]['fields']['weight_step_' . $stepid] = array(
-	'#type' => 'hidden',
+      $steps['step_' . $stepid]['fields']['weight_step_' . $stepid] = array(
+	//'#type' => 'hidden',
+	'#type' => 'textfield',
 	'#default_value' => $workflowstep['weight'],
 	'#attributes' => array(
 	  'class' => array('weight_step'),
@@ -148,27 +161,27 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
        if ($istesting || $ischecking) {
          $title .= ' ' . t('(please provide a test value)');  
        }
-       $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname] = array(
+       $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname] = array(
 	 '#title' => $title,
 	 '#description' => array_key_exists('description', $argvalues)?$argvalues['description']:'',
        );
        if ($argvalues['type'] === 'boolean') {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = array(
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = array(
 	   '' => t('Choose value'),
 	   '0' => t('False'),
 	   '1' => t('True'),
 	 );
        }
        elseif ($argvalues['type'] === 'select') {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $argvalues['options'];
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $argvalues['options'];
        }
        elseif ($argvalues['type'] === 'template' || $argvalues['type'] === 'keystemplate' || $argvalues['type'] === 'text') {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
            'autocomplete' => 'off',
            'autocorrect' => 'off',
            'autocapitalize' => 'off',
@@ -185,34 +198,34 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
            $options = array('' => t('Choose a collection'));
            $options = array_merge($options, array_map($map_options, islandora_basic_collection_get_collections()));
   
-           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
+           $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+           $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
          }
          else {
-           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
-           $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+           $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
+           $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
          }
        }
        else {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
            'autocomplete' => 'off',
            'autocorrect' => 'off',
            'autocapitalize' => 'off',
            'spellcheck' => 'false',
          );
        }
-       $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
+       $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
        if (array_key_exists('input keys', $stepsinfo[$stepname]) && in_array($argname, $stepsinfo[$stepname]['input keys'])) {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'input_key'; 
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'input_key'; 
        }
        if (array_key_exists('output keys', $stepsinfo[$stepname]) && in_array($argname, $stepsinfo[$stepname]['output keys'])) {
-	 $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'output_key'; 
+	 $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'output_key'; 
        }
-       $form['steps']['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = $argvalues['type'];
+       $steps['step_' . $stepid]['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = $argvalues['type'];
       }
-    }  
+    }
     if (($istesting || $isdryrun) && $showdata) {
       $islimited = FALSE;
       $header = array();
@@ -272,11 +285,11 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       }
 
       $table .= '</table>';
-      $form['steps']['step_' . $stepid]['datalisting'] = array(
+      $steps['step_' . $stepid]['datalisting'] = array(
         '#type' => 'fieldset',
         '#title' => t('Data'),
       );
-      $form['steps']['step_' . $stepid]['datalisting']['datatable'] = array(
+      $steps['step_' . $stepid]['datalisting']['datatable'] = array(
 	'#markup' => $table,
       );
     }
@@ -325,43 +338,71 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 	}
 
 	$table .= '</table>';
-        $form['steps']['step_' . $stepid]['filelisting'] = array(
+        $steps['step_' . $stepid]['filelisting'] = array(
           '#type' => 'fieldset',
           '#title' => t('File listing (virtual)'),
         );
-	$form['steps']['step_' . $stepid]['filelisting']['filetable'] = array(
+	$steps['step_' . $stepid]['filelisting']['filetable'] = array(
 	  '#markup' => $table,
 	);
       }
     }
-    $form['steps']['step_' . $stepid]['#collapsed'] = !$showcontent;
+    $steps['step_' . $stepid]['#collapsed'] = !$showcontent;
     if ($canmovesteps) {
-      $form['steps']['step_' . $stepid]['buttons'] = array(
+      $steps['step_' . $stepid]['buttons'] = array(
 	'#type' => 'actions',
 	'#attributes' => array(
 	  'class' => array('buttons'),
 	),
-	'moveup' => array(
-	  '#type' => 'button',
-	  '#value' => t('Move up'),
-	  '#attributes' => array(
-	    'class' => array('moveup_step_button'),
-	  ),
+        '#weight' => 2,
+      );
+      if (!(array_key_exists('visual', $stepsinfo[$stepname]) && in_array('nomove', $stepsinfo[$stepname]['visual']))) {
+        $steps['step_' . $stepid]['buttons']['moveup'] = array(
+          '#type' => 'button',
+          '#value' => t('Move up'),
+          '#attributes' => array(
+            'class' => array('moveup_step_button'),
+          ),
+        );
+        $steps['step_' . $stepid]['buttons']['movedown'] = array(
+          '#type' => 'button',
+          '#value' => t('Move down'),
+          '#attributes' => array(
+            'class' => array('movedown_step_button'),
+          ),
+        );
+      }
+      if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('ungroup', $stepsinfo[$stepname]['visual'])) {
+        $steps['step_' . $stepid]['buttons']['ungroup'] = array(
+          '#type' => 'button',
+          '#value' => t('Ungroup'),
+          '#attributes' => array(
+            'class' => array('ungroup_step_button'),
+          ),
+        );
+      }
+      if (!(array_key_exists('visual', $stepsinfo[$stepname]) && in_array('noremove', $stepsinfo[$stepname]['visual']))) {
+        $steps['step_' . $stepid]['buttons']['remove'] = array(
+          '#type' => 'button',
+          '#value' => t('Remove'),
+          '#attributes' => array(
+            'class' => array('remove_step_button'),
+          ),
+        );
+        if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('groupremove', $stepsinfo[$stepname]['visual'])) {
+          $steps['step_' . $stepid]['buttons']['remove']['#attributes']['class'][] = 'groupremove'; 
+        }
+      }
+    }
+    if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('groupstart', $stepsinfo[$stepname]['visual'])) {
+      $groups[] = 'step_' . $stepid;
+      $groups[] = 'grouped';
+      $steps['step_' . $stepid]['grouped'] = array(
+        '#type' => 'container',
+	'#attributes' => array(
+	  'class' => array('grouped_steps'),
 	),
-	'movedown' => array(
-	  '#type' => 'button',
-	  '#value' => t('Move down'),
-	  '#attributes' => array(
-	    'class' => array('movedown_step_button'),
-	  ),
-	),
-	'remove' => array(
-	  '#type' => 'button',
-	  '#value' => t('Remove'),
-	  '#attributes' => array(
-	    'class' => array('remove_step_button'),
-	  ),
-	),
+        '#weight' => 3,
       );
     }
   }
