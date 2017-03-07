@@ -454,6 +454,53 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'visual' => array('groupend','nomove','noremove'),
   );
+  $info['sort_items'] = array(
+    'arguments' => array(
+      'order_key_1' => array(
+        'label' => t('Order key 1'),
+        'description' => t('Order by the value of this key.'),
+        'type' => 'key',
+      ),
+      'order_type_1' => array(
+        'label' => t('Order type 1'),
+        'description' => t('How to order the value of this key.'),
+        'type' => 'select',
+        'options' => array(
+          'strcmp' => t('string compare'),
+          'strcasecmp' => t('string compare case-insensitive'),
+          'intcmp' => t('integer compare'),
+          'strcmprev' => t('string compare reverse'),
+          'strcasecmprev' => t('string compare case-insensitive reverse'),
+          'intcmprev' => t('integer compare reverse'),
+        ),
+      ),
+      'order_key_2' => array(
+        'label' => t('Order key 2'),
+        'description' => t('Optional, order by the value of this key.'),
+        'type' => 'key',
+        'optional' => TRUE,
+      ),
+      'order_type_2' => array(
+        'label' => t('Order type 2'),
+        'description' => t('Optional, how to order the value of this key.'),
+        'type' => 'select',
+        'options' => array(
+          'strcmp' => t('string compare'),
+          'strcasecmp' => t('string compare case-insensitive'),
+          'intcmp' => t('integer compare'),
+          'strcmprev' => t('string compare reverse'),
+          'strcasecmprev' => t('string compare case-insensitive reverse'),
+          'intcmprev' => t('integer compare reverse'),
+        ),
+        'optional' => TRUE,
+      ),
+    ),
+    'input keys' => array('order_key_1','order_key_2'),
+    'output keys' => array(),
+    'changes count' => TRUE,
+    'changes keys' => FALSE,
+    'changes files' => FALSE,
+  );
   $validateconfig = array(
     'arguments' => array(
       'filepath' => array(
@@ -2085,6 +2132,147 @@ function label_visual_group_end(array $info, array $config) {
 
 function work_visual_group_end(array $info, array $config, &$data, &$context, $extent) {
   return FALSE;
+}
+
+/**
+ * sort_items
+ **/
+function label_sort_items(array $info, array $config) {
+  $title = t('Sort items');
+  if (array_key_exists('order_type_1', $config) && strlen($config['order_type_1']) > 0) {
+    if (substr($config['order_type_1'], -3) === 'rev') {
+      $title .= ' ' . t('reversed');
+    }
+  }
+  if (array_key_exists('order_key_1', $config) && strlen($config['order_key_1']) > 0) {
+    $title .= ' ' . t('by the value of key "@key"', array('@key' => $config['order_key_1']));
+  }
+  if (array_key_exists('order_type_1', $config) && strlen($config['order_type_1']) > 0) {
+    switch ($config['order_type_1']) {
+      case 'strcmp':
+      case 'strcmprev':
+        $title .= ' ' . t('as text');
+        break;
+      case 'strcasecmp':
+      case 'strcasecmprev':
+        $title .= ' ' . t('as text case-insensitive');
+        break;
+      case 'intcmp':
+      case 'intcmprev':
+        $title .= ' ' . t('as number');
+        break;
+    }
+  }
+  if (array_key_exists('order_key_2', $config) && strlen($config['order_key_2']) > 0) {
+    $title .= t(', equal values then sorted');
+    if (array_key_exists('order_type_2', $config) && strlen($config['order_type_2']) > 0) {
+      if (substr($config['order_type_2'], -3) === 'rev') {
+        $title .= ' ' . t('reversed');
+      }
+    }
+    $title .= ' ' . t('by the value of key "@key"', array('@key' => $config['order_key_2']));
+    if (array_key_exists('order_type_2', $config) && strlen($config['order_type_2']) > 0) {
+      switch ($config['order_type_2']) {
+        case 'strcmp':
+        case 'strcmprev':
+          $title .= ' ' . t('as text');
+          break;
+        case 'strcasecmp':
+        case 'strcasecmprev':
+          $title .= ' ' . t('as text case-insensitive');
+          break;
+        case 'intcmp':
+        case 'intcmprev':
+          $title .= ' ' . t('as number');
+          break;
+      }
+    }
+  }
+  return $title;
+}
+
+function work_sort_items(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    if (array_key_exists('order_key_1', $config) && strlen($config['order_key_1']) > 0) {
+      $key1 = $config['order_key_1'];
+      $factor1 = 1;
+      switch ($config['order_type_1']) {
+        case 'strcmprev':
+          $factor1 = -1;
+          // leave out the break and fall through
+        case 'strcmp':
+          $cmp1 = 'strcmp';
+          break;
+        case 'strcasecmprev':
+          $factor1 = -1;
+          // leave out the break and fall through
+        case 'strcasecmp':
+          $cmp1 = 'strcasecmp';
+          break;
+        case 'intcmprev':
+          $factor1 = -1;
+          // leave out the break and fall through
+        case 'intcmp':
+          $cmp1 = 'intcmp';
+          break;
+      }
+      if (array_key_exists('order_key_2', $config) && strlen($config['order_key_2']) > 0) {
+        $key2 = $config['order_key_2'];
+        $factor2 = 1;
+        switch ($config['order_type_2']) {
+          case 'strcmprev':
+            $factor2 = -1;
+            // leave out the break and fall through
+          case 'strcmp':
+            $cmp2 = 'strcmp';
+            break;
+          case 'strcasecmprev':
+            $factor2 = -1;
+            // leave out the break and fall through
+          case 'strcasecmp':
+            $cmp2 = 'strcasecmp';
+            break;
+          case 'intcmprev':
+            $factor2 = -1;
+            // leave out the break and fall through
+          case 'intcmp':
+            $cmp2 = 'intcmp';
+            break;
+        }
+        usort($data, function($a, $b) use ($cmp1, $key1, $factor1, $cmp2, $key2, $factor2) {
+          $result1 = ($factor1 * $cmp1($a[$key1], $b[$key1]));
+          if ($result1 === 0) {
+            return ($factor2 * $cmp2($a[$key2], $b[$key2]));
+          }
+          return $result1;
+        });
+      }
+      else {
+        usort($data, function($a, $b) use ($cmp1, $key1, $factor1) {
+          return ($factor1 * $cmp1($a[$key1], $b[$key1]));
+        });
+      }
+    }
+  }
+  return FALSE;
+}
+
+function intcmp($a, $b) {
+  $inta = intval($a);
+  $intb = intval($b);
+  return ($inta - $intb);
 }
 
 /**
