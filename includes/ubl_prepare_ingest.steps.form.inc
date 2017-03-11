@@ -348,6 +348,16 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       }
     }
     $steps['step_' . $stepid]['#collapsed'] = !$showcontent;
+    if ($showcontent) {
+      $len = count($groups);
+      $scsteps =& $form['steps'];
+      for ($i = 0; $i < $len; $i += 2) {
+        $groupname = $groups[$i];
+        $scsteps =& $scsteps[$groupname];
+        $scsteps['#collapsed'] = FALSE;
+        $scsteps =& $scsteps['grouped'];
+      }
+    }
     if ($canmovesteps) {
       $steps['step_' . $stepid]['buttons'] = array(
 	'#type' => 'actions',
