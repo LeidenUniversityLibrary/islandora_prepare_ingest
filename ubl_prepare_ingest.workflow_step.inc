@@ -74,6 +74,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add items'),
   );
   $info['add_key_regexp'] = array(
     'arguments' => array(
@@ -99,6 +100,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['add_key_template'] = array(
     'arguments' => array(
@@ -117,6 +119,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['add_key_counter'] = array(
     'arguments' => array(
@@ -152,6 +155,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['extract_keys_template'] = array(
     'arguments' => array(
@@ -170,6 +174,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['modify_key_value'] = array(
     'arguments' => array(
@@ -201,6 +206,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Modify key(s)'),
   );
   $info['make_directory'] = array(
     'arguments' => array(
@@ -215,6 +221,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => TRUE,
+    'type group' => t('Files and directories'),
   );
   $info['copy_file'] = array(
     'arguments' => array(
@@ -234,6 +241,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => TRUE,
+    'type group' => t('Files and directories'),
   );
   $info['write_file'] = array(
     'arguments' => array(
@@ -253,6 +261,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => TRUE,
+    'type group' => t('Files and directories'),
   );
   $info['group_items'] = array(
     'arguments' => array(
@@ -267,6 +276,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Sorting, filtering and grouping'),
   );
   $info['filter_items'] = array(
     'arguments' => array(
@@ -298,6 +308,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
+    'type group' => t('Sorting, filtering and grouping'),
   );
   $info['parse_xml'] = array(
     'arguments' => array(
@@ -317,6 +328,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['value_from_xml'] = array(
     'arguments' => array(
@@ -346,6 +358,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add key(s)'),
   );
   $info['xml_parts_from_xml'] = array(
     'arguments' => array(
@@ -381,6 +394,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add items'),
   );
   $info['read_csv_file'] = array(
     'arguments' => array(
@@ -405,6 +419,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Add items'),
   );
   $info['end_filter'] = array(
     'arguments' => array(),
@@ -413,6 +428,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
+    'type group' => t('Sorting, filtering and grouping'),
   );
   $info['visual_group_start'] = array(
     'arguments' => array(
@@ -508,6 +524,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
+    'type group' => t('Validation'),
   );
   $info['validate_basic_image'] = $validateconfig;
   $info['validate_large_image'] = $validateconfig;

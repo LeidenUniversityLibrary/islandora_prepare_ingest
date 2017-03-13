@@ -60,6 +60,9 @@
  *
  *     - 'changes keys': boolean indicating if the step changes the keys of the items
  *        in the data array. So if the items get a new key, this shoud be TRUE.
+ *
+ *     - 'type group': the (localized) string of the type group. Can be used to
+ *        group the step with similar steps.
  */
 function hook_workflow_step_info() {
 }
