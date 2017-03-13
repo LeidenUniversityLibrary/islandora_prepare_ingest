@@ -190,9 +190,14 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
     $options = array();
     $stepsinfo = module_invoke_all('workflow_step_info');
     foreach ($stepsinfo as $stepname => $stepinfo) {
-      $options[$stepname] = ubl_prepare_ingest_label_for_step($stepname);
+      $typegroup = isset($stepinfo['type group'])?$stepinfo['type group']:t('Other');
+      $options[$typegroup][$stepname] = ubl_prepare_ingest_label_for_step($stepname);
     }
-    asort($options);
+    ksort($options);
+    foreach ($options as $k => $v) {
+      asort($v);
+      $options[$k] = $v;
+    }
 
     $form['steps']['add_step'] = array(
       '#type' => 'fieldset',

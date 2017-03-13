@@ -36,6 +36,8 @@ The hook_workflow_step_info returns an array that has a value of each key, this 
  - 'changes keys': boolean indicating if the step changes the keys of the items in the data array. So if the items get a new key, this shoud be TRUE.
 
  - 'changes files': boolean indication if the step adds and/or changes files on the file system.
+ 
+ - 'type group': Optional, the (localized) string of the type group. Can be used to group the step with similar steps.
 
 
 Argument values:
