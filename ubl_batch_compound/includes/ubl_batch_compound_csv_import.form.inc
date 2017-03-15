@@ -30,7 +30,7 @@ function ubl_batch_compound_import_form(array $form, array &$form_state) {
   $form['use_solr_field'] = array(
     '#type' => 'textfield',
     '#title' => t('Optional, use Solr field for search'),
-    '#description' => t('Specify the Solr field that should be used to search the compound and children by. For example use "mods_relatedItem_otherFormat_identifier_local_ms" to only search by identifier local.'),
+    '#description' => t('Specify the Solr field that should be used to search the compound and children by. For example use "mods_identifier_local_s" to only search by identifier local.'),
     '#size' => 80,
     '#autocomplete_path' => 'islandora_solr/autocomplete_luke',
     '#default_value' => '',
