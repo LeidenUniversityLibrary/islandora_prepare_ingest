@@ -11,13 +11,14 @@
  */
 function ubl_islandora_export_drush_command() {
   $items['islandora_export'] = array(
-    'description' => 'Exports metadata and/or datastreams from Islandora. You can specify the source(s) of the metadata, like collection(s), batch set(s) and/or a file with identifiers. Optionally you can specify the type of the source objects you need. Provide an ini file to specify the output format you want.',
+    'description' => 'Exports the metadata and/or datastreams of items from Islandora. You can specify which items to use for the export, like items in specific collection(s), batch set(s) and/or a file with identifiers or a Solr query. Optionally you can specify the type of the source objects you need. Provide an ini file to specify the output format you want.',
     'options' => array(
       'format_file' => 'Mandatory, the absolute filepath to an ini file containing the format of the export. See documentation for specifics.',
       'directory' => 'Mandatory, the absolute filepath to an empty directory to export to.',
       'collection' => 'Optionally, one or more collection IDs, separated by comma\'s.',
       'batchset' => 'Optionally, one or more batchset IDs, separated by comma\'s.',
       'ids_file' => 'Optionally, the absolute filepath to a file containing a list of Islandora identifiers.',
+      'solr_query' => 'Optionally, a Solr query to find the items to export. Cannot be combined with collection, batchset or ids_file.',
       'cmodel' => 'Optionally, filters the objects found by collection/batchset/ids_file on the given content models(s), separated by comma\'s.',
     ),
     'aliases' => array('export'),
@@ -25,7 +26,7 @@ function ubl_islandora_export_drush_command() {
       'drush --user=admin islandora_export --collection=islandora:root --format_file=/path/to/format.ini --directory=/path/to/empty/directory',
       'drush --user=admin export --batchset=66 --format_file=/path/to/format.ini --directory=/path/to/empty/directory',
       'drush --user=admin export --ids_file=/path/to/idsfile.csv --format_file=/path/to/format.ini --directory=/path/to/empty/directory',
-      'drush --user=admin export --ids_file=/path/to/idsfile.txt --cmodel=islandora:bookCModel --format_file=/path/to/format.ini --directory=/path/to/empty/directory',
+      'drush --user=admin export --solr_query=catch_all_fields_mt:book --cmodel=islandora:bookCModel --format_file=/path/to/format.ini --directory=/path/to/empty/directory',
     ),
   );
   return $items;
@@ -38,6 +39,7 @@ function drush_ubl_islandora_export_islandora_export_validate() {
   $collections = drush_get_option('collection');
   $batchsets = drush_get_option('batchset');
   $idsfile = drush_get_option('ids_file');
+  $solrquery = drush_get_option('solr_query');
   $cmodels = drush_get_option('cmodel');
   $formatfile = drush_get_option('format_file');
   $directory = drush_get_option('directory');
@@ -137,6 +139,17 @@ function drush_ubl_islandora_export_islandora_export_validate() {
     }
   }
 
+  // Check solr_query option.
+  if (isset($solrquery)) {
+    if (isset($idsfile) || isset($batchsets) || isset($collections)) {
+      return drush_set_error("solr_query cannot be combined with collection, batchset or ids_file.");
+    } 
+    $parts = explode(':', $solrquery);
+    if (count($parts) != 2) {
+      return drush_set_error("solr_query should have the following format: solr_field:search_term.");
+    }
+  }
+
   return TRUE;
 }
 
@@ -147,6 +160,7 @@ function drush_ubl_islandora_export_islandora_export() {
   $collections = drush_get_option('collection');
   $batchsets = drush_get_option('batchset');
   $idsfile = drush_get_option('ids_file');
+  $solrquery = drush_get_option('solr_query');
   $cmodels = drush_get_option('cmodel');
   $formatfile = drush_get_option('format_file');
   $directory = drush_get_option('directory');
@@ -217,6 +231,37 @@ function drush_ubl_islandora_export_islandora_export() {
         } 
         ubl_islandora_export_object_export($obj, $formatconfig, $directory);
       }
+    }
+  }
+  if (isset($solrquery)) {
+    $current = 0;
+    $numfound = 1;
+    while ($current < $numfound) {
+      $qp = new IslandoraSolrQueryProcessor();
+      $qp->buildQuery($solrquery);
+      $qp->solrLimit = 50;
+      $qp->solrStart = $current;
+      $qp->executeQuery();
+      $r = $qp->islandoraSolrResult;
+      $numfound = $r['response']['numFound'];
+      if ($current === 0) {
+        drush_log(t("Found @numfound objects for query @query", array("@numfound" => $numfound, "@query" => $solrquery)), 'ok');
+      }
+
+      $len = count($r['response']['objects']);
+      for ($i = 0; $i < $len; $i++) {
+        $objid = $r['response']['objects'][$i]['PID']; 
+        $obj = islandora_object_load($objid);
+        if ($obj) {
+          if (isset($cmodelarray)) {
+           if (!array_intersect($cmodelarray, $obj->models)) {
+             continue;
+           }
+          }
+          ubl_islandora_export_object_export($obj, $formatconfig, $directory);
+        }
+      }
+      $current += $len;
     }
   }
 }
