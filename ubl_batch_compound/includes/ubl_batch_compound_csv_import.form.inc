@@ -27,9 +27,21 @@ function ubl_batch_compound_import_form(array $form, array &$form_state) {
       'file_validate_size' => array($upload_size * 1024 * 1024),
     ),
   );
+  $form['use_solr_field'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Optional, use Solr field for search'),
+    '#description' => t('Specify the Solr field that should be used to search the compound and children by. For example use "mods_relatedItem_otherFormat_identifier_local_ms" to only search by identifier local.'),
+    '#size' => 80,
+    '#autocomplete_path' => 'islandora_solr/autocomplete_luke',
+    '#default_value' => '',
+  );
+  $form['exact_match'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('exact matches only'),
+  );
   $form['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Upload CSV'),
+    '#value' => t('Preview compounds'),
   );
   return $form;
 }
@@ -45,6 +57,8 @@ function ubl_batch_compound_import_form(array $form, array &$form_state) {
 function ubl_batch_compound_import_form_submit(array $form, array &$form_state) {
   $file = file_load($form_state['values']['file']);
   $path = drupal_realpath($file->uri);
+  $solrfield = $form_state['values']['use_solr_field'];
+  $exactmatch = $form_state['values']['exact_match'];
 
   ini_set("auto_detect_line_endings", "1");
   $delimit = "\t";
@@ -68,8 +82,8 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
         $parentid = $data[0];
         $childid = $data[1];
 
-        $foundparents = find_fedora_object_ids($parentid, TRUE);
-        $foundchildren = find_fedora_object_ids($childid);
+        $foundparents = find_fedora_object_ids($parentid, $exactmatch, $solrfield);
+        $foundchildren = find_fedora_object_ids($childid, $exactmatch, $solrfield);
 
         if (count($foundparents) != 1 && count($foundchildren) == 0) {
           // This is a header, so skip it.
@@ -80,8 +94,8 @@ function ubl_batch_compound_import_form_submit(array $form, array &$form_state) 
       $parentid = $data[0];
       $childid = $data[1];
 
-      $foundparents = find_fedora_object_ids($parentid, TRUE);
-      $foundchildren = find_fedora_object_ids($childid);
+      $foundparents = find_fedora_object_ids($parentid, $exactmatch, $solrfield);
+      $foundchildren = find_fedora_object_ids($childid, $exactmatch, $solrfield);
 
       if (count($foundchildren) == 0) {
         drupal_set_message(t("Found no children for id @childid", array("@childid" => $childid)), 'warning');
