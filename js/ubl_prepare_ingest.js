@@ -47,6 +47,7 @@ jQuery(document).ready(function() {
     var $thisstep = jQuery(this).closest('fieldset.workflow_step');
     if ($thisstep.size() == 1) { 
       var $prevstep = $thisstep.prev('.workflow_step');
+      var $thisendgroup = $thisstep.next('fieldset.workflow_step.visual_group_end');
       var $goingoutofgroup = false;
       if ($prevstep.size() == 0) {
         // from an open group?
@@ -55,7 +56,104 @@ jQuery(document).ready(function() {
           $goingoutofgroup = true;
         }
       }
-      if (!$goingoutofgroup 
+      if ($thisstep.find('> div > div.grouped_steps').size() > 0) {
+        // a group is moving up
+        if (!$goingoutofgroup && $prevstep.hasClass('visual_group_end')) {
+          // the step above is another group
+          var $prevgroup = $prevstep.prev();
+          if ($prevgroup.hasClass('collapsed')) {
+            var $prevendgroup = $prevstep;
+            var $prevsteps = retrieveStepsBetween($prevgroup,$thisstep);
+            var $thissteps = retrieveStepsBetween($thisstep,$thisendgroup);
+            $thissteps.push($thisendgroup);
+            exchangeStepWeights($prevsteps, $thissteps);
+            swapElements($prevendgroup, $thisstep, function() {
+              $thisstep.after($prevendgroup);
+              setTimeout(function() {
+                swapElements($prevgroup, $thisstep, function() {
+                  $thisstep.after($prevgroup);
+                  setTimeout(function() {
+                    swapElements($prevendgroup, $thisendgroup, function() {
+                      $thisendgroup.after($prevendgroup); 
+                      setTimeout(function() {
+                        swapElements($prevgroup, $thisendgroup);
+                      }, 10);
+                    }, 200);
+                  }, 10);
+                }, 200);
+              }, 10);
+            });
+          }
+          else {
+            // going into other group
+            var $steps = retrieveStepsBetween($thisstep,$thisendgroup);
+            $steps.unshift($prevstep, $prevstep);
+            if ($thisendgroup.size() > 0) {
+              $steps.push($thisendgroup);
+            }
+            $steps.push($prevstep);
+            moveStepWeightsUp($steps);
+
+            var $stepsgroup = $prevstep.prev().find('> div > div.grouped_steps').first();
+            var $lastingroup = jQuery('<DIV/>');
+            $stepsgroup.append($lastingroup);
+            swapElements($lastingroup, $thisstep, function() {
+              $stepsgroup.append($thisstep);
+              $lastingroup.remove();
+              if ($thisendgroup.size() > 0) {
+                $lastingroup = jQuery('<DIV/>');
+                $stepsgroup.append($lastingroup);
+                setTimeout(function() {
+                  swapElements($lastingroup, $thisendgroup, function() {
+                    $stepsgroup.append($thisendgroup);
+                    $lastingroup.remove();
+                  }, 200);
+                }, 10);
+              }
+            });
+          }
+        }
+        else {
+          var $steps = retrieveStepsBetween($thisstep,$thisendgroup);
+          $steps.unshift($prevstep, $prevstep);
+          if ($thisendgroup.size() > 0) {
+            $steps.push($thisendgroup);
+          }
+          $steps.push($prevstep);
+          moveStepWeightsUp($steps);
+
+          if ($goingoutofgroup) {
+            // this group is going out of another group
+            var $prevstepfields = $thisstep.parent().parent().parent().find(' > LEGEND, > DIV > .fields, > DIV > .buttons');
+            swapElements($prevstepfields, $thisstep, function() {
+              $prevstep.before($thisstep);
+              if ($thisendgroup.size() > 0) {
+                setTimeout(function() {
+                  swapElements($prevstepfields, $thisendgroup, function() {
+                    $prevstep.before($thisendgroup);
+                  }, 200);
+                }, 10);
+              }
+            }, 200);
+          }
+          else {
+            // this group is just going up
+            swapElements($prevstep, $thisstep, function () {
+              $thisstep.after($prevstep);
+              if ($thisendgroup.size() > 0) {
+                setTimeout(function() {
+                  swapElements($thisendgroup, $prevstep, function() {
+                    $thisendgroup.after($prevstep);
+                    $prevstep.css('top' , 'auto');
+                    $thisendgroup.css('top' , 'auto');
+                  }, 200);
+                }, 10);
+              }
+            }, 200);
+          }
+        }
+      }
+      else if (!$goingoutofgroup 
           && $prevstep.prev().hasClass('collapsed')
           && ($prevstep.prev().find('> div > div.grouped_steps').size() > 0)) {
         var $prevprevstep = $prevstep.prev();
@@ -64,17 +162,7 @@ jQuery(document).ready(function() {
         var $pstep = $thisstep;
         for (var index = 0; index < len; index++) {
           var $cstep = $steps[index];
-          var cstepweight = $cstep.find('.weight_step').first().val();
-          if (cstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-            cstepweight = prefix + cstepweight;
-          }
-          var pstepweight = $pstep.find('.weight_step').first().val();
-          if (pstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-            pstepweight = prefix + pstepweight;
-          }
-          $cstep.find('.weight_step').first().val(pstepweight);
-          $pstep.find('.weight_step').first().val(cstepweight);
-
+          flipStepWeights($cstep, $pstep);
           $pstep = $cstep;
         }
         swapElements($prevstep, $thisstep, function () {
@@ -87,16 +175,7 @@ jQuery(document).ready(function() {
         }, 200);
       }
       else if ($prevstep.size() == 1) {
-        var thisstepweight = $thisstep.find('.weight_step').first().val();
-        if (thisstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-          thisstepweight = prefix + thisstepweight;
-        }
-        var prevstepweight = $prevstep.find('.weight_step').first().val();
-        if (prevstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-          prevstepweight = prefix + prevstepweight;
-        }
-        $thisstep.find('.weight_step').first().val(prevstepweight);
-        $prevstep.find('.weight_step').first().val(thisstepweight);
+        flipStepWeights($thisstep, $prevstep);
         if ($goingoutofgroup) {
           // going out of open group
           var $prevstepfields = $thisstep.parent().parent().parent().find(' > LEGEND, > DIV > .fields, > DIV > .buttons');
@@ -123,63 +202,200 @@ jQuery(document).ready(function() {
     e.preventDefault();
     var $thisstep = jQuery(this).closest('fieldset.workflow_step');
     if ($thisstep.size() == 1) { 
-      var $nextstep = $thisstep.next('.workflow_step');
-      var $goingoutofgroup = false;
-      if ($nextstep.size() == 0) {
-        // from an open group?
-        if ($thisstep.parents('fieldset.workflow_step').size() > 0) {
-          $nextstep = $thisstep.parents('fieldset.workflow_step').first().next();
-          $goingoutofgroep = true;
+      if ($thisstep.find('> div > div.grouped_steps').size() > 0) {
+        // a group is moving down
+        var $thisendgroup = $thisstep.next('fieldset.workflow_step.visual_group_end');
+        if ($thisendgroup.size() == 0) {
+          return; // no end group found, unexpected
         }
-      }
-      if (!$goingoutofgroup
-          && $nextstep.hasClass('collapsed')
-          && ($nextstep.find('> div > div.grouped_steps').size() > 0)) {
-        var $nextnextstep = $nextstep.next();
-        var $steps = retrieveStepsBetween($thisstep,$nextnextstep);
-        $steps.unshift($thisstep);
-        $steps.push($nextnextstep, $thisstep);
-        var cstepweight = '';
-        for (var index = 0; index < ($steps.length - 1); index++) {
-          var $cstep = $steps[index];
-          var $nstep = $steps[index+1];
-          var nstepweight = $nstep.find('.weight_step').first().val();
-          if (nstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-            nstepweight = prefix + nstepweight;
+        var $nextstep = $thisendgroup.next('fieldset');
+        if ($nextstep.size() > 0) {
+          if ($nextstep.find('> div > div.grouped_steps').size() > 0) {
+            // next step is also a group.
+            if ($nextstep.hasClass('collapsed')) {
+              // going past a collapsed group
+              var $nextendgroup = $nextstep.next('fieldset.workflow_step.visual_group_end');
+              var $thissteps = retrieveStepsBetween($thisstep,$nextstep);
+              var $nextsteps = retrieveStepsBetween($nextstep,$nextendgroup);
+              $nextsteps.push($nextendgroup);
+              exchangeStepWeights($thissteps, $nextsteps);
+              swapElements($thisendgroup, $nextstep, function() {
+                $nextstep.after($thisendgroup);
+                setTimeout(function() {
+                  swapElements($thisstep, $nextstep, function() {
+                    $nextstep.after($thisstep);
+                    setTimeout(function() {
+                      swapElements($thisendgroup, $nextendgroup, function() {
+                        $nextendgroup.after($thisendgroup);
+                        setTimeout(function() {
+                          swapElements($thisstep, $nextendgroup);
+                        }, 10);
+                      }, 200);
+                    }, 10);
+                  }, 200);
+                }, 10);
+              });
+            }
+            else {
+              // going into an open group
+              var $thissteps = retrieveStepsBetween($thisstep,$nextstep);
+              exchangeStepWeights($thissteps, $nextstep);
+  
+              var $nextstepsgroup = $nextstep.find('> div > div.grouped_steps').first();
+              var $firstingroup = jQuery('<DIV/>');
+              $nextstepsgroup.prepend($firstingroup);
+              swapElements($firstingroup, $thisendgroup, function() {
+                $nextstepsgroup.prepend($thisendgroup);
+                $firstingroup.remove();
+                setTimeout(function() {
+                  swapElements($thisendgroup, $thisstep, function() {
+                    $nextstepsgroup.prepend($thisstep);
+                  }, 200);
+                }, 10);
+              });
+            }
           }
-          $nstep.find('.weight_step').first().val(cstepweight);
-          cstepweight = nstepweight;
-        }
-        swapElements($thisstep, $nextstep, function () {
-          $nextstep.after($thisstep);
-          setTimeout(function() {
-            swapElements($thisstep, $nextnextstep, function() {
-              $nextnextstep.after($thisstep);
+          else {
+            // just going down
+            var $thissteps = retrieveStepsBetween($thisstep,$nextstep);
+            exchangeStepWeights($thissteps, $nextstep);
+            swapElements($thisendgroup, $nextstep, function () {
+              $nextstep.after($thisendgroup);
+              setTimeout(function() {
+                swapElements($thisstep, $nextstep, function() {
+                  $nextstep.after($thisstep);
+                }, 200);
+              }, 10);
             }, 200);
-          }, 10);
-        }, 200);
-      }
-      else if ($nextstep.size() == 1) {
-        var thisstepweight = $thisstep.find('.weight_step').first().val();
-        if (thisstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-          thisstepweight = prefix + thisstepweight;
-        }
-        var nextstepweight = $nextstep.find('.weight_step').first().val();
-        if (nextstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-          nextstepweight = prefix + nextstepweight;
-        }
-        $thisstep.find('.weight_step').first().val(nextstepweight);
-        $nextstep.find('.weight_step').first().val(thisstepweight);
-        if ($nextstep.find('> div > div.grouped_steps').size() > 0) {
-          var $group = $nextstep.find('> div > div.grouped_steps').first();
-          swapElements($thisstep, $nextstep, function() { $group.prepend($thisstep); });
+          }
         }
         else {
-          swapElements($thisstep, $nextstep);
+          if ($thisstep.parents('fieldset.workflow_step').size() > 0) {
+            // going out of a group
+            var $thissteps = retrieveStepsBetween($thisstep,$thisendgroup);
+            $thissteps.push($thisendgroup);
+            $nextstep = $thisstep.parents('fieldset.workflow_step').next('fieldset.workflow_step');
+            exchangeStepWeights($thissteps, $nextstep);
+            swapElements($thisendgroup, $nextstep, function () {
+              $nextstep.after($thisendgroup);
+              setTimeout(function() {
+                swapElements($thisstep, $nextstep, function() {
+                  $nextstep.after($thisstep);
+                }, 200);
+              }, 10);
+            }, 200);
+          }
         }
       }
-    } 
+      else {
+        var $nextstep = $thisstep.next('.workflow_step');
+        var $goingoutofgroup = false;
+        if ($nextstep.size() == 0) {
+          // from an open group?
+          if ($thisstep.parents('fieldset.workflow_step').size() > 0) {
+            $nextstep = $thisstep.parents('fieldset.workflow_step').first().next();
+            $goingoutofgroep = true;
+          }
+        }
+        if (!$goingoutofgroup
+            && $nextstep.hasClass('collapsed')
+            && ($nextstep.find('> div > div.grouped_steps').size() > 0)) {
+          var $nextnextstep = $nextstep.next('.workflow_step');
+          if ($nextnextstep.size() > 0) {
+            var $steps = retrieveStepsBetween($thisstep,$nextnextstep);
+            $steps.unshift($thisstep);
+            $steps.push($nextnextstep, $thisstep);
+            moveStepWeightsUp($steps);
+            swapElements($thisstep, $nextstep, function () {
+              $nextstep.after($thisstep);
+              setTimeout(function() {
+                swapElements($thisstep, $nextnextstep, function() {
+                  $nextnextstep.after($thisstep);
+                }, 200);
+              }, 10);
+            }, 200);
+          }
+        }
+        else if ($nextstep.size() == 1) {
+          flipStepWeights($thisstep, $nextstep);
+          if ($nextstep.find('> div > div.grouped_steps').size() > 0) {
+            var $group = $nextstep.find('> div > div.grouped_steps').first();
+            swapElements($thisstep, $nextstep, function() { $group.prepend($thisstep); });
+          }
+          else {
+            swapElements($thisstep, $nextstep);
+          }
+        }
+      } 
+    }
   });
+  
+  function flipStepWeights($step1, $step2) {
+    var step1weight = $step1.find('.weight_step').first().val();
+    if (step1weight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
+      step1weight = prefix + step1weight;
+    }
+    var step2weight = $step2.find('.weight_step').first().val();
+    if (step2weight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
+      step2weight = prefix + step2weight;
+    }
+    $step1.find('.weight_step').first().val(step2weight);
+    $step2.find('.weight_step').first().val(step1weight);
+  }
+
+  function moveStepWeightsUp($steps) {
+    var cstepweight = '';
+    for (var index = 0; index < ($steps.length - 1); index++) {
+      var $cstep = $steps[index];
+      var $nstep = $steps[index+1];
+      var nstepweight = $nstep.find('.weight_step').first().val();
+      if (nstepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
+        nstepweight = prefix + nstepweight;
+      }
+      $nstep.find('.weight_step').first().val(cstepweight);
+      cstepweight = nstepweight;
+    }
+  }
+
+  function exchangeStepWeights($steps1, $steps2) {
+    var $allstepscurrentorder;
+    if ($steps1.concat && $steps2.concat) {
+      $allstepscurrentorder = $steps1.concat($steps2);
+    }
+    else if ($steps1.concat) {
+      $allstepscurrentorder = $steps1.concat([$steps2]); 
+    }
+    else if ($steps2.concat) {
+      $allstepscurrentorder = [$steps1].concat($steps2); 
+    }
+    else {
+      $allstepscurrentorder = [$steps1, $steps2];
+    }
+    var weights = [];
+    jQuery.each($allstepscurrentorder, function(i, $astep) {
+      var stepweight = $astep.find('.weight_step').first().val();
+      if (stepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
+        stepweight = prefix + stepweight;
+      }
+      weights.push(stepweight);
+    }); 
+    var $allstepsexchanged;
+    if ($steps1.concat && $steps2.concat) {
+      $allstepsexchanged = $steps2.concat($steps1);
+    }
+    else if ($steps1.concat) {
+      $allstepsexchanged = [$steps2].concat($steps1);
+    }
+    else if ($steps2.concat) {
+      $allstepsexchanged = $steps2.concat([$steps1]);  
+    }
+    else {
+      $allstepsexchanged = [$steps2, $steps1];
+    }
+    jQuery.each($allstepsexchanged, function(i, $astep) {
+      $astep.find('.weight_step').first().val(weights[i]);
+    });
+  }
 
   function retrieveStepsBetween($fromElement, $toElement) {
     var $steps = [];
