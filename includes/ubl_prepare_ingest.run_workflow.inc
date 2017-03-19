@@ -18,6 +18,7 @@
 
 function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $extent, array $additionalconfig = NULL) {
   module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
 
   $results = array();
   $data = array();
@@ -35,6 +36,7 @@ function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $ext
         $stepconfig[$k] = $v;
       }
     }
+    $stepconfig = ubl_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
     $stepfunc = ubl_prepare_ingest_callback_for_step($stepname, 'work');
     $results[$stepid] = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
