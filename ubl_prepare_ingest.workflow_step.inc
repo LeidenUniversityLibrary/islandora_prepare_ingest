@@ -175,6 +175,12 @@ function ubl_prepare_ingest_workflow_step_info() {
         'type' => 'key',
         'optional' => TRUE,
       ),
+      'foreach_value' => array(
+        'label' => t('Foreach value of key name'),
+        'description' => t('Optional, start counting for each unique value of this key.'),
+        'type' => 'key',
+        'optional' => TRUE,
+      ),
     ),
     'input keys' => array('foreach_value'),
     'output keys' => array('target_key_name'),
