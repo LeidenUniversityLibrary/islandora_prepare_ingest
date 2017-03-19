@@ -70,7 +70,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
       '#attributes' => array(
-        'class' => array('workflow_step'),
+        'class' => array('workflow_step', $stepname),
       ),
     );
     if (isset($workflowresults[$stepid]) && is_array($workflowresults[$stepid])) {
@@ -105,16 +105,14 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
         '#weight' => 1,
       );
       $steps['step_' . $stepid]['fields']['remove_step_' . $stepid] = array(
-	//'#type' => 'hidden',
-	'#type' => 'textfield',
+	'#type' => 'hidden',
 	'#default_value' => '0',
 	'#attributes' => array(
 	  'class' => array('remove_step'),
 	),
       );
       $steps['step_' . $stepid]['fields']['weight_step_' . $stepid] = array(
-	//'#type' => 'hidden',
-	'#type' => 'textfield',
+	'#type' => 'hidden',
 	'#default_value' => $workflowstep['weight'],
 	'#attributes' => array(
 	  'class' => array('weight_step'),
