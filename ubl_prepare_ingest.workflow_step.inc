@@ -48,12 +48,32 @@ define('WORK_EXTENT_DO_ALL', WORK_EXTENT_CHECK_ALL_ARGUMENTS | WORK_EXTENT_ONLY_
 function ubl_prepare_ingest_workflow_step_info() {
   $info = array();
 
+  $info['define_constant'] = array(
+    'arguments' => array(
+      'name' => array(
+        'label' => t('Name'),
+        'description' => t('The name of the constant.'),
+        'type' => 'key',
+      ),
+      'value' => array(
+        'label' => t('Value'),
+        'description' => t('The value of the constant, can be empty.'),
+        'type' => 'string',
+      ),
+    ),
+    'input keys' => array(),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => FALSE,
+    'changes files' => FALSE,
+  );
   $info['read_file_names'] = array(
     'arguments' => array(
       'directory_path' => array(
         'label' => t('Directory path'),
         'description' => t('Specify the absolute path to the directory where the input files are located.'),
         'type' => 'filepath',
+        'allow_constants' => TRUE,
       ),
       'filter' => array(
         'label' => t('Filter'),
@@ -89,10 +109,12 @@ function ubl_prepare_ingest_workflow_step_info() {
       'regexp' => array(
         'label' => t('Regular expression'),
         'type' => 'regexp',
+        'allow_constants' => TRUE,
       ),
       'replacement' => array(
         'label' => t('Replacement'),
         'type' => 'string',
+        'allow_constants' => TRUE,
       ),
     ),
     'input keys' => array('source_key_name'),
@@ -112,6 +134,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Template'),
         'description' => t('Text with keys that will be replaced between curly braces.'),
         'type' => 'template',
+        'allow_constants' => TRUE,
       ),
     ),
     'input keys callback' => 'get_input_keys_add_key_template',
@@ -131,17 +154,20 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Start'),
         'type' => 'number',
         'default_value' => 1,
+        'allow_constants' => TRUE,
       ),
       'step' => array(
         'label' => t('Step'),
         'type' => 'number',
         'default_value' => 1,
+        'allow_constants' => TRUE,
       ),
       'width' => array(
         'label' => t('Width'),
         'description' => t('The width of the number, it will be prepended by zero\'s to meet this width.'),
         'type' => 'number',
         'default_value' => 1,
+        'allow_constants' => TRUE,
       ),
       'foreach_value' => array(
         'label' => t('Foreach value of key name'),
@@ -167,6 +193,7 @@ function ubl_prepare_ingest_workflow_step_info() {
 	'label' => t('Target keys template'),
 	'description' => t('Template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}'),
 	'type' => 'keystemplate',
+        'allow_constants' => TRUE,
       ),
     ),
     'input keys' => array('source_key_name'),
@@ -295,6 +322,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Filter value'),
         'description' => t('The value to filter by.'),
         'type' => 'string',
+        'allow_constants' => TRUE,
         'optional' => array('filter_type' => array('exists')),
       ),
       'negate' => array(
@@ -346,11 +374,13 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('XPath'),
         'description' => t('An XPath to the needed value.'),
         'type' => 'xpath',
+        'allow_constants' => TRUE,
       ),
       'namespaces' => array(
         'label' => t('namespaces'),
         'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
         'type' => 'text',
+        'allow_constants' => TRUE,
       ),
     ),
     'input keys' => array('source_xml_key_name'),
@@ -376,11 +406,13 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('XPath'),
         'description' => t('An XPath to a repeating element.'),
         'type' => 'xpath',
+        'allow_constants' => TRUE,
       ),
       'namespaces' => array(
         'label' => t('namespaces'),
         'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
         'type' => 'text',
+        'allow_constants' => TRUE,
       ),
       'related_key_name' => array(
         'label' => t('Related key name'),
@@ -402,6 +434,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('CSV filepath'),
         'description' => t('Specify the absolute path to the CSV file.'),
         'type' => 'filepath',
+        'allow_constants' => TRUE,
       ),
       'column_keys' => array(
         'label' => t('Column keys'),
@@ -436,6 +469,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Description'),
         'description' => t('A description of this visual grouping.'),
         'type' => 'template',
+        'allow_constants' => TRUE,
       ),
     ),
     'input keys' => array(),
@@ -443,7 +477,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
-    'visual' => array('groupstart','nomove','groupremove','ungroup'),
+    'visual' => array('groupstart','groupremove','ungroup'),
   );
   $info['visual_group_end'] = array(
     'arguments' => array(),
@@ -507,11 +541,13 @@ function ubl_prepare_ingest_workflow_step_info() {
         'label' => t('Filepath'),
         'description' => t('The absolute path to the directory where the import files are placed.'),
         'type' => 'filepath',
+        'allow_constants' => TRUE,
       ),
       'namespace' => array(
         'label' => t('Namespace'),
         'description' => t('The namespace of objects to create.'),
         'type' => 'namespace',
+        'allow_constants' => TRUE,
       ),
       'collection' => array(
         'label' => t('Collection'),
@@ -769,6 +805,40 @@ function check_arguments(array $info, array $config, $extent) {
     $results[] = array('text' => t('Missing arguments in info.'), 'type' => 'argument_error');
   }
   return $results;
+}
+
+/**
+ * define_constant
+ **/
+function label_define_constant(array $info, array $config) {
+  $title = '';
+  if (array_key_exists('name', $config) && strlen($config['name']) > 0) {
+    $title .= t('Defined constant with name "@name"', array('@name' => $config['name']));
+    $value = '';
+    if (array_key_exists('value', $config) && strlen($config['value']) > 0) {
+      $value = $config['value'];
+    }
+    $title .= ' ' . t('and value "@value"', array('@value' => $value));
+  }
+  else {
+    $title .= t('Define constant');
+  }
+  $title .= '.';
+
+  return $title;
+}
+
+function work_define_constant(array $info, array $config, &$data, &$context, $extent) {
+  //if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
+    $name = $config['name'];
+    $value = $config['value'];
+    $results = ubl_prepare_ingest_constants_set($name, $value, $context);
+    if ($results) {
+      return $results;
+    }
+  //}
+  return FALSE;
 }
 
 /**
@@ -2111,7 +2181,7 @@ function work_end_filter(array $info, array $config, &$data, &$context, $extent)
  **/
 function label_visual_group_start(array $info, array $config) {
   if (array_key_exists('description', $config) && strlen($config['description']) > 0) {
-    $title = $config['description'];
+    $title = t('Visual group:') . ' ' . $config['description'];
   }
   else {
     $title = t('Visual group  start.'); // two spaces for sorting...
