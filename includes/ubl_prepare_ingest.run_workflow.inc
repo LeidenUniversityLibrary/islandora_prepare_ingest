@@ -40,8 +40,21 @@ function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $ext
     $stepfunc = ubl_prepare_ingest_callback_for_step($stepname, 'work');
     $results[$stepid] = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
-    $workflowdata[$stepid]['data'] = $data;
-    $workflowdata[$stepid]['context'] = $context;
+    $limiteddata = array();
+    $limitbytype = array();
+    foreach ($data as $d) {
+      $type = implode('_', array_keys($d));
+      if (!array_key_exists($type, $limitbytype)) {
+        $limitbytype[$type] = 0;
+      }
+      $limitbytype[$type]++;
+      if ($limitbytype[$type] <= 6) {
+        $limiteddata[] = $d;
+      }
+    }
+
+    $workflowdata[$stepid]['data'] = $limiteddata;
+    $workflowdata[$stepid]['context'] = array_key_exists('_PIFS', $context)?array('_PIFS' => $context['_PIFS']):array();
   }
   return $results;
 }
