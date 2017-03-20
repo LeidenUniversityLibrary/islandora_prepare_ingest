@@ -53,38 +53,43 @@ function ubl_check_datastreams_generate_form_submit(array $form, array &$form_st
   $object = islandora_object_load($objectid);
   if ($object) {
     if ($dsid === 'JPG') {
-      if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_large_image') !== FALSE) {
         islandora_large_image_create_jpg_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'JP2') {
-      if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_large_image') !== FALSE) {
         islandora_large_image_create_jp2_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'TN') {
-      if (module_load_include('inc', 'islandora_large_image', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_large_image') !== FALSE) {
         islandora_large_image_create_tn_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'PDF') {
-      if (module_load_include('inc', 'islandora_solution_pack_pdf', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_solution_pack_pdf') !== FALSE) {
         islandora_pdf_add_pdfa_derivative($object, FALSE);
       }
     }
     elseif ($dsid === 'OCR') {
-      if (module_load_include('inc', 'islandora_ocr', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_ocr') !== FALSE) {
         islandora_ocr_derive_ocr($object, FALSE);
       }
     }
     elseif ($dsid === 'HOCR') {
-      if (module_load_include('inc', 'islandora_ocr', 'includes/derivatives') !== FALSE) {
+      if (module_load_include('inc', 'islandora_ocr') !== FALSE) {
         islandora_ocr_derive_hocr($object, FALSE);
       }
     }
     elseif ($dsid === 'HDL') {
-      if (module_load_include('inc', 'islandora_handle', 'includes/derivatives') !== FALSE) {
-        $result = islandora_handle_append_handles_from_configuration($object);
+      if (module_load_include('inc', 'islandora_handle') !== FALSE) {
+        if (function_exists('islandora_handle_append_handle_from_configuration')) {
+          $result = islandora_handle_append_handle_from_configuration($object);
+        }
+        else if (function_exists('islandora_handle_append_handles_from_configuration')) {
+          $result = islandora_handle_append_handles_from_configuration($object);
+        }
         if (isset($result) && $result['success'] === TRUE) {
           islandora_handle_add_to_dc_datastream($object);
         }
