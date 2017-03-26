@@ -30,8 +30,6 @@ function ubl_prepare_ingest_constants_add_to_stepconfig(&$stepconfig, $context) 
         $stepconfig[$key] = $newvalue;
       }
     }
-  dpm($stepconfig, 'stepconfig');
   }
-
   return $stepconfig;
 }
