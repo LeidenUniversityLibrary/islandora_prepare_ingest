@@ -53,7 +53,7 @@ function ubl_prepare_ingest_workflow_step_info() {
       'name' => array(
         'label' => t('Name'),
         'description' => t('The name of the constant.'),
-        'type' => 'key',
+        'type' => 'constantkey',
       ),
       'value' => array(
         'label' => t('Value'),
@@ -66,6 +66,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
+    'type group' => ' ' . t('Constants'),
   );
   $info['read_file_names'] = array(
     'arguments' => array(
@@ -137,7 +138,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'allow_constants' => TRUE,
       ),
     ),
-    'input keys callback' => 'get_input_keys_add_key_template',
+    'input keys callback' => 'get_input_keys_from_template',
     'output keys' => array('target_key_name'),
     'changes count' => FALSE,
     'changes keys' => TRUE,
@@ -237,13 +238,13 @@ function ubl_prepare_ingest_workflow_step_info() {
   );
   $info['make_directory'] = array(
     'arguments' => array(
-      'directory_key_name' => array(
-        'label' => t('Directory key name'),
-        'description' => t('This key should hold an absolute path to a not yet existing directory. The parent directory should exist already.'),
-        'type' => 'key',
+      'directory_name' => array(
+        'label' => t('Directory name'),
+        'description' => t('This should hold an absolute path to a not yet existing directory. The parent directory should exist already.'),
+        'type' => 'templatestring',
       ),
     ),
-    'input keys' => array('directory_key_name'),
+    'input keys callback' => 'get_input_keys_from_template',
     'output keys' => array(),
     'changes count' => FALSE,
     'changes keys' => FALSE,
@@ -252,18 +253,18 @@ function ubl_prepare_ingest_workflow_step_info() {
   );
   $info['copy_file'] = array(
     'arguments' => array(
-      'source_key_name' => array(
-        'label' => t('Source key name'),
-        'description' => t('The value for this key should hold an absolute path to an existing file.'),
-        'type' => 'key',
+      'source_filepath' => array(
+        'label' => t('Source filepath'),
+        'description' => t('This should hold an absolute path to an existing file.'),
+        'type' => 'templatestring',
       ),
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'description' => t('This key should hold an absolute path to an existing directory or the absolute path including the new name of the file to copy.'),
-        'type' => 'key',
+      'target_filepath' => array(
+        'label' => t('Target filepath'),
+        'description' => t('This should hold an absolute path to an existing directory or the absolute path including the new name of the file to copy.'),
+        'type' => 'templatestring',
       ),
     ),
-    'input keys' => array('source_key_name','target_key_name'),
+    'input keys callback' => 'get_input_keys_from_template',
     'output keys' => array(),
     'changes count' => FALSE,
     'changes keys' => FALSE,
@@ -277,13 +278,13 @@ function ubl_prepare_ingest_workflow_step_info() {
         'description' => t('This key should hold the content for the file.'),
         'type' => 'key',
       ),
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'description' => t('This key should hold an absolute path to a not existing file.'),
+      'target_filepath' => array(
+        'label' => t('Target filepath'),
+        'description' => t('This should hold an absolute path to a not existing file.'),
         'type' => 'key',
       ),
     ),
-    'input keys' => array('content_key_name','target_key_name'),
+    'input keys' => array('content_key_name'),
     'output keys' => array(),
     'changes count' => FALSE,
     'changes keys' => FALSE,
@@ -340,10 +341,10 @@ function ubl_prepare_ingest_workflow_step_info() {
   );
   $info['parse_xml'] = array(
     'arguments' => array(
-      'filepath_key_name' => array(
-        'label' => t('Filepath key name'),
-        'description' => t('The value for this key should hold an absolute path to an existing XML file.'),
-        'type' => 'key',
+      'filepath' => array(
+        'label' => t('Filepath'),
+        'description' => t('This should hold an absolute path to an existing XML file.'),
+        'type' => 'templatestring',
       ),
       'xml_key_name' => array(
         'label' => t('XML key name'),
@@ -351,7 +352,7 @@ function ubl_prepare_ingest_workflow_step_info() {
         'type' => 'key',
       ),
     ),
-    'input keys' => array('filepath_key_name'),
+    'input keys callback' => 'get_input_keys_from_template',
     'output keys' => array('xml_key_name'),
     'changes count' => FALSE,
     'changes keys' => TRUE,
@@ -478,6 +479,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes keys' => FALSE,
     'changes files' => FALSE,
     'visual' => array('groupstart','groupremove','ungroup'),
+    'type group' => ' ' . t('Visual'),
   );
   $info['visual_group_end'] = array(
     'arguments' => array(),
@@ -487,6 +489,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes keys' => FALSE,
     'changes files' => FALSE,
     'visual' => array('groupend','nomove','noremove'),
+    'type group' => ' ' . t('Visual'),
   );
   $info['sort_items'] = array(
     'arguments' => array(
@@ -534,6 +537,7 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
+    'type group' => t('Sorting, filtering and grouping'),
   );
   $validateconfig = array(
     'arguments' => array(
@@ -663,7 +667,7 @@ function check_input_keys_in_data(array $info, array $config, array $data) {
         }
       }
       if (!array_key_exists($ikey, $config) || (strlen($config[$ikey]) == 0)) {
-	$results[] = array('text' => t('Key @key not defined in configuration.', array('@key' => $ikey)), 'type' => 'config_error');
+	$results[] = array('text' => t("Missing argument '@key'.", array('@key' => $info['arguments'][$ikey]['label'])), 'type' => 'config_error');
 	continue;
       }
       $key = $config[$ikey];
@@ -698,6 +702,7 @@ function check_arguments(array $info, array $config, $extent) {
   if (array_key_exists('arguments', $info)) {
     $args = $info['arguments'];
     foreach ($args as $argkey => $argconfig) {
+      $argkeytext = $argconfig['label'];
       if (array_key_exists($argkey, $config) && strlen($config[$argkey]) > 0) {
         if ($extent & WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS) {
           $value = $config[$argkey];
@@ -706,7 +711,7 @@ function check_arguments(array $info, array $config, $extent) {
             case "number":
               if (!is_numeric($value)) {
                 $results[] = array('text' => t("Argument '@key' should be a numeric value, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "string":
@@ -715,34 +720,35 @@ function check_arguments(array $info, array $config, $extent) {
             case "boolean":
               if ($value !== "0" && $value !== "1") {
                 $results[] = array('text' => t("Argument '@key' should be a boolean value, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "template":
               // no need to check
               break;
             case "key":
+            case "constantkey":
               if (preg_match("/^[a-zA-Z0-9_-]+$/", $value) === 0) {
                 $results[] = array('text' => t("Argument '@key' should be a key value, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "keys":
               if (preg_match("/^[a-zA-Z0-9_;-]+$/", $value) === 0) {
                 $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "filepath":
               if (preg_match("/^(?:\/[a-zA-Z0-9_.-]+)+\/?$/", $value) === 0) {
                 $results[] = array('text' => t("Argument '@key' should be a filepath, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "regexp":
               if (@preg_match($value, "XXX") === false) {
                 $results[] = array('text' => t("Argument '@key' should be a regular expression, but is '@value'", 
-                  array('@key' => $argkey, '@value' => $value)), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "xpath":
@@ -753,7 +759,7 @@ function check_arguments(array $info, array $config, $extent) {
 
               if ($xpath->query($valuewons) === false) {
                 $results[] = array('text' => t("Argument '@key' should be a valid XPath, but is '@value'.", 
-                  array('@key' => $argkey, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
             case "collection":
@@ -761,20 +767,20 @@ function check_arguments(array $info, array $config, $extent) {
               $is_collection = FALSE;
               if (islandora_is_valid_pid($value)) {
                 $obj = islandora_object_load($value);
-                if (in_array('islandora:collectionCModel', $obj->models)) {
+                if ($obj && in_array('islandora:collectionCModel', $obj->models)) {
                   $is_collection = TRUE;
                 }
               }
               if (!$is_collection) {
                 $results[] = array('text' => t("Argument '@key' should be a valid PID of a collection, but is '@value'.", 
-                  array('@key' => $argkey, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
             case "namespace":
               module_load_include('inc', 'islandora', 'includes/utilities');
               if (preg_match('/^([A-Za-z0-9-\.]+)$/', $value) === 0 || !islandora_namespace_accessible($value)) {
                 $results[] = array('text' => t("Argument '@key' should be a valid namespace, but is '@value'.", 
-                  array('@key' => $argkey, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
+                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
           }
@@ -807,6 +813,18 @@ function check_arguments(array $info, array $config, $extent) {
   return $results;
 }
 
+function fill_out_template($template, $keyvalues) {
+  if (strpos($template, '{') !== FALSE) {
+    $keys = array();
+    $values = array_values($keyvalues);
+    foreach ($keyvalues as $k => $v) {
+      $keys[] = '{' . $k . '}';
+    } 
+    $template = str_replace($keys, $values, $template);
+  }
+  return $template;
+}
+
 /**
  * define_constant
  **/
@@ -829,15 +847,13 @@ function label_define_constant(array $info, array $config) {
 }
 
 function work_define_constant(array $info, array $config, &$data, &$context, $extent) {
-  //if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
-    $name = $config['name'];
-    $value = $config['value'];
-    $results = ubl_prepare_ingest_constants_set($name, $value, $context);
-    if ($results) {
-      return $results;
-    }
-  //}
+  module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
+  $name = $config['name'];
+  $value = $config['value'];
+  $results = ubl_prepare_ingest_constants_set($name, $value, $context);
+  if ($results) {
+    return $results;
+  }
   return FALSE;
 }
 
@@ -986,15 +1002,21 @@ function label_add_key_template(array $info, array $config) {
   return $title;
 }
 
-function get_input_keys_add_key_template(array $info, array $config) {
-  if (array_key_exists('template', $config) && strlen($config['template']) > 0) {
-    $template = $config['template'];
-    $inputkeys = array();
-    if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $inputkeys)) {
-      return array_unique($inputkeys[1]);
+function get_input_keys_from_template(array $info, array $config) {
+  $results = array();
+  foreach ($info['arguments'] as $argkey => $argconfig) {
+    if ($argconfig['type'] === 'template' || $argconfig['type'] === 'templatestring') {
+      $template = '';
+      if (array_key_exists($argkey, $config) && strlen($config[$argkey]) > 0) {
+        $template = $config[$argkey];
+      }
+      $inputkeys = array();
+      if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $inputkeys)) {
+        $results = array_merge($results, $inputkeys[1]);
+      }
     }
-  } 
-  return array();
+  }
+  return array_unique($results);
 }
 
 function work_add_key_template(array $info, array $config, &$data, &$context, $extent) {
@@ -1013,12 +1035,9 @@ function work_add_key_template(array $info, array $config, &$data, &$context, $e
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     $targetkey = $config['target_key_name'];
     $template = $config['template'];
-    $inputkeys = get_input_keys_add_key_template($info, $config);
-    $labels = array_map(function($inputkey) { return '{' . $inputkey . '}'; }, $inputkeys);
 
     foreach ($data as $current => $d) {
-      $newvalues = array_map(function($inputkey) use($d) { return $d[$inputkey]; }, $inputkeys);
-      $newvalue = str_replace($labels, $newvalues, $template);
+      $newvalue = fill_out_template($template, $d);
       $data[$current][$targetkey] = $newvalue;
     }
   }
@@ -1328,8 +1347,8 @@ function work_modify_key_value(array $info, array $config, &$data, &$context, $e
  **/
 function label_make_directory(array $info, array $config) {
   $title = t('Make directory');
-  if (array_key_exists('directory_key_name', $config) && strlen($config['directory_key_name']) > 0) {
-    $title .= ' ' . t('based on the value of key "@key"', array('@key' => $config['directory_key_name']));
+  if (array_key_exists('directory_name', $config) && strlen($config['directory_name']) > 0) {
+    $title .= ' ' . t('based on the value of "@name"', array('@name' => $config['directory_name']));
   }
   $title .= '.';
 
@@ -1345,33 +1364,23 @@ function work_make_directory(array $info, array $config, &$data, &$context, $ext
   }
   if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
     $results = check_arguments($info, $config, $extent);
-    if (array_key_exists('directory_key_name', $config) && strlen($config['directory_key_name']) > 0) {
-      if (is_file($config['directory_key_name'])) {
-        $results[] = array('text' => t("Argument '@key' should be a non-existing directory, but a file exists at '@value'.",
-                  array('@key' => $info['arguments']['directory_key_name']['label'], '@value' => $config['directory_key_name'])), 'type' => 'argument_error');
-      }
-      if (is_dir($config['directory_key_name'])) {
-        $results[] = array('text' => t("Argument '@key' should be a non-existing directory, but a directory exists at '@value'.",
-                  array('@key' => $info['arguments']['directory_key_name']['label'], '@value' => $config['directory_key_name'])), 'type' => 'argument_error');
-      }
-    }
     if (count($results) > 0) {
       return $results;
     }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
-    $sourcekey = $config['directory_key_name'];
+    $dirnametemplate = $config['directory_name'];
     foreach ($data as $current => $d) {
-      $dirname = $d[$sourcekey]; 
+      $dirname = fill_out_template($dirnametemplate, $d); 
       $parentdir = dirname($dirname);
       if (pifs_file_exists($dirname, $context) && !pifs_is_dir($dirname, $context)) {
         $results[] = array('text' => t("'@directory' in key '@key' already exists but is not a directory.",
                   array('@directory' => $dirname, '@key' => $sourcekey)), 'type' => 'run_error');
       }
       if (!pifs_is_dir($parentdir, $context)) {
-        $results[] = array('text' => t("Parent directory '@directory' of directory in key '@key' should exist, but does not.",
-                  array('@directory' => $parentdir, '@key' => $sourcekey)), 'type' => 'run_error');
+        $results[] = array('text' => t("Parent directory '@parentdir' of directory '@dir' should exist, but does not.",
+                  array('@parentdir' => $parentdir, '@dir' => $dirname)), 'type' => 'run_error');
       }
       if (count($results) > 0) {
         return $results;
@@ -1396,11 +1405,11 @@ function work_make_directory(array $info, array $config, &$data, &$context, $ext
  **/
 function label_copy_file(array $info, array $config) {
   $title = t('Copy file');
-  if (array_key_exists('source_key_name', $config) && strlen($config['source_key_name']) > 0) {
-    $title .= ' ' . t('from the value of key "@key"', array('@key' => $config['source_key_name']));
+  if (array_key_exists('source_filepath', $config) && strlen($config['source_filepath']) > 0) {
+    $title .= ' ' . t('from "@fp"', array('@fp' => $config['source_filepath']));
   }
-  if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
-    $title .= ' ' . t('to the value of key "@key"', array('@key' => $config['target_key_name']));
+  if (array_key_exists('target_filepath', $config) && strlen($config['target_filepath']) > 0) {
+    $title .= ' ' . t('to "@fp"', array('@fp' => $config['target_filepath']));
   }
   $title .= '.';
 
@@ -1416,79 +1425,67 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
   }
   if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
     $results = check_arguments($info, $config, $extent);
-    if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
-      if (is_file($config['target_key_name'])) {
-        $results[] = array('text' => t("Argument '@key' points to a location where a file exists, at '@value'.",
-                  array('@key' => $info['arguments']['target_key_name']['label'], '@value' => $config['target_key_name'])), 'type' => 'argument_error');
-      }
-    }
     if (count($results) > 0) {
       return $results;
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
-    $sourcekey = $config['source_key_name'];
-    $targetkey = $config['target_key_name'];
+    $sourcefilepath = $config['source_filepath'];
+    $targetfilepath = $config['target_filepath'];
     foreach ($data as $current => $d) {
-      $sourcefile = $d[$sourcekey];
-      if (!pifs_is_file($sourcefile, $context)) {
-	$results[] = array('text' => t("File '@file' in key '@key' does not exist.",
-		  array('@file' => $sourcefile, '@key' => $sourcekey)), 'type' => 'run_error');
+      $sourcefilepath = fill_out_template($sourcefilepath, $d);
+      if (!pifs_is_file($sourcefilepath, $context)) {
+	$results[] = array('text' => t("File '@file' does not exist.",
+		  array('@file' => $sourcefilepath)), 'type' => 'run_error');
       }
-      $targetlocation = $d[$targetkey];
-      if ((substr($targetlocation, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetlocation, $context)) {
-        $targetfile = $targetlocation . DIRECTORY_SEPARATOR . basename($sourcefile);
+      $targetfilepath = fill_out_template($targetfilepath, $d);
+      if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $context)) {
+        $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
       }
-      else {
-        $targetfile = $targetlocation;
+      if (pifs_is_file($targetfilepath, $context)) {
+        $results[] = array('text' => t("File '@file' already exists.",
+                  array('@file' => $targetfilepath)), 'type' => 'run_error');
       }
-      if (pifs_is_file($targetfile, $context)) {
-        $results[] = array('text' => t("File '@file' in key '@key' already exists.",
-                  array('@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
-      }
-      $targetdirectory = dirname($targetfile);
+      $targetdirectory = dirname($targetfilepath);
       if (!pifs_is_dir($targetdirectory, $context)) {
-        $results[] = array('text' => t("Directory '@directory' for file '@file' in key '@key' should exist, but does not.",
-                  array('@directory' => $targetdirectory, '@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
+        $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                  array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
       }
       if (count($results) > 0) {
         return $results;
       }
-      pifs_copy($sourcefile, $targetfile, $context);
+      pifs_copy($sourcefilepath, $targetfilepath, $context);
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DO_ALL) {
-    $sourcekey = $config['source_key_name'];
-    $targetkey = $config['target_key_name'];
+    $sourcefilepath = $config['source_filepath'];
+    $targetfilepath = $config['target_filepath'];
     foreach ($data as $current => $d) {
-      $sourcefile = $d[$sourcekey];
-      if (!is_file($sourcefile)) {
-        $results[] = array('text' => t("File '@file' in key '@key' does not exist.",
-                  array('@file' => $sourcefile, '@key' => $sourcekey)), 'type' => 'run_error');
+      $sourcefilepath = fill_out_template($sourcefilepath, $d);
+      if (!is_file($sourcefilepath)) {
+        $results[] = array('text' => t("File '@file' does not exist.",
+                  array('@file' => $sourcefilepath)), 'type' => 'run_error');
       }
-      $targetlocation = $d[$targetkey];
-      if ((substr($targetlocation, -1) === DIRECTORY_SEPARATOR) || is_dir($targetlocation)) {
-        $targetfile = $targetlocation . DIRECTORY_SEPARATOR . basename($sourcefile);
+      $targetfilepath = fill_out_template($targetfilename, $d);
+      if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || is_dir($targetfilepath)) {
+        $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
       }
-      else {
-        $targetfile = $targetlocation;
+      if (is_file($targetfilepath)) {
+        $results[] = array('text' => t("File '@file' already exists.",
+                  array('@file' => $targetfile)), 'type' => 'run_error');
       }
-      if (is_file($targetfile)) {
-        $results[] = array('text' => t("File '@file' in key '@key' already exists.",
-                  array('@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
-      }
-      $targetdirectory = dirname($targetfile);
+      $targetdirectory = dirname($targetfilepath);
       if (!is_dir($targetdirectory)) {
-        $results[] = array('text' => t("Directory '@directory' for file '@file' in key '@key' should exist, but does not.",
-                  array('@directory' => $targetdirectory, '@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
+        $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                  array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
       }
       if (count($results) > 0) {
         return $results;
       }
-      $success = @link($sourcefile, $targetfile);
+      $success = @link($sourcefilepath, $targetfilepath);
       if (!$success) {
-        @copy($sourcefile, $targetfile);
+        @copy($sourcefilepath, $targetfilepath);
       }
     }
   }  
@@ -1501,12 +1498,13 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
  * write_file
  **/
 function label_write_file(array $info, array $config) {
-  $title = t('Write to file');
+  $title = t('Write');
   if (array_key_exists('content_key_name', $config) && strlen($config['content_key_name']) > 0) {
     $title .= ' ' . t('the content of key "@key"', array('@key' => $config['content_key_name']));
   }
-  if (array_key_exists('target_key_name', $config) && strlen($config['target_key_name']) > 0) {
-    $title .= ' ' . t('located at the value of key "@key"', array('@key' => $config['target_key_name']));
+  $title .= ' ' . t('to file');
+  if (array_key_exists('target_filepath', $config) && strlen($config['target_filepath']) > 0) {
+    $title .= ' ' . t('located at "@fp"', array('@fp' => $config['target_filepath']));
   }
   $title .= '.';
 
@@ -1529,48 +1527,48 @@ function work_write_file(array $info, array $config, &$data, &$context, $extent)
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
     $contentkey = $config['content_key_name'];
-    $targetkey = $config['target_key_name'];
+    $targetfilepath = $config['target_filepath'];
     foreach ($data as $current => $d) {
       $content = $d[$contentkey];
-      $targetfile = $d[$targetkey];
-      $targetdirectory = dirname($targetfile);
+      $targetfilepath = fill_out_template($targetfilepath, $d);
+      $targetdirectory = dirname($targetfilepath);
       if (!pifs_is_dir($targetdirectory, $context)) {
-        $results[] = array('text' => t("Directory '@directory' for file '@file' in key '@key' should exist, but does not.",
-                  array('@directory' => $targetdirectory, '@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
+        $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                  array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
       }
       if (count($results) > 0) {
         return $results;
       }
-      if (pifs_entry_exists($targetfile, $context)) {
-        if (pifs_entry_is_file($targetfile, $context)) {
-          pifs_append_content($targetfile, $content, $context);
+      if (pifs_entry_exists($targetfilepath, $context)) {
+        if (pifs_entry_is_file($targetfilepath, $context)) {
+          pifs_append_content($targetfilepath, $content, $context);
         }
         else {
           $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
-                    array('@directory' => $targetfile)), 'type' => 'run_error');
+                    array('@directory' => $targetfilepath)), 'type' => 'run_error');
           return $results;
         }
       }
       else {
-        pifs_write_content($targetfile, $content, $context);
+        pifs_write_content($targetfilepath, $content, $context);
       }
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DO_ALL) {
     $contentkey = $config['content_key_name'];
-    $targetkey = $config['target_key_name'];
+    $targetfilepath = $config['target_filepath'];
     foreach ($data as $current => $d) {
       $content = $d[$contentkey];
-      $targetfile = $d[$targetkey];
-      $targetdirectory = dirname($targetfile);
+      $targetfilepath = fill_out_template($targetfilepath, $d);
+      $targetdirectory = dirname($targetfilepath);
       if (!is_dir($targetdirectory)) {
-        $results[] = array('text' => t("Directory '@directory' for file '@file' in key '@key' should exist, but does not.",
-                  array('@directory' => $targetdirectory, '@file' => $targetfile, '@key' => $targetkey)), 'type' => 'run_error');
+        $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                  array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
       }
       if (count($results) > 0) {
         return $results;
       }
-      $fh = fopen($targetfile, "a"); // always append to file
+      $fh = fopen($targetfilepath, "a"); // always append to file
       fwrite($fh, $content);
       fclose($fh);
     }
@@ -1790,8 +1788,8 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
  **/
 function label_parse_xml(array $info, array $config) {
   $title = t('Parse XML file');
-  if (array_key_exists('filepath_key_name', $config) && strlen($config['filepath_key_name']) > 0) {
-    $title .= ' ' . t('located at the value of key "@key"', array('@key' => $config['filepath_key_name']));
+  if (array_key_exists('filepath', $config) && strlen($config['filepath']) > 0) {
+    $title .= ' ' . t('located at "@fp"', array('@fp' => $config['filepath']));
   }
   if (array_key_exists('xml_key_name', $config) && strlen($config['xml_key_name']) > 0) {
     $title .= ' ' . t('and store the XML in key "@key"', array('@key' => $config['xml_key_name']));
@@ -1816,26 +1814,26 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
-    $filepathkey = $config['filepath_key_name'];
+    $filepath = $config['filepath'];
     $xmlkey = $config['xml_key_name'];
     foreach ($data as $current => $d) {
-      $filepath = $d[$filepathkey];
+      $filepath = fill_out_template($filepath, $d);
       if (!pifs_is_file($filepath, $context)) {
-        $results[] = array('text' => t("File '@file' in key '@key' does not exist.",
-                  array('@file' => $filepath, '@key' => $filepathkey)), 'type' => 'run_error');
+        $results[] = array('text' => t("File '@file' does not exist.",
+                  array('@file' => $filepath)), 'type' => 'run_error');
       }
       $domdoc = new DOMDocument();
       if (is_file($filepath)) {
         if (!$domdoc->load($filepath)) {
-          $results[] = array('text' => t("File '@file' in key '@key' is not a valid XML document.",
-                    array('@file' => $filepath, '@key' => $filepathkey)), 'type' => 'run_error');
+          $results[] = array('text' => t("File '@file' is not a valid XML document.",
+                    array('@file' => $filepath)), 'type' => 'run_error');
         }
       }
       else {
         $contentxml = pifs_read_content($filepath, $context);
         if (!$domdoc->loadXML($contentxml)) {
-          $results[] = array('text' => t("File '@file' in key '@key' is not a valid XML document.",
-                    array('@file' => $filepath, '@key' => $filepathkey)), 'type' => 'run_error');
+          $results[] = array('text' => t("File '@file' is not a valid XML document.",
+                    array('@file' => $filepath)), 'type' => 'run_error');
         }
       }
       if (count($results) > 0) {
@@ -2075,6 +2073,12 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
       $columnkeys = explode(';', $config['column_keys']);
       $hasheader = $config['has_header'];
       
+      if (!is_file($csvfilepath)) {
+        $result[] = array('text' => t("File not found at '@fp'.",
+                  array('@fp' => $csvfilepath)), 'type' => 'run_error');
+        return $result;
+      }
+
       ini_set("auto_detect_line_endings", "1");
       $linenr = 0;
       $delimit = "\t";
