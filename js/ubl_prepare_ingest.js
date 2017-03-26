@@ -420,10 +420,10 @@ jQuery(document).ready(function() {
   var autosuggestfunc = function(e) {
     var $textfield = jQuery(e.target);
     var $menu = jQuery('#autosuggestmenu');
-    if (!($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('regexp'))) {
-      $menu.hide(500); 
-      return;
-    }
+    //if (!($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring') || $textfield.hasClass('regexp'))) {
+    //  $menu.hide(500); 
+    //  return;
+   // }
     if ($menu.size() == 0) {
       jQuery('BODY').append('<DIV id="autosuggestmenu"></DIV>');
       $menu = jQuery('#autosuggestmenu');
@@ -443,33 +443,49 @@ jQuery(document).ready(function() {
       $menu.html('');
     }
     var hasValue = [];
-    if ($textfield.hasClass('input_key') || $textfield.hasClass('template')) {
-      $menu.append('<DIV class="autosuggestmenuheader">Possible values:</DIV>');
-      $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys, .keystemplate').each(function(i, element) {
-        var menuMaker = function(value) {
-	  if (value.length > 0 && !hasValue[value]) {
-	    $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="'+value+'">'+value+'</A></DIV>');
-            hasValue[value] = 1;
-	  }
-        };
-	var outputvalue = jQuery(element).val();
-        if (jQuery(element).hasClass('keys')) {
-          var keys = outputvalue.split(";");
-          for (var i=0; i<keys.length; i++) {
-            menuMaker(keys[i]);
-          }
+    if (($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring')) 
+        || (!$textfield.hasClass('key') && !$textfield.hasClass('constantkey'))) {
+      var menuMaker = function(value, type) {
+        if (value.length > 0 && !hasValue[value]) {
+          $menu.append('<DIV class="autosuggestmenuitem"><A href="#" class="'+type+'" data-value="'+value+'">'+value+'</A></DIV>');
+          hasValue[value] = 1;
         }
-        else if (jQuery(element).hasClass('keystemplate')) {
-          var re = /[^{]*{([^}]+)}/g;
-          var match;
-          while ((match = re.exec(outputvalue)) != null) {
-            menuMaker(match[1]);
-          }
+      };
+      if (!$textfield.hasClass('key') && !$textfield.hasClass('constantkey')) {
+        var $prevFields = $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.constantkey');
+        if ($prevFields.size() > 0) {
+          $menu.append('<DIV class="autosuggestmenuheader">Possible constants:</DIV>');
+          $prevFields.each(function(i, element) {
+	    var outputvalue = jQuery(element).val();
+            menuMaker(outputvalue, 'constant');
+          }); 
         }
-        else {
-          menuMaker(outputvalue);
+      }
+      if ($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring') || $textfield.hasClass('regexp')) {
+        var $prevFields = $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys, .keystemplate');
+        if ($prevFields.size() > 0) {
+          $menu.append('<DIV class="autosuggestmenuheader">Possible keys:</DIV>');
+          $prevFields.each(function(i, element) {
+	    var outputvalue = jQuery(element).val();
+            if (jQuery(element).hasClass('keys')) {
+              var keys = outputvalue.split(";");
+              for (var i=0; i<keys.length; i++) {
+                menuMaker(keys[i], 'key');
+              }
+            }
+            else if (jQuery(element).hasClass('keystemplate')) {
+              var re = /[^{]*{([^}]+)}/g;
+              var match;
+              while ((match = re.exec(outputvalue)) != null) {
+                menuMaker(match[1], 'key');
+              }
+            }
+            else {
+              menuMaker(outputvalue, 'key');
+            }
+          }); 
         }
-      }); 
+      }
     }
     else if ($textfield.hasClass('regexp')) {
       $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/(.*\\/)([^\\/]+)$/">Select filepath ($1) and filename ($2)</A></DIV>');
@@ -481,32 +497,63 @@ jQuery(document).ready(function() {
     }
     jQuery('.autosuggestmenuitem').click(function(e) {
       e.preventDefault();
-      if ($textfield.hasClass('template')) {
-        $textfield.val($textfield.val() + '{' + jQuery(e.target).data('value') + '}');
+      var keyval = '{' + jQuery(e.target).data('value') + '}';
+      if ($textfield.hasClass('template') || $textfield.hasClass('templatestring') || jQuery(e.target).hasClass('constant')) {
+        if (document.selection) {
+          $textfield.focus();
+          var sel = document.selection.createRange();
+          sel.text = keyval;
+          $textfield.focus();
+        }
+        else if ($textfield[0].selectionStart || $textfield[0].selectionStart === 0)           {
+          var startPos = $textfield[0].selectionStart;
+          var endPos = $textfield[0].selectionEnd;
+          var scrollTop = $textfield[0].scrollTop;
+          var curvalue = $textfield.val();
+          $textfield.val(curvalue.substring(0, startPos) + keyval + curvalue.substring(endPos, curvalue.length));
+          $textfield.focus();
+          $textfield[0].selectionStart = startPos + keyval.length;
+          $textfield[0].selectionEnd = startPos + keyval.length;
+          $textfield[0].scrollTop = scrollTop;
+        } else {
+          $textfield.val($textfield.val() + keyval);
+          $textfield.focus();
+        }
       }
       else {
         $textfield.val(jQuery(e.target).data('value')); 
       }
     });
-    var offset = $textfield.offset();
-    var height = $textfield.outerHeight();
-    var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')}; 
-    $menu.css(newPos);
-    $menu.show(500);
+    if ($menu.html().length > 0) {
+      var offset = $textfield.offset();
+      var height = $textfield.outerHeight();
+      var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')}; 
+      $menu.css(newPos);
+      $menu.show(500);
 
-    setTimeout(function() {
-      var hidefunc = function() {
-        jQuery('#autosuggestmenu').hide(500);
-      };
-      jQuery('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
-      jQuery('BODY').one('click', hidefunc);
-    }, 500);
+      setTimeout(function() {
+        var hidefunc = function(e) {
+          setTimeout(function() {
+            var $menu = jQuery('#autosuggestmenu');
+            if (!jQuery(e.target).is(':focus')) {
+              jQuery('#autosuggestmenu').hide(500);
+            }
+          }, 50);
+        };
+        jQuery('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
+        jQuery('BODY').one('click', hidefunc);
+      }, 500);
+    }
+    else {
+      $menu.hide();
+    }
   };
-  jQuery('INPUT, TEXTAREA').change(autosuggestfunc).focus(autosuggestfunc);
-
+  jQuery("INPUT[type='text'], TEXTAREA").change(autosuggestfunc).focus(autosuggestfunc).click(autosuggestfunc);
+  
   // check value of key field
   var checkvaluefunc = function($textfield, regexp) {
     var value = $textfield.val();
+    value = value.replace(/{[a-zA-Z0-9_-]+}/g, ''); // allow constants in field
     var result = value.match(regexp);
     var $fielderror = jQuery('#fielderror');
     if (result !== null) {
@@ -540,7 +587,7 @@ jQuery(document).ready(function() {
   jQuery('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
   var haschanges = false;
-  jQuery('.workflow_step INPUT, .workflow_step SELECT').on('keydown change', function(e) {
+  jQuery(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
      haschanges = true;
   });
   jQuery('#check_workflow_button').click(function (e) {
