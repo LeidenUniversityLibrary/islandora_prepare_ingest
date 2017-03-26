@@ -83,12 +83,12 @@ function ubl_prepare_ingest_check_workflow_form_submit(array $form, array &$form
     $_SESSION['workflowresults'] = $workflowresults;
     $_SESSION['workflowdata'] = $workflowdata;
 
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/test/' . $form_state['values']['workflowid'];
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/test/' . $form_state['values']['workflowid'];
   }
 }
 
 function ubl_prepare_ingest_check_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $form_state['values']['workflowid'];
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $form_state['values']['workflowid'];
 }

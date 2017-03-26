@@ -24,11 +24,11 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
   $options = array();
   foreach ($workflows as $workflow) {
     $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflow['id']),
+      'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/manage/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/manage/export/' . $workflow['id']),
+      'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/generic_workflow/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -90,7 +90,7 @@ function ubl_prepare_ingest_manage_delete_selected_workflows(array $form, array 
 }
 
 function ubl_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/make';
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/make';
 }
 
 /**
@@ -279,7 +279,7 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
   }
   else {
     $workflowid = ubl_prepare_ingest_insert_workflow($name, $description, $type);  
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflowid;
   }
   $updates = array();
   foreach ($form_state['values'] as $key => $value) {
@@ -346,7 +346,7 @@ function ubl_prepare_ingest_edit_workflow_form_back(array $form, array &$form_st
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
 
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage';
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflows';
 }
 
 function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
@@ -360,7 +360,7 @@ function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_s
   $_SESSION['workflowdata'] = $workflowdata; 
   if (ubl_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
     ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/check/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/check/' . $workflowid;
   }
   else {
     ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
@@ -422,7 +422,7 @@ function ubl_prepare_ingest_edit_workflow_form_copy_workflow(array $form, array 
 
     ubl_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
 
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $newworkflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
   }
 }
 
