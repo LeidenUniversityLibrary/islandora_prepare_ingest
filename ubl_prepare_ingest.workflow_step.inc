@@ -226,6 +226,8 @@ function ubl_prepare_ingest_workflow_step_info() {
           'pad5zeros' => t('pad zero\s to number to get 5 digits'),
 	  'striptags' => t('strip tags'),
 	  'sha1' => t('SHA1 hash'),
+          'xmlencode' => t('XML encode'),
+          'xmldecode' => t('XML decode'),
 	),
       ),
     ),
@@ -1224,6 +1226,12 @@ function label_modify_key_value(array $info, array $config) {
       case 'pad5zeros':
 	$title = t('Pad zero\'s to 5 digits');
 	break;
+      case 'xmlencode':
+	$title = t('XML encode');
+	break;
+      case 'xmldecode':
+	$title = t('XML decode');
+	break;
     }
   }
   else {
@@ -1336,8 +1344,25 @@ function work_modify_key_value(array $info, array $config, &$data, &$context, $e
 	  }
 	}
 	break;
+      case 'xmlencode':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+            $string = $d[$sourcekey];
+            $xmlencodedstring = htmlspecialchars($string, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+	    $data[$current][$targetkey] = $xmlencodedstring;
+	  }
+	}
+	break;
+      case 'xmldecode':
+	foreach ($data as $current => $d) {
+	  if (array_key_exists($sourcekey, $d)) {
+            $xmlencodedstring = $d[$sourcekey];
+            $string = htmlspecialchars_decode($xmlencodedstring, ENT_XML1 | ENT_QUOTES);
+	    $data[$current][$targetkey] = $string;
+	  }
+	}
+	break;
     }
-
   }
   return FALSE;
 }
