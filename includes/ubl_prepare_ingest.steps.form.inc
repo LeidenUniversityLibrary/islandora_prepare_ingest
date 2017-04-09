@@ -263,8 +263,7 @@ function ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepc
       ),
     );
     $newstep['fields']['weight_step_' . $stepid] = array(
-      //'#type' => 'hidden',
-      '#type' => 'textfield',
+      '#type' => 'hidden',
       '#default_value' => $workflowstep['weight'],
       '#attributes' => array(
         'class' => array('weight_step'),
@@ -385,20 +384,6 @@ function ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepc
         '#weight' => 2,
       );
       if (!(array_key_exists('visual', $stepinfo) && in_array('nomove', $stepinfo['visual']))) {
-        $newstep['buttons']['moveup'] = array(
-          '#type' => 'button',
-          '#value' => t('Move up'),
-          '#attributes' => array(
-            'class' => array('moveup_step_button'),
-          ),
-        );
-        $newstep['buttons']['movedown'] = array(
-          '#type' => 'button',
-          '#value' => t('Move down'),
-          '#attributes' => array(
-            'class' => array('movedown_step_button'),
-          ),
-        );
         $newstep['buttons']['moveto'] = array(
           '#type' => 'button',
           '#value' => t('Move to'),
