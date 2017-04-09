@@ -102,6 +102,22 @@ function ubl_prepare_ingest_menu() {
       'access arguments' => array(UBL_PREPARE_INGEST_PREPARE),
       'type' => MENU_NORMAL_ITEM,
     ),
+    'admin/islandora/ubl_prepare_ingest/ajax/addstep/%/%' => array(
+      'page callback' => 'ubl_prepare_ingest_ajax_addstep_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'ubl_prepare_ingest_ajax_delivery_handler',
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_CALLBACK,
+    ),
+    'admin/islandora/ubl_prepare_ingest/ajax/addstepsgroup/%/%' => array(
+      'page callback' => 'ubl_prepare_ingest_ajax_addstepsgroup_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'ubl_prepare_ingest_ajax_delivery_handler',
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_CALLBACK,
+    ),
   );
   return $menu;
 }
