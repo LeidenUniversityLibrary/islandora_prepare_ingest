@@ -4,7 +4,7 @@
 }
 
 /* make titles of workflowsteps respect case */
-.workflow_step .fieldset-title {
+.workflow_step .fieldset-title, .workflow_step LEGEND SPAN.fieldset-legend  {
   text-transform: none;
 }
 
@@ -111,4 +111,25 @@ fieldset .grouped_steps {
   border-color: blue;
   padding: 3px 10px;
   margin-bottom: 1em;
+}
+
+/* move here link */
+.moveherelink {
+  position: absolute;
+  background-color: #eeeeee;
+  padding: 0.0em 2em;
+  z-index: 9999;
+  top:-1.5em;
+  left:1.1em;
+  text-align: center;
+  border: 1px solid black;
+}
+#edit-steps > DIV.fieldset-wrapper {
+  padding-top: 0.5em;
+}
+FIELDSET.visual_group_start + FIELDSET.visual_group_end > .moveherelink {
+  display: block;
+}
+FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end > .moveherelink {
+  display: none;
 }

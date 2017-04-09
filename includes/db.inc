@@ -78,6 +78,7 @@ function ubl_prepare_ingest_max_step_weight($workflowid) {
 
 function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
   $tocopysteps = ubl_prepare_ingest_select_workflow_steps($fromworkflowid);
+  $newstepids = array();
   $newweight = ubl_prepare_ingest_max_step_weight($toworkflowid);
   foreach ($tocopysteps as $tocopystep) {
     $insert = db_insert('ubl_prepare_ingest_step')
@@ -89,6 +90,7 @@ function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
       ));
     $newweight += 1;
     $copiedstepid = $insert->execute();
+    $newstepids[] = $copiedstepid;
     
     $selquery = db_select('ubl_prepare_ingest_step_config', 'config');
     $selquery->addExpression($copiedstepid,'step_id');
@@ -99,6 +101,7 @@ function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
       ->from($selquery);
     $insert->execute();
   }
+  return $newstepids;
 }
 
 /**

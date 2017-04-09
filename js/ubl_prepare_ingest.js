@@ -4,8 +4,12 @@
  */
 
 jQuery(document).ready(function() {
+  setUpButtonsAndFields(jQuery(document));
+});
+
+function setUpButtonsAndFields($context) {
   // remove button
-  jQuery('.remove_step_button').click(function(e) {
+  $context.find('.remove_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).parents('fieldset.workflow_step').first();
     if ($thisstep) { 
@@ -27,7 +31,7 @@ jQuery(document).ready(function() {
   });
  
   // ungroup button
-  jQuery('.ungroup_step_button').click(function(e) {
+  $context.find('.ungroup_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).parents('fieldset.workflow_step').first();
     if ($thisstep) { 
@@ -41,8 +45,108 @@ jQuery(document).ready(function() {
   });
   
   var prefix = 'new_weight=';
+  // move to button
+  $context.find('.moveto_step_button').click(function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var $currentstep = jQuery(this).parents('FIELDSET.workflow_step').first();
+    var $nextstep = $currentstep.next('FIELDSET.workflow_step');
+    var $steps = jQuery('#edit-steps FIELDSET.workflow_step');
+    $steps = $steps.not($currentstep).not($nextstep);
+    $steps = $steps.not($currentstep.find('FIELDSET.workflow_step'));
+    //$steps = $steps.not('FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end');
+
+    var htmlMoveherelink = '<DIV class="moveherelink"><A href="#">Move here</A></DIV>';
+    $steps.prepend(htmlMoveherelink);
+    $steps.last().next('#edit-add-step').prepend(htmlMoveherelink);
+    jQuery('.moveherelink').not('FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end > .moveherelink').hide().show(400);
+    jQuery('BODY').one('click', function(e) {
+      e.preventDefault();
+      jQuery('.moveherelink').hide(400, function() {
+        jQuery('.moveherelink').remove();
+      });
+    });
+    jQuery('.moveherelink').one('click', function(e) {
+      var $moveherestep = jQuery(this).closest('FIELDSET.workflow_step');
+      var $tomovesteps = $currentstep;
+      var currentstepweight = Number($currentstep.find('.weight_step').first().val().replace(prefix,''));
+      var moveherestepweight = 0;
+      if ($moveherestep.size() == 0) {
+        // move to end of list of steps; moveherestep is actually the FIELDSET containing the add step button.
+        $moveherestep = jQuery(this).closest('FIELDSET');
+        moveherestepweight = 2^31;
+      }
+      else {
+        moveherestepweight = Number($moveherestep.find('.weight_step').first().val().replace(prefix,''));
+      }
+      if ($currentstep.hasClass('visual_group_start')) {
+        $tomovesteps = $tomovesteps.add($currentstep.find('FIELDSET.workflow_step')); 
+        $tomovesteps = $tomovesteps.add($currentstep.next('FIELDSET.workflow_step.visual_group_end'));
+        $currentstep = $currentstep.add($currentstep.next('FIELDSET.workflow_step.visual_group_end'));
+      }
+      var animTime = 400;
+      var $steps;
+      if (currentstepweight < moveherestepweight) {
+        // move down
+        $steps = retrieveStepsFromTo($currentstep, $moveherestep, true);
+        exchangeStepWeights($tomovesteps,$steps);
+      }
+      else {
+        // move up
+        $steps = retrieveStepsFromTo($moveherestep, $currentstep, false);
+        exchangeStepWeights($steps,$tomovesteps);
+      }
+      var currentStepOffset = $currentstep.offset();
+      var currentStepWidth = $currentstep.outerWidth(true);
+      var currentStepHeight = 0;
+      var currentStepHeights = [];
+      var currentStepOffsets = [];
+      $currentstep.each(function(index) {
+        currentStepHeights[index] = jQuery(this).outerHeight(true);
+        currentStepHeight += currentStepHeights[index];
+        currentStepOffsets[index] = jQuery(this).offset();
+      });
+      var movehereStepOffset = $moveherestep.offset();
+      var $tmpFrom = jQuery('<DIV/>');
+      $currentstep.last().after($tmpFrom);
+      $tmpFrom.height(currentStepHeight);
+      $tmpFrom.width(currentStepWidth);
+      jQuery('BODY').prepend($currentstep);
+      $currentstep.css({'position' : 'absolute', 'z-index' : 999});
+      $currentstep.each(function(index) {
+        jQuery(this).outerHeight(currentStepHeights[index]);
+        jQuery(this).offset(currentStepOffsets[index]);
+      });
+      $currentstep.outerWidth(currentStepWidth);
+      var $tmpTo = jQuery('<DIV/>');
+      $moveherestep.before($tmpTo);
+      $tmpTo.height(currentStepHeight);
+      $tmpTo.width(currentStepWidth);
+      $tmpTo.hide().show(animTime); 
+      $tmpFrom.hide(animTime);
+      var newTop;
+      if (currentstepweight < moveherestepweight) {
+        newTop = movehereStepOffset.top - currentStepHeight;
+      }
+      else {
+        newTop = movehereStepOffset.top;
+      }
+      $currentstep.animate({'top' : newTop }, animTime, function() {
+        $currentstep.removeAttr('style');
+        $tmpTo.remove();
+        $tmpFrom.remove(); 
+        if ($moveherestep.prev('FIELDSET.workflow_step').hasClass('visual_group_start')) {
+          $moveherestep.prev('FIELDSET.workflow_step').find('> DIV > DIV.grouped_steps').append($currentstep);
+        }
+        else {
+          $moveherestep.before($currentstep);
+        }
+      });
+      e.preventDefault();
+    });
+  });
   // move up button
-  jQuery('.moveup_step_button').click(function(e) {
+  $context.find('.moveup_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).closest('fieldset.workflow_step');
     if ($thisstep.size() == 1) { 
@@ -198,7 +302,7 @@ jQuery(document).ready(function() {
   });
 
   // move down button
-  jQuery('.movedown_step_button').click(function(e) {
+  $context.find('.movedown_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).closest('fieldset.workflow_step');
     if ($thisstep.size() == 1) { 
@@ -358,42 +462,33 @@ jQuery(document).ready(function() {
   }
 
   function exchangeStepWeights($steps1, $steps2) {
-    var $allstepscurrentorder;
-    if ($steps1.concat && $steps2.concat) {
-      $allstepscurrentorder = $steps1.concat($steps2);
+    if (!$steps1.add) {
+      $steps1 = jQuery($steps1);
     }
-    else if ($steps1.concat) {
-      $allstepscurrentorder = $steps1.concat([$steps2]); 
-    }
-    else if ($steps2.concat) {
-      $allstepscurrentorder = [$steps1].concat($steps2); 
-    }
-    else {
-      $allstepscurrentorder = [$steps1, $steps2];
+    if (!$steps2.add) {
+      $steps2 = jQuery($steps2);
     }
     var weights = [];
-    jQuery.each($allstepscurrentorder, function(i, $astep) {
-      var stepweight = $astep.find('.weight_step').first().val();
+    $steps1.each(function(i) {
+      var stepweight = jQuery(this).find('.weight_step').first().val();
       if (stepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
         stepweight = prefix + stepweight;
       }
       weights.push(stepweight);
     }); 
-    var $allstepsexchanged;
-    if ($steps1.concat && $steps2.concat) {
-      $allstepsexchanged = $steps2.concat($steps1);
-    }
-    else if ($steps1.concat) {
-      $allstepsexchanged = [$steps2].concat($steps1);
-    }
-    else if ($steps2.concat) {
-      $allstepsexchanged = $steps2.concat([$steps1]);  
-    }
-    else {
-      $allstepsexchanged = [$steps2, $steps1];
-    }
-    jQuery.each($allstepsexchanged, function(i, $astep) {
-      $astep.find('.weight_step').first().val(weights[i]);
+    $steps2.each(function(i) {
+      var stepweight = jQuery(this).find('.weight_step').first().val();
+      if (stepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
+        stepweight = prefix + stepweight;
+      }
+      weights.push(stepweight);
+    }); 
+    $steps2.each(function(i) {
+      jQuery(this).find('.weight_step').first().val(weights[i]);
+    });
+    var c2 = $steps2.size();
+    $steps1.each(function(i) {
+      jQuery(this).find('.weight_step').first().val(weights[c2 + i]);
     });
   }
 
@@ -413,6 +508,25 @@ jQuery(document).ready(function() {
       $currentstep = $currentstep.next('fieldset.workflow_step');
     }
 
+    return $steps;
+  }
+
+  function retrieveStepsFromTo($fromElement, $toElement, excluding) {
+    var $allsteps = jQuery('#edit-steps').find('FIELDSET.workflow_step');
+    var start = $allsteps.index($fromElement);
+    var end = $allsteps.index($toElement);
+    var $steps = jQuery();
+    if (start >= 0) {
+      if (end == -1) {
+        $steps = $allsteps.slice(start + (excluding?1:0)); 
+      }
+      else {
+        $steps = $allsteps.slice(start + (excluding?1:0), end); 
+      }
+    }
+    else {
+      alert('Error: fromStep ' + $fromElement.attr('id') + ' not found in all steps.');
+    }
     return $steps;
   }
 
@@ -454,36 +568,54 @@ jQuery(document).ready(function() {
       if (!$textfield.hasClass('key') && !$textfield.hasClass('constantkey')) {
         var $prevFields = $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.constantkey');
         if ($prevFields.size() > 0) {
-          $menu.append('<DIV class="autosuggestmenuheader">Possible constants:</DIV>');
+          var hasMenuItems = false;
           $prevFields.each(function(i, element) {
 	    var outputvalue = jQuery(element).val();
-            menuMaker(outputvalue, 'constant');
+            if (outputvalue.length > 0) {
+              menuMaker(outputvalue, 'constant');
+              hasMenuItems = true;
+            }
           }); 
+          if (hasMenuItems) {
+            $menu.prepend('<DIV class="autosuggestmenuheader">Possible constants:</DIV>');
+          }
         }
       }
       if ($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring') || $textfield.hasClass('regexp')) {
         var $prevFields = $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys, .keystemplate');
         if ($prevFields.size() > 0) {
-          $menu.append('<DIV class="autosuggestmenuheader">Possible keys:</DIV>');
+          var hasMenuItems = false;
           $prevFields.each(function(i, element) {
 	    var outputvalue = jQuery(element).val();
             if (jQuery(element).hasClass('keys')) {
               var keys = outputvalue.split(";");
               for (var i=0; i<keys.length; i++) {
-                menuMaker(keys[i], 'key');
+                if (keys[i].length > 0) {
+                  menuMaker(keys[i], 'key');
+                  hasMenuItems = true;
+                }
               }
             }
             else if (jQuery(element).hasClass('keystemplate')) {
               var re = /[^{]*{([^}]+)}/g;
               var match;
               while ((match = re.exec(outputvalue)) != null) {
-                menuMaker(match[1], 'key');
+                if (match[1].length > 0) {
+                  menuMaker(match[1], 'key');
+                  hasMenuItems = true;
+                }
               }
             }
             else {
-              menuMaker(outputvalue, 'key');
+              if (outputvalue.length > 0) {
+                menuMaker(outputvalue, 'key');
+                hasMenuItems = true;
+              }
             }
           }); 
+          if (hasMenuItems) {
+            $menu.prepend('<DIV class="autosuggestmenuheader">Possible keys:</DIV>');
+          }
         }
       }
     }
@@ -540,7 +672,7 @@ jQuery(document).ready(function() {
             }
           }, 50);
         };
-        jQuery('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
+        $context.find('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
         jQuery('BODY').one('click', hidefunc);
       }, 500);
     }
@@ -548,7 +680,7 @@ jQuery(document).ready(function() {
       $menu.hide();
     }
   };
-  jQuery("INPUT[type='text'], TEXTAREA").change(autosuggestfunc).focus(autosuggestfunc).click(autosuggestfunc);
+  $context.find("INPUT[type='text'], TEXTAREA").change(autosuggestfunc).focus(autosuggestfunc).click(autosuggestfunc);
   
   // check value of key field
   var checkvaluefunc = function($textfield, regexp) {
@@ -580,26 +712,103 @@ jQuery(document).ready(function() {
       $fielderror.html('');
     }
   };
-  jQuery('.number').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^0-9]+/g); });
-  jQuery('.filepath').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_.\/-]+/g); });
-  jQuery('.key').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_-]+/g); });
-  jQuery('.keys').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_;-]+/g); });
-  jQuery('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
+  $context.find('.number').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^0-9]+/g); });
+  $context.find('.filepath').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_.\/-]+/g); });
+  $context.find('.key').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_-]+/g); });
+  $context.find('.keys').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_;-]+/g); });
+  $context.find('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
   var haschanges = false;
-  jQuery(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
+  $context.find(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
      haschanges = true;
   });
-  jQuery('#check_workflow_button').click(function (e) {
+  $context.find('#check_workflow_button').click(function (e) {
     if (haschanges) {
       if (!confirm('This workflow has changes. Are you sure you want to check it without saving the changes?')) {
         e.preventDefault();
       }
     }
   });
+  $context.find('#add_step_button').click(function(e) {
+    var $whichStep = jQuery('#edit-which-step');
+    var $addStepDiv = jQuery('#edit-add-step');
+    if ($whichStep.size() == 1 && $addStepDiv.size() == 1) {
+      var workflowid = jQuery('#ubl-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+      var stepname = $whichStep.val();
+      if (workflowid && stepname) {
+        var loc = window.location;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname; 
+        loadContent(loadUrl, $addStepDiv);
+        e.preventDefault();
+      }
+    }
+  });
+  $context.find('#add_workflow_steps_button').click(function(e) {
+    var $whichWorkflow = jQuery('#edit-which-workflow-steps');
+    var $addStepDiv = jQuery('#edit-add-step');
+    if ($whichWorkflow.size() == 1 && $addStepDiv.size() == 1) {
+      var workflowid = jQuery('#ubl-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+      var whichWorkflowId = $whichWorkflow.val();
+      if (workflowid && whichWorkflowId) {
+        var loc = window.location;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId; 
+        loadContent(loadUrl, $addStepDiv);
+        e.preventDefault();
+      }
+    }
+  });
+
+function loadContent(loadUrl, $addStepDiv) {
+  var $tmpAddStepContent = jQuery('#tmpaddstepcontent');
+  if ($tmpAddStepContent.size() == 0) {
+    jQuery('BODY').append('<DIV id="tmpaddstepcontent"></DIV>');
+    $tmpAddStepContent = jQuery('#tmpaddstepcontent');
+    $tmpAddStepContent.css({
+      'display': 'none',
+    });
+  }
+  $tmpAddStepContent.load(loadUrl, function() {
+    var $newcontent = $tmpAddStepContent.find('> FORM > DIV > .workflow_step'); 
+    $newcontent.each(function() {
+      jQuery(this).addClass('collapsible collapse-processed');
+      jQuery(this).hide();
+      if (jQuery(this).hasClass('visual_group_start') && jQuery(this).find('> DIV > DIV.grouped_steps').size() == 0) {
+        jQuery(this).find('> DIV').append('<div class="grouped_steps form-wrapper" id="edit-grouped"/>');
+      }
+    });
+    setUpButtonsAndFields($newcontent);
+    var $lastStep = $addStepDiv.prev('.workflow_step');
+    var $lastGroup;
+    var didAddContent = false;
+    while ($lastStep.hasClass('visual_group_start')) {
+      var $group = $lastStep.find('> DIV > DIV.grouped_steps');
+      var $newLastStep = $group.children().last();
+      if (!$newLastStep.hasClass('visual_group_start') && $group.size() > 0) {
+        if ($newcontent.hasClass('visual_group_end')) {
+          if ($lastGroup) {
+            $lastGroup.append($newcontent);
+            didAddContent = true; 
+          }
+        }
+        else {
+          $group.append($newcontent);
+          didAddContent = true; 
+        }
+      }
+      $lastStep = $newLastStep;
+      $lastGroup = $group;
+    }
+    if (!didAddContent) {
+      $addStepDiv.before($newcontent);
+    }
+    $newcontent.show(400, function() {
+      $newcontent.removeAttr('style');
+    });
+  });
+}
 
   // display full value
-  jQuery('.upi_shortvalue').click(function(e) {
+  $context.find('.upi_shortvalue').click(function(e) {
     e.stopPropagation();
     var fvdiv = jQuery(this).prev('.upi_fullvalue');
     fvdiv.css('display', 'block');
@@ -636,10 +845,10 @@ jQuery(document).ready(function() {
       }
     } 
   });
-  jQuery('.upi_fullvalue').click(function(e) {
+  $context.find('.upi_fullvalue').click(function(e) {
     jQuery(this).hide();
   });
-});
+};
 
 {
 var isSwapping = false;
