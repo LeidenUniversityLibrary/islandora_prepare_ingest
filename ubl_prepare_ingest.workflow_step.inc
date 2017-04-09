@@ -281,7 +281,7 @@ function ubl_prepare_ingest_workflow_step_info() {
       'target_filepath' => array(
         'label' => t('Target filepath'),
         'description' => t('This should hold an absolute path to a not existing file.'),
-        'type' => 'key',
+        'type' => 'templatestring',
       ),
     ),
     'input keys' => array('content_key_name'),
