@@ -18,6 +18,10 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
   module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
   module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
 
+  $path = drupal_get_path('module', 'ubl_prepare_ingest');
+  drupal_add_js($path . '/js/ubl_prepare_ingest.js');
+  drupal_add_css($path . '/css/ubl_prepare_ingest.css');
+
   $ischecking = ($type === 'check');
   $istesting = ($type === 'test');
   $canmovesteps = ($type === 'edit');
