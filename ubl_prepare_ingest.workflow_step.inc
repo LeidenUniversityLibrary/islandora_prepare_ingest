@@ -541,7 +541,33 @@ function ubl_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'type group' => t('Sorting, filtering and grouping'),
   );
-  $validateconfig = array(
+  $info['validate_xml'] = array(
+    'arguments' => array(
+      'xml_key_name' => array(
+        'label' => t('XML key'),
+        'description' => t('Validate the XML. The value of this key is either an absolute filepath to an XML file or contains XML itself.'),
+        'type' => 'key',
+      ),
+      'validate_dtd' => array(
+        'label' => t('Validate based on DTD'),
+        'description' => t('The XML should contain a DTD for this to work.'),
+        'type' => 'boolean',
+      ),
+      'schema_key_name' => array(
+        'label' => t('Schema key'),
+        'description' => t('Optionally, validate against a schema. The value of this key is either an absolute filepath to a schema file or contains a schema itself.'),
+        'type' => 'key',
+        'optional' => TRUE,
+      ),
+    ),
+    'input keys' => array('xml_key_name', 'schema_key_name'),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => FALSE,
+    'changes files' => FALSE,
+    'type group' => t('Validation'),
+   );
+   $validateconfig = array(
     'arguments' => array(
       'filepath' => array(
         'label' => t('Filepath'),
@@ -2372,6 +2398,90 @@ function intcmp($a, $b) {
   $inta = intval($a);
   $intb = intval($b);
   return ($inta - $intb);
+}
+
+/**
+ * validate_xml
+ **/
+function label_validate_xml(array $info, array $config) {
+  $title = t('Validate XML');
+  if (array_key_exists('xml_key_name', $config) && strlen($config['xml_key_name']) > 0) {
+    $title .= ' ' . t('at "@key"', array('@key' => $config['xml_key_name']));
+  }
+  if (array_key_exists('validate_dtd', $config) && $config['validate_dtd']) {
+    $title .= ' ' . t('with included DTD');
+  }
+  if (array_key_exists('schema_key_name', $config) && strlen($config['schema_key_name']) > 0) {
+    $title .= ' ' . t('against schema at "@key"', array('@key' => $config['schema_key_name']));
+  }
+  $title .= '.';
+  return $title;
+}
+
+function work_validate_xml(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    $xmlkey = $config['xml_key_name'];
+    $results = array();
+    $prevuseerr = libxml_use_internal_errors(true);
+    foreach ($data as $current => $d) {
+      $isValidXml = FALSE;
+      $xmlvalue = $d[$xmlkey];
+      $xml = new DOMDocument(); 
+      $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $context));
+      if ($isFilePath) {
+        $isValidXml = @$xml->load($xmlvalue);
+      }
+      else {
+        $isValidXml = @$xml->loadXml($xmlvalue);
+      }
+      if ($config['validate_dtd']) {
+        $isValidXml = $xml->validate();
+      }
+      if ($isValidXml && isset($config['schema_key_name']) && strlen($config['schema_key_name']) > 0) {
+        $schemakey = $config['schema_key_name'];
+        if (isset($d[$schemakey]) && strlen($d[$schemakey]) > 0) {
+          $schemavalue = $d[$schemakey];
+          if ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $context)) {
+            $isValidXml = $xml->schemaValidate($schemakey);
+          }
+          else {
+            $isValidXml = $xml->schemaValidateSource($schemakey);
+          }
+        }
+      }
+      if (!$isValidXml) {
+        $error = libxml_get_last_error();
+        if ($isFilePath) {
+          $results[] = array('text' => t("File @file does not contain valid XML: @error at line @line",
+            array('@file' => $xmlvalue, '@error' => $error->message, '@line' => $error->line)), 'type' => 'validate_error');
+        }
+        else {
+          $results[] = array('text' => t("Item @nr does not contain valid XML in key @key: @error at line @line",
+            array('@key' => $xmlkey, '@nr' => $current, '@error' => $error->message, '@line' => $error->line)), 'type' => 'validate_error');
+        }
+      }
+      libxml_clear_errors();
+    }
+    libxml_use_internal_errors($prevuseerr);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  return FALSE;
 }
 
 /**
