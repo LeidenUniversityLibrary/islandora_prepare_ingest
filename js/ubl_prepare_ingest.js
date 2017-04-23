@@ -54,7 +54,6 @@ function setUpButtonsAndFields($context) {
     var $steps = jQuery('#edit-steps FIELDSET.workflow_step');
     $steps = $steps.not($currentstep).not($nextstep);
     $steps = $steps.not($currentstep.find('FIELDSET.workflow_step'));
-    //$steps = $steps.not('FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end');
 
     var htmlMoveherelink = '<DIV class="moveherelink"><A href="#">Move here</A></DIV>';
     $steps.prepend(htmlMoveherelink);
@@ -68,7 +67,6 @@ function setUpButtonsAndFields($context) {
     });
     jQuery('.moveherelink').one('click', function(e) {
       var $moveherestep = jQuery(this).closest('FIELDSET.workflow_step');
-      var $tomovesteps = $currentstep;
       var currentstepweight = Number($currentstep.find('.weight_step').first().val().replace(prefix,''));
       var moveherestepweight = 0;
       if ($moveherestep.size() == 0) {
@@ -80,22 +78,9 @@ function setUpButtonsAndFields($context) {
         moveherestepweight = Number($moveherestep.find('.weight_step').first().val().replace(prefix,''));
       }
       if ($currentstep.hasClass('visual_group_start')) {
-        $tomovesteps = $tomovesteps.add($currentstep.find('FIELDSET.workflow_step')); 
-        $tomovesteps = $tomovesteps.add($currentstep.next('FIELDSET.workflow_step.visual_group_end'));
         $currentstep = $currentstep.add($currentstep.next('FIELDSET.workflow_step.visual_group_end'));
       }
       var animTime = 400;
-      var $steps;
-      if (currentstepweight < moveherestepweight) {
-        // move down
-        $steps = retrieveStepsFromTo($currentstep, $moveherestep, true);
-        exchangeStepWeights($tomovesteps,$steps);
-      }
-      else {
-        // move up
-        $steps = retrieveStepsFromTo($moveherestep, $currentstep, false);
-        exchangeStepWeights($steps,$tomovesteps);
-      }
       var currentStepOffset = $currentstep.offset();
       var currentStepWidth = $currentstep.outerWidth(true);
       var currentStepHeight = 0;
@@ -112,7 +97,7 @@ function setUpButtonsAndFields($context) {
       $tmpFrom.height(currentStepHeight);
       $tmpFrom.width(currentStepWidth);
       jQuery('BODY').prepend($currentstep);
-      $currentstep.css({'position' : 'absolute', 'z-index' : 999});
+      $currentstep.css({'position' : 'absolute', 'z-index' : 590});
       $currentstep.each(function(index) {
         jQuery(this).outerHeight(currentStepHeights[index]);
         jQuery(this).offset(currentStepOffsets[index]);
@@ -141,40 +126,26 @@ function setUpButtonsAndFields($context) {
         else {
           $moveherestep.before($currentstep);
         }
+        reassignStepWeights();
       });
       e.preventDefault();
     });
   });
-  
-  function exchangeStepWeights($steps1, $steps2) {
-    if (!$steps1.add) {
-      $steps1 = jQuery($steps1);
-    }
-    if (!$steps2.add) {
-      $steps2 = jQuery($steps2);
-    }
-    var weights = [];
-    $steps1.each(function(i) {
+
+  function reassignStepWeights() {
+    var currentWeight = 1;
+    var $steps = jQuery('#edit-steps FIELDSET.workflow_step');
+    $steps.each(function() {
+      var newstepweight = currentWeight + '';
       var stepweight = jQuery(this).find('.weight_step').first().val();
-      if (stepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-        stepweight = prefix + stepweight;
+      if (stepweight.lastIndexOf(prefix, 0) === 0) { // does it have the prefix?
+        newstepweight = prefix + newstepweight;
       }
-      weights.push(stepweight);
-    }); 
-    $steps2.each(function(i) {
-      var stepweight = jQuery(this).find('.weight_step').first().val();
-      if (stepweight.lastIndexOf(prefix, 0) !== 0) { // does it have the prefix?
-        stepweight = prefix + stepweight;
+      if (newstepweight !== stepweight) {
+        jQuery(this).find('.weight_step').first().val(prefix + currentWeight);
       }
-      weights.push(stepweight);
+      currentWeight += 1;
     }); 
-    $steps2.each(function(i) {
-      jQuery(this).find('.weight_step').first().val(weights[i]);
-    });
-    var c2 = $steps2.size();
-    $steps1.each(function(i) {
-      jQuery(this).find('.weight_step').first().val(weights[c2 + i]);
-    });
   }
 
   function retrieveStepsFromTo($fromElement, $toElement, excluding) {
