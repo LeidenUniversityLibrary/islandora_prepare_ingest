@@ -3,6 +3,8 @@
  * js/ubl_show_persistent_url.js
  */
 
+var hasUnsavedChanges = false;
+
 jQuery(document).ready(function() {
   setUpButtonsAndFields(jQuery(document));
 });
@@ -21,11 +23,13 @@ function setUpButtonsAndFields($context) {
           var $nextstep = $thisstep.next();
           $nextstep.find('.remove_step').val('1');
           $nextstep.hide(500); 
+          hasUnsavedChanges = true;
         }
       }
       else {
         $thisstep.find('.remove_step').val('1');
         $thisstep.hide(500);
+        hasUnsavedChanges = true;
       }
     }
   });
@@ -41,6 +45,7 @@ function setUpButtonsAndFields($context) {
       $nextstep.hide(500); 
       var $groupitems = $thisstep.find('> div > div.grouped_steps > fieldset.workflow_step');
       swapElements($nextstep, $groupitems, function() { $nextstep.before($groupitems); $thisstep.hide(100); });
+      hasUnsavedChanges = true;
     }
   });
   
@@ -127,6 +132,7 @@ function setUpButtonsAndFields($context) {
           $moveherestep.before($currentstep);
         }
         reassignStepWeights();
+        hasUnsavedChanges = true;
       });
       e.preventDefault();
     });
@@ -292,6 +298,7 @@ function setUpButtonsAndFields($context) {
       else {
         $textfield.val(jQuery(e.target).data('value')); 
       }
+      hasUnsavedChanges = true;
     });
     if ($menu.html().length > 0) {
       var offset = $textfield.offset();
@@ -355,12 +362,11 @@ function setUpButtonsAndFields($context) {
   $context.find('.keys').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_;-]+/g); });
   $context.find('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
-  var haschanges = false;
   $context.find(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
-     haschanges = true;
+     hasUnsavedChanges = true;
   });
   $context.find('#check_workflow_button').click(function (e) {
-    if (haschanges) {
+    if (hasUnsavedChanges) {
       if (!confirm('This workflow has changes. Are you sure you want to check it without saving the changes?')) {
         e.preventDefault();
       }
@@ -376,6 +382,7 @@ function setUpButtonsAndFields($context) {
         var loc = window.location;
         var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname; 
         loadContent(loadUrl, $addStepDiv);
+        hasUnsavedChanges = true;
         e.preventDefault();
       }
     }
@@ -390,6 +397,7 @@ function setUpButtonsAndFields($context) {
         var loc = window.location;
         var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId; 
         loadContent(loadUrl, $addStepDiv);
+        hasUnsavedChanges = true;
         e.preventDefault();
       }
     }
