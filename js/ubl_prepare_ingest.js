@@ -154,25 +154,6 @@ function setUpButtonsAndFields($context) {
     }); 
   }
 
-  function retrieveStepsFromTo($fromElement, $toElement, excluding) {
-    var $allsteps = jQuery('#edit-steps').find('FIELDSET.workflow_step');
-    var start = $allsteps.index($fromElement);
-    var end = $allsteps.index($toElement);
-    var $steps = jQuery();
-    if (start >= 0) {
-      if (end == -1) {
-        $steps = $allsteps.slice(start + (excluding?1:0)); 
-      }
-      else {
-        $steps = $allsteps.slice(start + (excluding?1:0), end); 
-      }
-    }
-    else {
-      alert('Error: fromStep ' + $fromElement.attr('id') + ' not found in all steps.');
-    }
-    return $steps;
-  }
-
   // autosuggest menu
   var autosuggestfunc = function(e) {
     var $textfield = jQuery(e.target);
