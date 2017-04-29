@@ -20,10 +20,10 @@ For a complete list of available steps, see the documentation below named “The
 ## Making a workflow
 
 When this module is installed, under Admin > Islandora there is an entry “Prepare Ingest”. Here you find two tabs: 
+* “Generic workflows”: here you can define new (parts of) workflows, that can later be used as the base of an active workflow. These workflows are more general and can be reused for multiple data conversions and ingests.
 * “Active workflows”: this contains the workflows you can actually use to prepare an ingest for Islandora. The workflows listed here are specific for one data conversion and ingest.
-* “Manage workflows”: here you can define new (parts of) workflows, that can later be used as the base of an active workflow. These workflows are more general and can be reused for multiple data conversions and ingests.
 
-To make a new workflow, first go to the “Manage workflows” tab and click “Add New workflow”. A screen is presented with fields for the name and description of the workflow. Because we are going to make a general workflow that can be reused and is not specific for a single data set, let the name and description reflect this.
+To make a new workflow, first go to the “Generic workflows” tab and click “Add New workflow”. A screen is presented with fields for the name and description of the workflow. Because we are going to make a general workflow that can be reused and is not specific for a single data set, let the name and description reflect this.
 After saving this workflow, you can add steps to the workflow by choosing the step from the popup menu and clicking on “Add Step".
 After adding a step to the workflow, the step must be configured.  This can be done by clicking the title of the step to open it, and filling out the fields.
 Because this will be a general workflow, not all fields have to be filled in. All fields with the word “key” in their name define or use some data. These should all be filled out.
@@ -35,13 +35,17 @@ If the order of your steps is incorrect, you can reorder the steps with the “m
 
 Save your workflow after any changes you make.
 
+## Using constants
+
+Th define constant step lets you define a constant. Because when you make a generic workflow some steps will have specific values, you can use constants instead of these specific values. Define all the constants you make at the top of your workflow, so it is easier to spot them.
+
 ## Checking a workflow
 
 After you have completed your workflow and saved it, you can check it to make sure it is correct. Press the “check workflow” button to check if the workflow configuration is correct. If there is something wrong, you will be notified of what is wrong. Any steps you need to correct, will be opened. If the configuration of the workflow steps is correct, you see a message that the checks finished successful.
 
 ## Testing a workflow
 
-After successfully checking a workflow, the workflow can be tested. If you did not fill out al the fields in the step configurations (which is good when you make a general workflow), you can fill in some test values in those fields.
+After successfully checking a workflow, the workflow can be tested. If you did not fill out al the fields in the step configurations (which is good when you make a general workflow), you can fill in some test values in those fields. Preferably, these values are all constants that you should fill out with a specific value.
 Remember that although it is a test, the values should be correct. For example if you have to fill out a directory path, you should provide a valid path that exists on the server and that contains files of the type the workflow step expects.
 While testing the files will only be read. Any manipulation of files will only be done in memory, so no files will be changes, removed or added for real.
 After filling out the missing values, you can test the workflow. If the test completes successfully, make sure to check the output of every step. If a step manipulates the key-value pairs of items, the items are shown for that step. If a step alters the file system, the files are listed.
@@ -49,7 +53,7 @@ After filling out the missing values, you can test the workflow. If the test com
 ## Making an active workflow
 
 When you have made a full workflow and checked and tested it, you can make an active workflow based on this full workflow. Go to the active workflows tab, choose the workflow that will be the base of the active workflow in the popup menu in the “add workflow” section and click on “add new workflow”. Fill out a descriptive name and description for your new active workflow.
-After this fill out the missing values in the step configuration with specific values. Save the workflow when you are done.
+After this fill out the missing values in the step configuration with specific values. Again this should all be constants at the top of the workflow. Save the workflow when you are done.
 
 ## Dry run an active workflow
 
@@ -68,10 +72,12 @@ If you have include validate steps, these steps will output the drush command to
 
 # The steps
 
-Included in the prepare ingest module are 16 steps. These steps should be sufficient to make any workflow, but other steps can be added from within other modules. See the TECHNICAL documentation on how to do this.
+Included in the prepare ingest module are 23 steps. These steps should be sufficient to make any workflow, but other steps can be added from within other modules. See the TECHNICAL documentation on how to do this.
 Below are the included steps with a description of what they do:
 
-## Read file names
+## Define constant
+
+## Add items by reading file names
 
 This step reads the file names of the files in a specified directory and stores the full paths of the file names with the given key in new items that will be added to the list. A filter can be used to only include files with a specific name and/or extension. If wanted and needed, also files in subdirectories can be included.
 
@@ -84,29 +90,33 @@ The regular expression can match part of the value or the whole value. The repla
 
 This step adds a new key-value to all existing items in the list. The key is given. The values for this key are based on the values of one or more existing keys. A template is used to make the new value. The template can include one or more existing keys placed between curly braces.
 
+## Add key(s) using template
+
+The template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension. Remember that the template values are greedy; this means that they want to contain the largest possible value that will match the template. In the example above the value "test_1.a.tif" will result in a key "number" with value "1.a" and a key "extension" with value "tif".
+
 ## Add key with counter value
 
-This step adds a new key-value to all existing items in the list. The key is given. The values for this key is a number that starts at the start value, increments with a value of step and includes leading zero’s if the given width is greater than the actual width of the number.
+This step adds a new key-value to all existing items in the list. The key is given. The values for this key is a number that starts at the start value, increments with a value of step and includes leading zero’s if the given width is greater than the actual width of the number. Optionally, you can specify a key for each unique value the counting starts from the start value.
 
 ## Parse XML file
 
-This step adds a new key-value to all existing items in the list. The key is given. The value is the Document Object Model (DOM) of an existing XML file identified by a key in the existing items in the list. This step is used in combinations with one or more “value from XML DOM” steps.
+This step adds a new key-value to all existing items in the list. The key is given. The value is the Document Object Model (DOM) of an existing XML file identified by a key in the existing items in the list. This step is used in combinations with one or more “add key from XML” or "add items by extracting XML parts from XML" steps.
 
-## Value from XML DOM
+## Add key from XML
 
 This step adds a new key-value to all existing items in the list. The key is given. The value is retrieved from a DOM identified by a key of the existing items in the list by using a given XPath and namespaces. This step should be used after the “parse XML file” step. 
 
 ## Make directory
 
-This step creates a directory in the file system based on the values of a key in all existing items in the list. The value should be an absolute path to a not yet existing directory. The parent directory of this directory should exist.
+This step creates a directory in the file system based on the values of one or more keys in all existing items in the list. The value should be an absolute path to a not yet existing directory. The parent directory of this directory should exist.
 
 ## Copy file
 
-This step copies a file indicated by the values of a source key in all existing items in the list to a target indicated by a key in all existing items in the list. The source value should be an absolute path to an existing file. The target value is also an absolute path; either to an existing directory, in which case the name of the file is retained. Or the target value is a absolute full path to a not existing file in an existing directory. The copy action is not actually always a copy of the data: first a hard link is tried to save disk space. If this fails, the file is copied.
+This step copies a file indicated by a source filepath from values of one or more keys in all existing items in the list to a target indicated by a target filepath from values of one or more keys in all existing items in the list. The source filepath should be an absolute path to an existing file. The target filepath is also an absolute path; either to an existing directory, in which case the name of the file is retained. Or the target value is a absolute full path to a not existing file in an existing directory. The copy action is not actually always a copy of the data: first a hard link is tried to save disk space. If this fails, the file is copied.
 
 ## Write to file
 
-This step writes to a file indicated by the values of a target key in all existing items in the list. The content that is written to the file is a the value of the content key in all existing items in the list. The target file should not exist when starting to write to the file, but it is possible to write the contents of a key of multiple existing items to the same file. No warning will be given if the file already exists. The directory containing the output file should exist.
+This step writes to a file indicated by a filepath from values of one or more keys in all existing items in the list. The content that is written to the file is a the value of the content key in all existing items in the list. The target file should not exist when starting to write to the file, but it is possible to write the contents of a key of multiple existing items to the same file. No warning will be given if the file already exists. The directory containing the output file should exist.
 
 ## Group items
 
@@ -121,13 +131,29 @@ Filters can be nested.
 
 ## End filter
 
-This steps ends the most recent filter and recovers the filtered items.
+This step ends the most recent filter and recovers the filtered items.
 
-## Read CSV file
+## Add items by reading CSV file
 
 This step reads the given CSV file, parses it and stores the values of a row at the keys found in column keys. For every row a new item is added to the list. The CSV file should have at least the number of columns as the count of column keys, but can have more. Any additional columns in the CSV file will not be included in the items. If a column key is double in the column keys, only the last column will be stored in the item.
 If the CSV file has a header, set has header to true to avoid making an item with the header values.
 The CSV file columns can be separated by a tab, a comma or a semicolon. The rows should be ended by a line ending (Windows, Mac or Unix line endings).
+
+## Add items by extracting XML parts from XML
+
+This step adds items for every extracted XML part from a key in existing items that contains XML. The XML part is pointed to by an XPath.
+
+## Visual group start
+
+This step does not do anything but visually group other steps. This makes it easier to see in the workflow which steps belong together. Also possible to descibe the grouped steps.
+
+## Visual group end
+
+This step ends the most recent visual group.
+
+## Sort items
+
+This step sorts the items based on the values of one or two keys.
 
 ## Validate the basic images structure
 

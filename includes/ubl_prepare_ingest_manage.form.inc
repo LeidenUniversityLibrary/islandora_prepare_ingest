@@ -24,11 +24,11 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
   $options = array();
   foreach ($workflows as $workflow) {
     $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflow['id']),
+      'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/manage/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/manage/export/' . $workflow['id']),
+      'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/generic_workflow/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -90,7 +90,7 @@ function ubl_prepare_ingest_manage_delete_selected_workflows(array $form, array 
 }
 
 function ubl_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/make';
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/make';
 }
 
 /**
@@ -279,7 +279,7 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
   }
   else {
     $workflowid = ubl_prepare_ingest_insert_workflow($name, $description, $type);  
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflowid;
   }
   $updates = array();
   foreach ($form_state['values'] as $key => $value) {
@@ -346,7 +346,7 @@ function ubl_prepare_ingest_edit_workflow_form_back(array $form, array &$form_st
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
 
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage';
+  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflows';
 }
 
 function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
@@ -360,7 +360,7 @@ function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_s
   $_SESSION['workflowdata'] = $workflowdata; 
   if (ubl_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
     ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/check/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/check/' . $workflowid;
   }
   else {
     ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
@@ -422,7 +422,7 @@ function ubl_prepare_ingest_edit_workflow_form_copy_workflow(array $form, array 
 
     ubl_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
 
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/manage/edit/' . $newworkflowid;
+    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
   }
 }
 
@@ -484,3 +484,102 @@ function ubl_prepare_ingest_export_workflow_form_submit(array $form, array &$for
   file_delete($filepath);
 }
 
+function ubl_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $modulename = '') {
+  if ($workflowid && $stepname) {
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.steps.form');
+
+    $stepid = ubl_prepare_ingest_insert_step($workflowid, $stepname, '');
+
+    $workflowstep = NULL;
+    $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+    foreach ($workflowsteps as $wfstep) {
+      if ($wfstep['id'] === $stepid) {
+        $workflowstep = $wfstep;
+      }
+    }
+    $stepsinfo = module_invoke_all('workflow_step_info');
+    $stepinfo = $stepsinfo[$stepname];
+    $stepconfig = array();
+    $form = drupal_get_form('ubl_prepare_ingest_ajax_addstep_form', $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname);
+    return $form;
+  }
+  return array();
+}
+
+function ubl_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname) {
+  $form = array(
+    '#title' => t('Steps'),
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['onestep'] = ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, NULL, $stepid, $stepname, TRUE, TRUE, FALSE, FALSE, FALSE); 
+  $form['onestep']['#collapsed'] = FALSE;
+
+  return $form;
+}
+
+function ubl_prepare_ingest_ajax_addstepsgroup_handler($workflowid, $stepsfromworkflowid) {
+  if ($workflowid && $stepsfromworkflowid) {
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+    module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.steps.form');
+
+    $stepids = ubl_prepare_ingest_copy_steps($stepsfromworkflowid, $workflowid);
+    $id2workflowstep = array();
+    $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+    foreach ($workflowsteps as $wfstep) {
+      $id2workflowstep[$wfstep['id']] = $wfstep;
+    }
+    $stepsinfo = module_invoke_all('workflow_step_info');
+
+    $cfgs = array();
+    foreach ($stepids as $stepid) {
+      $step = $id2workflowstep[$stepid];
+      $stepname = $step['step_name'];
+      $cfgs[$stepid] = array(
+        'workflowstep' => $step,
+        'stepinfo' => $stepsinfo[$stepname],
+        'stepname' => $stepname,
+      ); 
+    }
+    $form = drupal_get_form('ubl_prepare_ingest_ajax_addstepsgroup_form', $cfgs);
+
+    return $form;
+  }
+  return array();
+}
+
+function ubl_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $cfgs) {
+  $form = array(
+    '#title' => t('Steps'),
+    '#type' => 'fieldset',
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  foreach ($cfgs as $stepid => $cfg) {
+    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+    $form['step_'.$stepid] = ubl_prepare_ingest_make_base_step_form($cfg['workflowstep'], $cfg['stepinfo'], $stepconfig, NULL, $stepid, $cfg['stepname'], TRUE, TRUE, FALSE, FALSE, FALSE);
+    $form['step_'.$stepid]['#collapsed'] = FALSE;
+  }
+
+  return $form;
+}
+
+function ubl_prepare_ingest_ajax_delivery_handler($page_callback_result) {
+  // Only render content and validates return
+  $content = '';
+  if (is_int($page_callback_result)) {
+    // error in page callback result, fallback to delivering no content
+  }
+  else if (is_string($page_callback_result)) {
+    $content = $page_callback_result;
+  }
+  else if (is_array($page_callback_result)) {
+    $content = drupal_render($page_callback_result);
+  }
+  print $content;
+  drupal_page_footer(); 
+}

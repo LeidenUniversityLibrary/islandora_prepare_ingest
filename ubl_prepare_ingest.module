@@ -13,14 +13,69 @@ define('UBL_PREPARE_INGEST_MANAGE', 'Manage the workflows to prepare data for in
  * Implements hook_menu().
  */
 function ubl_prepare_ingest_menu() {
-  return array(
+  $menu = array(
     'admin/islandora/ubl_prepare_ingest' => array(
       'title' => 'Prepare Ingest',
-      'description' => 'Prepare data for ingest into Islandora',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_active_workflows_form'),
-      'file' => 'includes/ubl_prepare_ingest_active_workflows.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_PREPARE),
+      'page arguments' => array('ubl_prepare_ingest_manage_form'),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflows' => array(
+      'title' => 'Generic workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_manage_form'),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/make' => array(
+      'title' => 'Make generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_edit_workflow_form'),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/%' => array(
+      'title' => 'Edit generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_edit_workflow_form',5),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/copy/%' => array(
+      'title' => 'Copy generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_copy_workflow_form',5),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/export/%' => array(
+      'title' => 'Export generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_export_workflow_form',5),
+      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/check/%' => array(
+      'title' => 'Check generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_check_workflow_form', 5, FALSE),
+      'file' => 'includes/ubl_prepare_ingest_check.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/ubl_prepare_ingest/generic_workflow/test/%' => array(
+      'title' => 'Test generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('ubl_prepare_ingest_check_workflow_form', 5, TRUE),
+      'file' => 'includes/ubl_prepare_ingest_check.form.inc',
+      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
       'type' => MENU_NORMAL_ITEM,
     ),
     'admin/islandora/ubl_prepare_ingest/active_workflows' => array(
@@ -29,7 +84,7 @@ function ubl_prepare_ingest_menu() {
       'page arguments' => array('ubl_prepare_ingest_active_workflows_form'),
       'file' => 'includes/ubl_prepare_ingest_active_workflows.form.inc',
       'access arguments' => array(UBL_PREPARE_INGEST_PREPARE),
-      'type' => MENU_DEFAULT_LOCAL_TASK,
+      'type' => MENU_LOCAL_TASK,
     ),
     'admin/islandora/ubl_prepare_ingest/active_workflow/%/edit' => array(
       'title' => 'Active workflows',
@@ -47,63 +102,24 @@ function ubl_prepare_ingest_menu() {
       'access arguments' => array(UBL_PREPARE_INGEST_PREPARE),
       'type' => MENU_NORMAL_ITEM,
     ),
-    'admin/islandora/ubl_prepare_ingest/manage' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_manage_form'),
+    'admin/islandora/ubl_prepare_ingest/ajax/addstep/%/%' => array(
+      'page callback' => 'ubl_prepare_ingest_ajax_addstep_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'ubl_prepare_ingest_ajax_delivery_handler',
       'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
       'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_LOCAL_TASK,
+      'type' => MENU_CALLBACK,
     ),
-    'admin/islandora/ubl_prepare_ingest/manage/make' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_edit_workflow_form'),
+    'admin/islandora/ubl_prepare_ingest/ajax/addstepsgroup/%/%' => array(
+      'page callback' => 'ubl_prepare_ingest_ajax_addstepsgroup_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'ubl_prepare_ingest_ajax_delivery_handler',
       'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
       'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/ubl_prepare_ingest/manage/edit/%' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_edit_workflow_form',5),
-      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/ubl_prepare_ingest/manage/copy/%' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_copy_workflow_form',5),
-      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/ubl_prepare_ingest/manage/export/%' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_export_workflow_form',5),
-      'file' => 'includes/ubl_prepare_ingest_manage.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/ubl_prepare_ingest/manage/check/%' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_check_workflow_form', 5, FALSE),
-      'file' => 'includes/ubl_prepare_ingest_check.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/ubl_prepare_ingest/manage/test/%' => array(
-      'title' => 'Manage workflows',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('ubl_prepare_ingest_check_workflow_form', 5, TRUE),
-      'file' => 'includes/ubl_prepare_ingest_check.form.inc',
-      'access arguments' => array(UBL_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
+      'type' => MENU_CALLBACK,
     ),
   );
+  return $menu;
 }
 
 /**
