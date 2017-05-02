@@ -1,11 +1,8 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
-
 
 /**
  * @file
- * ubl_prepare_ingest_manage.form.inc
+ * islandora_prepare_ingest_manage.form.inc
  */
 
 /**
@@ -16,19 +13,19 @@ ini_set("display_errors", 1);
  * @param array $form_state
  *   The Drupal form state.
  */
-function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_manage_form(array $form, array &$form_state) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
-  $workflows = ubl_prepare_ingest_select_workflows('active', TRUE);
+  $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
 
   $options = array();
   foreach ($workflows as $workflow) {
     $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
+      'name' => l($workflow['name'], 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/ubl_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/ubl_prepare_ingest/generic_workflow/export/' . $workflow['id']),
+      'copy' => l(t('copy'),'admin/islandora/islandora_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/islandora_prepare_ingest/generic_workflow/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -47,13 +44,13 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
   $form['delete'] = array(
     '#type' => 'submit',
     '#value' => t('Delete selected workflow(s)'),
-    '#submit' => array('ubl_prepare_ingest_manage_delete_selected_workflows'),
+    '#submit' => array('islandora_prepare_ingest_manage_delete_selected_workflows'),
   );
 
   $form['new_workflow'] = array(
     '#type' => 'submit',
     '#value' => t('Add New Workflow'),
-    '#submit' => array('ubl_prepare_ingest_manage_add_workflow'),
+    '#submit' => array('islandora_prepare_ingest_manage_add_workflow'),
   );
 
   $form['import'] = array(
@@ -65,7 +62,7 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
   $form['import']['workflow_upload_import'] = array(
     '#type' => 'file',
     '#title' => t('Upload a JSON file to import'),
-    '#upload_location' => 'public://ubl_prepare_ingest_import',
+    '#upload_location' => 'public://islandora_prepare_ingest_import',
     '#upload_validators' => array(
       'file_validate_extensions' => array('json'),
     ),
@@ -73,24 +70,24 @@ function ubl_prepare_ingest_manage_form(array $form, array &$form_state) {
   $form['import']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Import'),
-    '#submit' => array('ubl_prepare_ingest_manage_upload_import'),
+    '#submit' => array('islandora_prepare_ingest_manage_upload_import'),
   );
 
   return $form;
 }
 
-function ubl_prepare_ingest_manage_delete_selected_workflows(array $form, array &$form_state) {
+function islandora_prepare_ingest_manage_delete_selected_workflows(array $form, array &$form_state) {
   if (array_key_exists("table", $form_state["values"])) {
     foreach ($form_state["values"]["table"] as $workflowid => $delete) {
       if ($delete) {
-        ubl_prepare_ingest_delete_workflow($workflowid);
+        islandora_prepare_ingest_delete_workflow($workflowid);
       }
     }
   }
 }
 
-function ubl_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/make';
+function islandora_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
+  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/make';
 }
 
 /**
@@ -101,8 +98,8 @@ function ubl_prepare_ingest_manage_add_workflow(array $form, array &$form_state)
  * @param array $form_state
  *   An array containing the Drupal form state.
  */
-function ubl_prepare_ingest_manage_upload_import($form, $form_state) {
-  $file = file_save_upload('workflow_upload_import', array('file_validate_extensions' => array('json')), 'public://ubl_prepare_ingest_import');
+function islandora_prepare_ingest_manage_upload_import($form, $form_state) {
+  $file = file_save_upload('workflow_upload_import', array('file_validate_extensions' => array('json')), 'public://islandora_prepare_ingest_import');
   if ($file) {
     $path = drupal_realpath($file->uri);
     $json = file_get_contents($path);
@@ -110,7 +107,7 @@ function ubl_prepare_ingest_manage_upload_import($form, $form_state) {
       drupal_set_message(t("Cannot get contents of file"), 'error');
       return;
     }
-    $isimported = ubl_prepare_ingest_insert_new_workflow_from_json($json);
+    $isimported = islandora_prepare_ingest_insert_new_workflow_from_json($json);
     if (!$isimported) {
       $errortype = json_last_error(); 
       if ($errortype === JSON_ERROR_NONE) {
@@ -138,14 +135,14 @@ function ubl_prepare_ingest_manage_upload_import($form, $form_state) {
  * @param array $form_state
  *   The Drupal form state.
  */
-function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, $workflowid = FALSE) {
+function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_state, $workflowid = FALSE) {
 
   $form = array();
 
   $workflow = array();
   if ($workflowid !== FALSE) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
-    $workflow = ubl_prepare_ingest_select_workflow($workflowid);
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+    $workflow = islandora_prepare_ingest_select_workflow($workflowid);
 
     $form['workflowid'] = array(
       '#type' => 'hidden',
@@ -181,17 +178,17 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
 
   if ($workflowid) {
     # steps
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.steps.form');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
     $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
     $workflowdata = isset($_SESSION['workflowdata'])?$_SESSION['workflowdata']:array();
-    $form += ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 'edit');
+    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 'edit');
 
     # Add another step
     $options = array();
     $stepsinfo = module_invoke_all('workflow_step_info');
     foreach ($stepsinfo as $stepname => $stepinfo) {
       $typegroup = isset($stepinfo['type group'])?$stepinfo['type group']:t('Other');
-      $options[$typegroup][$stepname] = ubl_prepare_ingest_label_for_step($stepname);
+      $options[$typegroup][$stepname] = islandora_prepare_ingest_label_for_step($stepname);
     }
     ksort($options);
     foreach ($options as $k => $v) {
@@ -215,7 +212,7 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
     );
     # Add steps from workflow
     $options = array();
-    $workflows = ubl_prepare_ingest_select_workflows('active', TRUE);
+    $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
     foreach ($workflows as $workflow) {
       $options[$workflow['id']] = $workflow['name'] . ' (' . $workflow['type'] . ')';
     }
@@ -234,13 +231,13 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
   $form['back'] = array(
     '#type' => 'submit',
     '#value' => t('Back'),
-    '#submit' => array('ubl_prepare_ingest_edit_workflow_form_back'),
+    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_back'),
   );
   # Check
   $form['check'] = array(
     '#type' => 'submit',
     '#value' => t('Check workflow'),
-    '#submit' => array('ubl_prepare_ingest_edit_workflow_form_check'),
+    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_check'),
     '#id' => 'check_workflow_button',
   );
   # Save
@@ -251,7 +248,7 @@ function ubl_prepare_ingest_edit_workflow_form(array $form, array &$form_state, 
   return $form;
 }
 
-function ubl_prepare_ingest_edit_workflow_form_validate(array $form, array &$form_state) {
+function islandora_prepare_ingest_edit_workflow_form_validate(array $form, array &$form_state) {
   $name = $form_state['values']['workflowname'];
 
   if (!$name) {
@@ -259,8 +256,8 @@ function ubl_prepare_ingest_edit_workflow_form_validate(array $form, array &$for
   }
 }
 
-function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_state) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_state) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
@@ -271,15 +268,15 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
 
   if (array_key_exists('workflowid', $form_state['values'])) {
     $workflowid = $form_state['values']['workflowid'];
-    ubl_prepare_ingest_update_workflow($workflowid,array(
+    islandora_prepare_ingest_update_workflow($workflowid,array(
       'name' => $name,
       'description' => $description,
       'type' => $type,
     ));
   }
   else {
-    $workflowid = ubl_prepare_ingest_insert_workflow($name, $description, $type);  
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $workflowid;
+    $workflowid = islandora_prepare_ingest_insert_workflow($name, $description, $type);  
+    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflowid;
   }
   $updates = array();
   foreach ($form_state['values'] as $key => $value) {
@@ -287,7 +284,7 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
       if ($value) {
         $stepidstr = substr($key, strlen('remove_step_'));
         if (($stepid = filter_var($stepidstr, FILTER_VALIDATE_INT)) !== FALSE) {
-           ubl_prepare_ingest_delete_step($stepid, $workflowid);
+           islandora_prepare_ingest_delete_step($stepid, $workflowid);
            $updates[$stepid]['_removed'] = TRUE;
         } 
       }
@@ -307,22 +304,22 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
       if (($stepid = filter_var($stepidstr, FILTER_VALIDATE_INT)) !== FALSE) {
         if (strpos($value, 'new_weight=') === 0) {
           $newweight = str_replace('new_weight=', '', $value);
-          ubl_prepare_ingest_update_step($stepid, $workflowid, array('weight' => $newweight)); 
+          islandora_prepare_ingest_update_step($stepid, $workflowid, array('weight' => $newweight)); 
         }
       }
     }
   }
   foreach ($updates as $stepid => $update) {
     if (!(array_key_exists('_removed', $update) && $update['_removed'])) {
-      $currentstepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+      $currentstepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
       foreach ($update as $key => $value) {
         if (array_key_exists($key, $currentstepconfig)) {
           if (strcmp($value, $currentstepconfig[$key]) != 0) {
-            ubl_prepare_ingest_update_step_configuration($stepid, $key, $value);
+            islandora_prepare_ingest_update_step_configuration($stepid, $key, $value);
           }
         }
         else {
-          ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value);
+          islandora_prepare_ingest_insert_step_configuration($stepid, $key, $value);
         }
       } 
     }
@@ -331,44 +328,44 @@ function ubl_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_
   if ($form_state['clicked_button']['#id'] === 'add_step_button') {
     $stepname = $form_state['values']['which_step'];
     if ($workflowid && $stepname) {
-      ubl_prepare_ingest_insert_step($workflowid, $stepname, '');
+      islandora_prepare_ingest_insert_step($workflowid, $stepname, '');
     }
   }
   if ($form_state['clicked_button']['#id'] === 'add_workflow_steps_button') {
     $selectedworkflowid = $form_state['values']['which_workflow_steps'];
     if ($workflowid && $selectedworkflowid) {
-      ubl_prepare_ingest_copy_steps($selectedworkflowid, $workflowid);
+      islandora_prepare_ingest_copy_steps($selectedworkflowid, $workflowid);
     }
   }
 }
 
-function ubl_prepare_ingest_edit_workflow_form_back(array $form, array &$form_state) {
+function islandora_prepare_ingest_edit_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
   unset($_SESSION['workflowdata']);
 
-  $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflows';
+  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflows';
 }
 
-function ubl_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.run_workflow');
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
   $workflowdata = array();
-  $workflowresults = ubl_prepare_ingest_run_workflow($workflowid, $workflowdata, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
+  $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $workflowdata, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
   $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['workflowdata'] = $workflowdata; 
-  if (ubl_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
-    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/check/' . $workflowid;
+  if (islandora_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
+    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
+    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/check/' . $workflowid;
   }
   else {
-    ubl_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
+    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
   }
 }
 
-function ubl_prepare_ingest_copy_workflow_form(array $form, array &$form_state, $workflowid) {
-  $form += ubl_prepare_ingest_edit_workflow_form($form, $form_state, $workflowid);
+function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_state, $workflowid) {
+  $form += islandora_prepare_ingest_edit_workflow_form($form, $form_state, $workflowid);
 
   unset($form['steps']);
   unset($form['check']);
@@ -403,34 +400,34 @@ function ubl_prepare_ingest_copy_workflow_form(array $form, array &$form_state, 
   $form['edit_workflow']['copy'] = array(
     '#type' => 'submit',
     '#value' => t('Copy workflow'),
-    '#submit' => array('ubl_prepare_ingest_edit_workflow_form_copy_workflow'),
-    '#validate' => array('ubl_prepare_ingest_edit_workflow_form_validate'),
+    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_copy_workflow'),
+    '#validate' => array('islandora_prepare_ingest_edit_workflow_form_validate'),
   );
 
   return $form;
 }
 
-function ubl_prepare_ingest_edit_workflow_form_copy_workflow(array $form, array &$form_state) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_edit_workflow_form_copy_workflow(array $form, array &$form_state) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $name = $form_state['values']['workflowname'];
   $description = $form_state['values']['workflowdescription'];
 
   if (array_key_exists('workflowid', $form_state['values'])) {
     $oldworkflowid = $form_state['values']['workflowid'];
-    $newworkflowid = ubl_prepare_ingest_copy_workflow($oldworkflowid);
+    $newworkflowid = islandora_prepare_ingest_copy_workflow($oldworkflowid);
 
-    ubl_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
+    islandora_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
 
-    $form_state['redirect'] = 'admin/islandora/ubl_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
+    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
   }
 }
 
-function ubl_prepare_ingest_export_workflow_form(array $form, array &$form_state, $workflowid) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_export_workflow_form(array $form, array &$form_state, $workflowid) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $form = array();
-  $workflowjson = ubl_prepare_ingest_workflow_json($workflowid);
+  $workflowjson = islandora_prepare_ingest_workflow_json($workflowid);
 
   $form['workflowid'] = array(
     '#type' => 'hidden',
@@ -452,17 +449,17 @@ function ubl_prepare_ingest_export_workflow_form(array $form, array &$form_state
   $form['workflow_export']['download'] = array(
     '#type' => 'submit',
     '#value' => t('Download JSON export'),
-    //'#submit' => array('ubl_prepare_ingest_export_workflow_form_submit'),
+    //'#submit' => array('islandora_prepare_ingest_export_workflow_form_submit'),
   );
 
   return $form;
 }
 
-function ubl_prepare_ingest_export_workflow_form_submit(array $form, array &$form_state) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_export_workflow_form_submit(array $form, array &$form_state) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
-  $workflowjson = ubl_prepare_ingest_workflow_json($workflowid);
+  $workflowjson = islandora_prepare_ingest_workflow_json($workflowid);
   $filepath = "temporary://workflow.json";
   $file = file_save_data($workflowjson, $filepath, FILE_EXISTS_REPLACE);
   $headers = array(
@@ -484,15 +481,15 @@ function ubl_prepare_ingest_export_workflow_form_submit(array $form, array &$for
   file_delete($filepath);
 }
 
-function ubl_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $modulename = '') {
+function islandora_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $modulename = '') {
   if ($workflowid && $stepname) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.steps.form');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
 
-    $stepid = ubl_prepare_ingest_insert_step($workflowid, $stepname, '');
+    $stepid = islandora_prepare_ingest_insert_step($workflowid, $stepname, '');
 
     $workflowstep = NULL;
-    $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+    $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
     foreach ($workflowsteps as $wfstep) {
       if ($wfstep['id'] === $stepid) {
         $workflowstep = $wfstep;
@@ -501,13 +498,13 @@ function ubl_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $module
     $stepsinfo = module_invoke_all('workflow_step_info');
     $stepinfo = $stepsinfo[$stepname];
     $stepconfig = array();
-    $form = drupal_get_form('ubl_prepare_ingest_ajax_addstep_form', $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname);
+    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstep_form', $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname);
     return $form;
   }
   return array();
 }
 
-function ubl_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname) {
+function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname) {
   $form = array(
     '#title' => t('Steps'),
     '#type' => 'fieldset',
@@ -515,20 +512,20 @@ function ubl_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep
     '#collapsed' => FALSE,
   );
 
-  $form['onestep'] = ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, NULL, $stepid, $stepname, TRUE, TRUE, FALSE, FALSE, FALSE); 
+  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, NULL, $stepid, $stepname, TRUE, TRUE, FALSE, FALSE, FALSE); 
   $form['onestep']['#collapsed'] = FALSE;
 
   return $form;
 }
 
-function ubl_prepare_ingest_ajax_addstepsgroup_handler($workflowid, $stepsfromworkflowid) {
+function islandora_prepare_ingest_ajax_addstepsgroup_handler($workflowid, $stepsfromworkflowid) {
   if ($workflowid && $stepsfromworkflowid) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/ubl_prepare_ingest.steps.form');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
 
-    $stepids = ubl_prepare_ingest_copy_steps($stepsfromworkflowid, $workflowid);
+    $stepids = islandora_prepare_ingest_copy_steps($stepsfromworkflowid, $workflowid);
     $id2workflowstep = array();
-    $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+    $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
     foreach ($workflowsteps as $wfstep) {
       $id2workflowstep[$wfstep['id']] = $wfstep;
     }
@@ -544,14 +541,14 @@ function ubl_prepare_ingest_ajax_addstepsgroup_handler($workflowid, $stepsfromwo
         'stepname' => $stepname,
       ); 
     }
-    $form = drupal_get_form('ubl_prepare_ingest_ajax_addstepsgroup_form', $cfgs);
+    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstepsgroup_form', $cfgs);
 
     return $form;
   }
   return array();
 }
 
-function ubl_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $cfgs) {
+function islandora_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $cfgs) {
   $form = array(
     '#title' => t('Steps'),
     '#type' => 'fieldset',
@@ -560,15 +557,15 @@ function ubl_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $cfgs) 
   );
 
   foreach ($cfgs as $stepid => $cfg) {
-    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
-    $form['step_'.$stepid] = ubl_prepare_ingest_make_base_step_form($cfg['workflowstep'], $cfg['stepinfo'], $stepconfig, NULL, $stepid, $cfg['stepname'], TRUE, TRUE, FALSE, FALSE, FALSE);
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+    $form['step_'.$stepid] = islandora_prepare_ingest_make_base_step_form($cfg['workflowstep'], $cfg['stepinfo'], $stepconfig, NULL, $stepid, $cfg['stepname'], TRUE, TRUE, FALSE, FALSE, FALSE);
     $form['step_'.$stepid]['#collapsed'] = FALSE;
   }
 
   return $form;
 }
 
-function ubl_prepare_ingest_ajax_delivery_handler($page_callback_result) {
+function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   // Only render content and validates return
   $content = '';
   if (is_int($page_callback_result)) {

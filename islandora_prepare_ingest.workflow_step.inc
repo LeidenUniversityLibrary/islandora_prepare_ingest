@@ -45,7 +45,7 @@ define('WORK_EXTENT_DO_ALL', WORK_EXTENT_CHECK_ALL_ARGUMENTS | WORK_EXTENT_ONLY_
 /**
  * Implements hook_workflow_step_info
  */
-function ubl_prepare_ingest_workflow_step_info() {
+function islandora_prepare_ingest_workflow_step_info() {
   $info = array();
 
   $info['define_constant'] = array(
@@ -605,10 +605,10 @@ function ubl_prepare_ingest_workflow_step_info() {
 /**
  * Helper functions.
  **/
-function ubl_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
+function islandora_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
   $stepsinfo = module_invoke_all('workflow_step_info');
   $stepinfo = $stepsinfo[$stepname];
-  $labelfunc = ubl_prepare_ingest_callback_for_step($stepname, 'label');
+  $labelfunc = islandora_prepare_ingest_callback_for_step($stepname, 'label');
   if ($labelfunc !== FALSE) {
     $label = $labelfunc($stepinfo, $stepconfig);
   }
@@ -619,7 +619,7 @@ function ubl_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
   return $label;
 }
 
-function ubl_prepare_ingest_callback_for_step($stepname, $callbacktype) {
+function islandora_prepare_ingest_callback_for_step($stepname, $callbacktype) {
   $func = FALSE;
   if (function_exists($callbacktype . '_' . $stepname)) {
     $func = $callbacktype . '_' . $stepname;
@@ -875,10 +875,10 @@ function label_define_constant(array $info, array $config) {
 }
 
 function work_define_constant(array $info, array $config, &$data, &$context, $extent) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   $name = $config['name'];
   $value = $config['value'];
-  $results = ubl_prepare_ingest_constants_set($name, $value, $context);
+  $results = islandora_prepare_ingest_constants_set($name, $value, $context);
   if ($results) {
     return $results;
   }
@@ -930,7 +930,7 @@ function work_read_file_names(array $info, array $config, &$data, &$context, $ex
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     // do the actual work.
     if (array_key_exists('directory_path', $config) && strlen($config['directory_path']) > 0) {
-      module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $dirpath = $config['directory_path'];
       $filter = $config['filter'];
       $includedir = $config['include_subdirectory_files'];
@@ -1420,7 +1420,7 @@ function work_make_directory(array $info, array $config, &$data, &$context, $ext
     }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $dirnametemplate = $config['directory_name'];
     foreach ($data as $current => $d) {
       $dirname = fill_out_template($dirnametemplate, $d); 
@@ -1481,10 +1481,10 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
-    $sourcefilepath = $config['source_filepath'];
-    $targetfilepath = $config['target_filepath'];
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     foreach ($data as $current => $d) {
+      $sourcefilepath = $config['source_filepath'];
+      $targetfilepath = $config['target_filepath'];
       $sourcefilepath = fill_out_template($sourcefilepath, $d);
       if (!pifs_is_file($sourcefilepath, $context)) {
 	$results[] = array('text' => t("File '@file' does not exist.",
@@ -1576,7 +1576,7 @@ function work_write_file(array $info, array $config, &$data, &$context, $extent)
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $contentkey = $config['content_key_name'];
     $targetfilepath = $config['target_filepath'];
     foreach ($data as $current => $d) {
@@ -1864,7 +1864,7 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
     }   
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $filepath = $config['filepath'];
     $xmlkey = $config['xml_key_name'];
     foreach ($data as $current => $d) {
@@ -2433,7 +2433,7 @@ function work_validate_xml(array $info, array $config, &$data, &$context, $exten
     }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $xmlkey = $config['xml_key_name'];
     $results = array();
     $prevuseerr = libxml_use_internal_errors(true);
@@ -2513,7 +2513,7 @@ function _work_validate_flat_structure(array $models, array $info, array $config
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'islandora', 'includes/utilities');
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
    
     $importdirectory = rtrim($config['filepath'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
     $dsreqs = islandora_get_datastreams_requirements_from_models($models);
@@ -2670,7 +2670,7 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'islandora', 'includes/utilities');
-    module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
     $importdirectory = $config['filepath'];
     $bookrequiredds2mimes = array();

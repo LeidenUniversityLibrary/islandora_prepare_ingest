@@ -8,15 +8,15 @@
 /**
  * Implements hook_install().
  */
-function ubl_prepare_ingest_install() {
-  drupal_mkdir('public://ubl_prepare_ingest_import');
+function islandora_prepare_ingest_install() {
+  drupal_mkdir('public://islandora_prepare_ingest_import');
 }
 
 /**
  * Implements hook_uninstall().
  */
-function ubl_prepare_ingest_uninstall() {
-  $upload_path = 'public://ubl_prepare_ingest_import';
+function islandora_prepare_ingest_uninstall() {
+  $upload_path = 'public://islandora_prepare_ingest_import';
   $removal_files = file_scan_directory($upload_path, '/(.*)/');
 
   foreach ($removal_files as $file) {
@@ -28,10 +28,10 @@ function ubl_prepare_ingest_uninstall() {
 /**
  * Implements hook_schema().
  */
-function ubl_prepare_ingest_schema() {
+function islandora_prepare_ingest_schema() {
   $schema = array();
 
-  $schema['ubl_prepare_ingest_workflow'] = array(
+  $schema['islandora_prepare_ingest_workflow'] = array(
     'description' => 'Holds the prepare ingest workflows.',
     'fields' => array(
       'id' => array(
@@ -71,7 +71,7 @@ function ubl_prepare_ingest_schema() {
       'id_index' => array('id'),
     ),
   );  
-  $schema['ubl_prepare_ingest_step'] = array(
+  $schema['islandora_prepare_ingest_step'] = array(
     'description' => 'Holds one step of a prepare ingest workflow.',
     'fields' => array(
       'id' => array(
@@ -112,14 +112,14 @@ function ubl_prepare_ingest_schema() {
     ),
     'foreign keys' => array(
       'parent_entry' => array(
-        'table' => 'ubl_prepare_ingest_workflow',
+        'table' => 'islandora_prepare_ingest_workflow',
         'columns' => array(
           'workflow_id' => 'id',
         ),
       ),
     ),
   );
-  $schema['ubl_prepare_ingest_step_config'] = array(
+  $schema['islandora_prepare_ingest_step_config'] = array(
     'description' => 'Holds one configuration field of a step of a prepare ingest workflow.',
     'fields' => array(
       'id' => array(
@@ -155,7 +155,7 @@ function ubl_prepare_ingest_schema() {
     ),
     'foreign keys' => array(
       'parent_entry' => array(
-        'table' => 'ubl_prepare_ingest_step',
+        'table' => 'islandora_prepare_ingest_step',
         'columns' => array(
           'step_id' => 'id',
         ),

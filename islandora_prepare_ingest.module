@@ -1,0 +1,149 @@
+<?php
+
+/**
+ * @file
+ * islandora_prepare_ingest.module
+ */
+
+// Permissions.
+define('ISLANDORA_PREPARE_INGEST_PREPARE', 'Prepare data for ingest into Islandora');
+define('ISLANDORA_PREPARE_INGEST_MANAGE', 'Manage the workflows to prepare data for ingest into Islandora');
+
+/**
+ * Implements hook_menu().
+ */
+function islandora_prepare_ingest_menu() {
+  $menu = array(
+    'admin/islandora/islandora_prepare_ingest' => array(
+      'title' => 'Prepare Ingest',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_manage_form'),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflows' => array(
+      'title' => 'Generic workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_manage_form'),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/make' => array(
+      'title' => 'Make generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_edit_workflow_form'),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/%' => array(
+      'title' => 'Edit generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_edit_workflow_form',5),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/copy/%' => array(
+      'title' => 'Copy generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_copy_workflow_form',5),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/export/%' => array(
+      'title' => 'Export generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_export_workflow_form',5),
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/check/%' => array(
+      'title' => 'Check generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_check_workflow_form', 5, FALSE),
+      'file' => 'includes/check.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/generic_workflow/test/%' => array(
+      'title' => 'Test generic workflow',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_check_workflow_form', 5, TRUE),
+      'file' => 'includes/check.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/active_workflows' => array(
+      'title' => 'Active workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_active_workflows_form'),
+      'file' => 'includes/active_workflows.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_PREPARE),
+      'type' => MENU_LOCAL_TASK,
+    ),
+    'admin/islandora/islandora_prepare_ingest/active_workflow/%/edit' => array(
+      'title' => 'Active workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_active_workflow_form', 4, 'activeedit'),
+      'file' => 'includes/active_workflows.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_PREPARE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/active_workflow/%/dryrun' => array(
+      'title' => 'Active workflows',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_prepare_ingest_active_workflow_form', 4, 'dryrun'),
+      'file' => 'includes/active_workflows.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_PREPARE),
+      'type' => MENU_NORMAL_ITEM,
+    ),
+    'admin/islandora/islandora_prepare_ingest/ajax/addstep/%/%' => array(
+      'page callback' => 'islandora_prepare_ingest_ajax_addstep_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'islandora_prepare_ingest_ajax_delivery_handler',
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_CALLBACK,
+    ),
+    'admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/%/%' => array(
+      'page callback' => 'islandora_prepare_ingest_ajax_addstepsgroup_handler',
+      'page arguments' => array(5,6),
+      'delivery callback' => 'islandora_prepare_ingest_ajax_delivery_handler',
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_CALLBACK,
+    ),
+  );
+  return $menu;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function islandora_prepare_ingest_permission() {
+  return array(
+    ISLANDORA_PREPARE_INGEST_PREPARE => array(
+      'title' => t('Prepare ingest'),
+      'description' => t('Prepare data for ingest into Islandora'),
+    ),
+    ISLANDORA_PREPARE_INGEST_MANAGE => array(
+      'title' => t('Manage workflows'),
+      'description' => t('Manage the workflows to prepare data for ingest into Islandora'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_hook_info().
+ */
+function islandora_prepare_ingest_hook_info() {
+  $hooks['workflow_step_info'] = array(
+    'group' => 'workflow_step',
+  );
+  return $hooks;
+}

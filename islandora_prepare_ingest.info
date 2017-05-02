@@ -1,7 +1,7 @@
-name = Prepare Ingest
+name = Islandora Prepare Ingest
 description = Module for preparing data for ingest into Islandora
-package = UBL
+package = Islandora Tools
 dependencies[] = islandora
-version = "7.x-1.x-dev"
+version = "7.x-3.x-dev"
 core = "7.x"
 

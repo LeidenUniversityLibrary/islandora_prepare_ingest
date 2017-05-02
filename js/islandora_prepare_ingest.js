@@ -1,6 +1,6 @@
 /**
  * @file
- * js/ubl_show_persistent_url.js
+ * js/islandora_show_persistent_url.js
  */
 
 var hasUnsavedChanges = false;
@@ -357,11 +357,11 @@ function setUpButtonsAndFields($context) {
     var $whichStep = jQuery('#edit-which-step');
     var $addStepDiv = jQuery('#edit-add-step');
     if ($whichStep.size() == 1 && $addStepDiv.size() == 1) {
-      var workflowid = jQuery('#ubl-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+      var workflowid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
       var stepname = $whichStep.val();
       if (workflowid && stepname) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname; 
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname; 
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();
@@ -372,11 +372,11 @@ function setUpButtonsAndFields($context) {
     var $whichWorkflow = jQuery('#edit-which-workflow-steps');
     var $addStepDiv = jQuery('#edit-add-step');
     if ($whichWorkflow.size() == 1 && $addStepDiv.size() == 1) {
-      var workflowid = jQuery('#ubl-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+      var workflowid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
       var whichWorkflowId = $whichWorkflow.val();
       if (workflowid && whichWorkflowId) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/ubl_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId; 
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId; 
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();

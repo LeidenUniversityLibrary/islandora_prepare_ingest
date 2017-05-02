@@ -1,11 +1,8 @@
 <?php
-error_reporting(E_ALL);
-ini_set("display_errors", 1);
-
 
 /**
  * @file
- * ubl_prepare_ingest.steps.form.inc
+ * steps.form.inc
  */
 
 /**
@@ -14,13 +11,13 @@ ini_set("display_errors", 1);
  * @param array $form
  *   The Drupal form definition.
  */
-function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $type) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/pifs');
+function islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $type) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
-  $path = drupal_get_path('module', 'ubl_prepare_ingest');
-  drupal_add_js($path . '/js/ubl_prepare_ingest.js');
-  drupal_add_css($path . '/css/ubl_prepare_ingest.css');
+  $path = drupal_get_path('module', 'islandora_prepare_ingest');
+  drupal_add_js($path . '/js/islandora_prepare_ingest.js');
+  drupal_add_css($path . '/css/islandora_prepare_ingest.css');
 
   $ischecking = ($type === 'check');
   $istesting = ($type === 'test');
@@ -43,7 +40,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
   
   # Workflow steps
   $stepsinfo = module_invoke_all('workflow_step_info');
-  $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+  $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   $j = 0;
   $showdata = FALSE;
   $showfiles = FALSE;
@@ -54,7 +51,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
     $data = isset($workflowdata[$stepid]['data'])?$workflowdata[$stepid]['data']:array();
     $context = isset($workflowdata[$stepid]['context'])?$workflowdata[$stepid]['context']:array();
 
-    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     if ($istesting || $isdryrun) {
       $showdata = ($stepsinfo[$stepname]['changes count'] || $stepsinfo[$stepname]['changes keys']);
       $showfiles = ($stepsinfo[$stepname]['changes files']);
@@ -68,7 +65,7 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
       $steps =& $steps[$group];
     }
     $workflowresult = isset($workflowresults[$stepid])?$workflowresults[$stepid]:NULL;
-    $steps['step_' . $stepid] = ubl_prepare_ingest_make_base_step_form($workflowstep, $stepsinfo[$stepname], $stepconfig, $workflowresult, $stepid, $stepname, $canmovesteps, $canchangeconfig, $istesting, $ischecking, $isactiveedit);
+    $steps['step_' . $stepid] = islandora_prepare_ingest_make_base_step_form($workflowstep, $stepsinfo[$stepname], $stepconfig, $workflowresult, $stepid, $stepname, $canmovesteps, $canchangeconfig, $istesting, $ischecking, $isactiveedit);
     if ($ischecking || $istesting) {
       if ($j == count($workflowsteps)) {
         $steps['step_' . $stepid]['#collapsed'] = FALSE;
@@ -223,9 +220,9 @@ function ubl_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 
 
 
 
-function ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, $workflowresult, $stepid, $stepname, $canmovesteps, $canchangeconfig, $istesting, $ischecking, $isactiveedit) {
+function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, $workflowresult, $stepid, $stepname, $canmovesteps, $canchangeconfig, $istesting, $ischecking, $isactiveedit) {
   $newstep = array(
-    '#title' => ubl_prepare_ingest_label_for_step($stepname, $stepconfig),
+    '#title' => islandora_prepare_ingest_label_for_step($stepname, $stepconfig),
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
@@ -422,7 +419,7 @@ function ubl_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepc
   return $newstep;
 }
 
-function ubl_prepare_ingest_report_result_summary($workflowid, $reporttype, $workflowresults) {
+function islandora_prepare_ingest_report_result_summary($workflowid, $reporttype, $workflowresults) {
   $errorcount = 0;
   $warningcount = 0;
   if (is_array($workflowresults) && count($workflowresults) > 0) {

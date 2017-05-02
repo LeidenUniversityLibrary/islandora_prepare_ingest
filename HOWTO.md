@@ -1,9 +1,9 @@
-# Prepare Ingest
+# Islandora Prepare Ingest
 
 ## Introduction
 
-Prepare Ingest helps you prepare data for ingest into Islandora. You can define a workflow that converts your input data into data that can be ingested into Islandora.
-Prepare Ingest uses the concept of steps that manipulate the data in a list of items containing key-value pairs. These steps are grouped and form a part of a workflow or a whole workflow.
+Islandora Prepare Ingest helps you prepare data for ingest into Islandora. You can define a workflow that converts your input data into data that can be ingested into Islandora.
+Islandora Prepare Ingest uses the concept of steps that manipulate the data in a list of items containing key-value pairs. These steps are grouped and form a part of a workflow or a whole workflow.
 There are different steps available to for example read the filenames in a directory, parse a XML file or read a CSV file. This way data is obtained into the workflow. Other steps can manipulate that data, for example by adding data based on existing data. Then there are steps that use the data to write files. There are also steps to manipulate the list itself, for example by filtering unwanted items or grouping items together.
 
 Every step can do any or none of the following with the list of items:
@@ -15,7 +15,7 @@ Most steps do only one of the actions above, but this is not mandated. There are
 
 For a complete list of available steps, see the documentation below named “The steps”.
 
-# Using Prepare Ingest
+# Using Islandora Prepare Ingest
 
 ## Making a workflow
 

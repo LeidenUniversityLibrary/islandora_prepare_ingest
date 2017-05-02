@@ -5,7 +5,7 @@
  * Constants handling.
  */
 
-function ubl_prepare_ingest_constants_set($name, $value, &$context) {
+function islandora_prepare_ingest_constants_set($name, $value, &$context) {
   if (!array_key_exists('_constants', $context)) {
     $context['_constants'] = array();
   }
@@ -18,7 +18,7 @@ function ubl_prepare_ingest_constants_set($name, $value, &$context) {
   return FALSE;
 }
 
-function ubl_prepare_ingest_constants_add_to_stepconfig(&$stepconfig, $context) {
+function islandora_prepare_ingest_constants_add_to_stepconfig(&$stepconfig, $context) {
   if (array_key_exists('_constants', $context)) {
     $sckeys = array_keys($stepconfig);
     $ckeys = array_keys($context['_constants']);

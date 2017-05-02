@@ -2,7 +2,7 @@
 
 /**
  * @file
- * ubl_prepare_ingest.run_workflow.inc
+ * run_workflow.inc
  */
 
 /**
@@ -16,9 +16,9 @@
  *   Any additional configuration, associated by step id..
  */
 
-function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $extent, array $additionalconfig = NULL) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/constants');
+function islandora_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $extent, array $additionalconfig = NULL) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
 
   $results = array();
   $data = array();
@@ -26,18 +26,18 @@ function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $ext
 
   # Workflow steps
   $stepsinfo = module_invoke_all('workflow_step_info');
-  $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+  $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
-    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     if (isset($additionalconfig[$stepid])) {
       foreach ($additionalconfig[$stepid] as $k => $v) {
         $stepconfig[$k] = $v;
       }
     }
-    $stepconfig = ubl_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
-    $stepfunc = ubl_prepare_ingest_callback_for_step($stepname, 'work');
+    $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
+    $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
     $results[$stepid] = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
     $limiteddata = array();
@@ -60,9 +60,9 @@ function ubl_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $ext
 }
 
 
-function ubl_prepare_ingest_full_run_workflow($workflowid) {
-  module_load_include('inc', 'ubl_prepare_ingest', 'ubl_prepare_ingest.workflow_step');
-  module_load_include('inc', 'ubl_prepare_ingest', 'includes/db');
+function islandora_prepare_ingest_full_run_workflow($workflowid) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'workflow_step');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $extent = WORK_EXTENT_DO_ALL;
 
@@ -73,12 +73,12 @@ function ubl_prepare_ingest_full_run_workflow($workflowid) {
 
   # Workflow steps
   $stepsinfo = module_invoke_all('workflow_step_info');
-  $workflowsteps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+  $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
-    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
-    $stepfunc = ubl_prepare_ingest_callback_for_step($stepname, 'work');
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+    $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
     $results = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
     if (is_array($results) && count($results) > 0) {

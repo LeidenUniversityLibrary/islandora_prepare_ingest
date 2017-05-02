@@ -8,9 +8,9 @@
 /**
  * Select all workflows in the database
  */
-function ubl_prepare_ingest_select_workflows($type, $negate = FALSE) {
+function islandora_prepare_ingest_select_workflows($type, $negate = FALSE) {
   $results = array();
-  $workflows = db_select('ubl_prepare_ingest_workflow', 'workflow')
+  $workflows = db_select('islandora_prepare_ingest_workflow', 'workflow')
     ->fields('workflow')
     ->condition('type', $type, $negate?'<>':'=')
     ->execute();
@@ -23,24 +23,24 @@ function ubl_prepare_ingest_select_workflows($type, $negate = FALSE) {
 /**
  * Get a query for a specific workflow in the database
  */
-function ubl_prepare_ingest_select_workflow_query($workflowid) {
-  return db_select('ubl_prepare_ingest_workflow', 'workflow')
+function islandora_prepare_ingest_select_workflow_query($workflowid) {
+  return db_select('islandora_prepare_ingest_workflow', 'workflow')
     ->fields('workflow')
     ->condition('id', $workflowid);
 }
 /**
  * Select a specific workflow in the database
  */
-function ubl_prepare_ingest_select_workflow($workflowid) {
-  $workflow = ubl_prepare_ingest_select_workflow_query($workflowid)->execute();
+function islandora_prepare_ingest_select_workflow($workflowid) {
+  $workflow = islandora_prepare_ingest_select_workflow_query($workflowid)->execute();
   return $workflow->fetchAssoc();
 }
 
 /**
  * Insert a new workflow in the database with the given name and descritpion
  */
-function ubl_prepare_ingest_insert_workflow($name, $description, $type = 'partial') {
-  $insert = db_insert('ubl_prepare_ingest_workflow')
+function islandora_prepare_ingest_insert_workflow($name, $description, $type = 'partial') {
+  $insert = db_insert('islandora_prepare_ingest_workflow')
     ->fields(array(
       'name' => $name,
       'description' => $description,
@@ -52,23 +52,23 @@ function ubl_prepare_ingest_insert_workflow($name, $description, $type = 'partia
 /**
  * Copy a workflow in the database with the given name and descritpion
  */
-function ubl_prepare_ingest_copy_workflow($tocopyworkflowid) {
+function islandora_prepare_ingest_copy_workflow($tocopyworkflowid) {
   // First copy the workflow itself
-  $selquery = db_select('ubl_prepare_ingest_workflow', 'workflow')
+  $selquery = db_select('islandora_prepare_ingest_workflow', 'workflow')
     ->fields('workflow', array('name', 'description', 'type'))
     ->condition('id', $tocopyworkflowid);
-  $insert = db_insert('ubl_prepare_ingest_workflow')
+  $insert = db_insert('islandora_prepare_ingest_workflow')
     ->fields(array('name', 'description', 'type'))
     ->from($selquery);
   $workflowid = $insert->execute();
 
-  ubl_prepare_ingest_copy_steps($tocopyworkflowid, $workflowid);
+  islandora_prepare_ingest_copy_steps($tocopyworkflowid, $workflowid);
 
   return $workflowid; 
 }
 
-function ubl_prepare_ingest_max_step_weight($workflowid) {
-  $select = db_select('ubl_prepare_ingest_step', 'step')
+function islandora_prepare_ingest_max_step_weight($workflowid) {
+  $select = db_select('islandora_prepare_ingest_step', 'step')
     ->condition('step.workflow_id',$workflowid);
   $select->addExpression('MAX(weight)');
   $weight = $select->execute()->fetchField(); 
@@ -76,12 +76,12 @@ function ubl_prepare_ingest_max_step_weight($workflowid) {
   return $weight + 1;
 }
 
-function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
-  $tocopysteps = ubl_prepare_ingest_select_workflow_steps($fromworkflowid);
+function islandora_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
+  $tocopysteps = islandora_prepare_ingest_select_workflow_steps($fromworkflowid);
   $newstepids = array();
-  $newweight = ubl_prepare_ingest_max_step_weight($toworkflowid);
+  $newweight = islandora_prepare_ingest_max_step_weight($toworkflowid);
   foreach ($tocopysteps as $tocopystep) {
-    $insert = db_insert('ubl_prepare_ingest_step')
+    $insert = db_insert('islandora_prepare_ingest_step')
       ->fields(array(
         'workflow_id' => $toworkflowid,
         'step_name' => $tocopystep['step_name'],
@@ -92,11 +92,11 @@ function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
     $copiedstepid = $insert->execute();
     $newstepids[] = $copiedstepid;
     
-    $selquery = db_select('ubl_prepare_ingest_step_config', 'config');
+    $selquery = db_select('islandora_prepare_ingest_step_config', 'config');
     $selquery->addExpression($copiedstepid,'step_id');
     $selquery = $selquery->fields('config', array('config_key', 'config_value'))
       ->condition('config.step_id',$tocopystep['id']);
-    $insert = db_insert('ubl_prepare_ingest_step_config')
+    $insert = db_insert('islandora_prepare_ingest_step_config')
       ->fields(array('config_key','config_value','step_id'))
       ->from($selquery);
     $insert->execute();
@@ -107,8 +107,8 @@ function ubl_prepare_ingest_copy_steps($fromworkflowid, $toworkflowid) {
 /**
  * Update a workflow with the given id in the database with the new values
  */
-function ubl_prepare_ingest_update_workflow($workflowid, array $values) {
-  db_update('ubl_prepare_ingest_workflow')
+function islandora_prepare_ingest_update_workflow($workflowid, array $values) {
+  db_update('islandora_prepare_ingest_workflow')
     ->fields($values)
     ->condition('id', $workflowid)
     ->execute();
@@ -117,9 +117,9 @@ function ubl_prepare_ingest_update_workflow($workflowid, array $values) {
 /**
  * Delete a workflow with the given id in the database
  */
-function ubl_prepare_ingest_delete_workflow($workflowid) {
-  ubl_prepare_ingest_delete_workflow_steps($workflowid);
-  db_delete('ubl_prepare_ingest_workflow')
+function islandora_prepare_ingest_delete_workflow($workflowid) {
+  islandora_prepare_ingest_delete_workflow_steps($workflowid);
+  db_delete('islandora_prepare_ingest_workflow')
     ->condition('id', $workflowid)
     ->execute();
 }
@@ -127,8 +127,8 @@ function ubl_prepare_ingest_delete_workflow($workflowid) {
 /**
  * Query to select all steps of a specific workflow in the database
  */
-function ubl_prepare_ingest_select_workflow_steps_query($workflowid) {
-  return db_select('ubl_prepare_ingest_step', 'step')
+function islandora_prepare_ingest_select_workflow_steps_query($workflowid) {
+  return db_select('islandora_prepare_ingest_step', 'step')
     ->fields('step')
     ->condition('step.workflow_id',$workflowid)
     ->orderBy('weight');
@@ -137,9 +137,9 @@ function ubl_prepare_ingest_select_workflow_steps_query($workflowid) {
 /**
  * Select all steps of a specific workflow in the database
  */
-function ubl_prepare_ingest_select_workflow_steps($workflowid) {
+function islandora_prepare_ingest_select_workflow_steps($workflowid) {
   $results = array();
-  $steps = ubl_prepare_ingest_select_workflow_steps_query($workflowid)->execute();
+  $steps = islandora_prepare_ingest_select_workflow_steps_query($workflowid)->execute();
   while ($step = $steps->fetchAssoc()) {
     $results[] = $step;
   }
@@ -149,9 +149,9 @@ function ubl_prepare_ingest_select_workflow_steps($workflowid) {
 /**
  * Insert a step to a workflow in the database with the given name and description
  */
-function ubl_prepare_ingest_insert_step($workflowid, $name, $module) {
-  $newweight = ubl_prepare_ingest_max_step_weight($workflowid);
-  $insert = db_insert('ubl_prepare_ingest_step')
+function islandora_prepare_ingest_insert_step($workflowid, $name, $module) {
+  $newweight = islandora_prepare_ingest_max_step_weight($workflowid);
+  $insert = db_insert('islandora_prepare_ingest_step')
     ->fields(array(
       'workflow_id' => $workflowid,
       'step_name' => $name,
@@ -164,8 +164,8 @@ function ubl_prepare_ingest_insert_step($workflowid, $name, $module) {
 /**
  * Update a step with the given id in the database with the new values
  */
-function ubl_prepare_ingest_update_step($stepid, $workflowid, array $values) {
-  db_update('ubl_prepare_ingest_step')
+function islandora_prepare_ingest_update_step($stepid, $workflowid, array $values) {
+  db_update('islandora_prepare_ingest_step')
     ->fields($values)
     ->condition('id', $stepid)
     ->condition('workflow_id', $workflowid)
@@ -175,31 +175,31 @@ function ubl_prepare_ingest_update_step($stepid, $workflowid, array $values) {
 /**
  * Delete a step with the given id in the database
  */
-function ubl_prepare_ingest_delete_step($stepid, $workflowid) {
-  db_delete('ubl_prepare_ingest_step')
+function islandora_prepare_ingest_delete_step($stepid, $workflowid) {
+  db_delete('islandora_prepare_ingest_step')
     ->condition('id', $stepid)
     ->condition('workflow_id', $workflowid)
     ->execute();
-  ubl_prepare_ingest_delete_step_configuration($stepid);
+  islandora_prepare_ingest_delete_step_configuration($stepid);
 }
 
 /**
  * Delete all steps from a workflow with the given id in the database
  */
-function ubl_prepare_ingest_delete_workflow_steps($workflowid) {
-  $steps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+function islandora_prepare_ingest_delete_workflow_steps($workflowid) {
+  $steps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($steps as $step) {
     $stepid = $step['id'];
-    ubl_prepare_ingest_delete_step($stepid, $workflowid);
+    islandora_prepare_ingest_delete_step($stepid, $workflowid);
   }
 }
 
 /**
  * Select step configuration of a specific step in the database
  */
-function ubl_prepare_ingest_select_workflow_step_configuration($stepid) {
+function islandora_prepare_ingest_select_workflow_step_configuration($stepid) {
   $results = array();
-  $configs = db_select('ubl_prepare_ingest_step_config', 'config')
+  $configs = db_select('islandora_prepare_ingest_step_config', 'config')
     ->fields('config')
     ->condition('step_id',$stepid)
     ->execute();
@@ -212,8 +212,8 @@ function ubl_prepare_ingest_select_workflow_step_configuration($stepid) {
 /**
  * Insert a configuration to a step in the database with key and value 
  */
-function ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value) {
-  $insert = db_insert('ubl_prepare_ingest_step_config')
+function islandora_prepare_ingest_insert_step_configuration($stepid, $key, $value) {
+  $insert = db_insert('islandora_prepare_ingest_step_config')
     ->fields(array(
       'step_id' => $stepid,
       'config_key' => $key,
@@ -225,8 +225,8 @@ function ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value) {
 /**
  * Update a specific configuration for a key of a step with the given id in the database with the new value
  */
-function ubl_prepare_ingest_update_step_configuration($stepid, $key, $value) {
-  db_update('ubl_prepare_ingest_step_config')
+function islandora_prepare_ingest_update_step_configuration($stepid, $key, $value) {
+  db_update('islandora_prepare_ingest_step_config')
     ->fields(array(
      'config_value' => $value,
     ))
@@ -238,8 +238,8 @@ function ubl_prepare_ingest_update_step_configuration($stepid, $key, $value) {
 /**
  * Delete the step configuration with the given id in the database
  */
-function ubl_prepare_ingest_delete_step_configuration($stepid) {
-  db_delete('ubl_prepare_ingest_step_config')
+function islandora_prepare_ingest_delete_step_configuration($stepid) {
+  db_delete('islandora_prepare_ingest_step_config')
     ->condition('step_id', $stepid)
     ->execute();
 }
@@ -247,19 +247,19 @@ function ubl_prepare_ingest_delete_step_configuration($stepid) {
 /**
  * Return the workflow data as JSON
  */
-function ubl_prepare_ingest_workflow_json($workflowid) {
+function islandora_prepare_ingest_workflow_json($workflowid) {
   $result = array('version' => '1.0');
-  $workflowdata = ubl_prepare_ingest_select_workflow($workflowid);
+  $workflowdata = islandora_prepare_ingest_select_workflow($workflowid);
   unset($workflowdata['id']);
   $result = array_merge($result, $workflowdata); 
-  $steps = ubl_prepare_ingest_select_workflow_steps($workflowid);
+  $steps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   $result['steps'] = array();
   foreach ($steps as $step) {
     $stepid =  $step['id'];
     unset($step['id']);
     unset($step['workflow_id']);
 
-    $stepconfig = ubl_prepare_ingest_select_workflow_step_configuration($stepid);
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     $step['config'] = $stepconfig;
     $result['steps'][] = $step;
   }
@@ -270,7 +270,7 @@ function ubl_prepare_ingest_workflow_json($workflowid) {
 /**
  * Insert a workflow based on workflow data as JSON
  */
-function ubl_prepare_ingest_insert_new_workflow_from_json($json) {
+function islandora_prepare_ingest_insert_new_workflow_from_json($json) {
   $data = drupal_json_decode($json);
   
   if ($data === NULL) {
@@ -309,13 +309,13 @@ function ubl_prepare_ingest_insert_new_workflow_from_json($json) {
     $steps[] = array('step_name' => $stepname, 'step_module' => $stepmodule, 'config' => $stepconfig);
   }
   
-  $wfid = ubl_prepare_ingest_insert_workflow($wfname, $wfdesc, $wftype);
+  $wfid = islandora_prepare_ingest_insert_workflow($wfname, $wfdesc, $wftype);
   foreach ($steps as $step) {
     $stepname = $step['step_name'];
     $stepmodule = $step['step_module'];
-    $stepid = ubl_prepare_ingest_insert_step($wfid, $stepname, $stepmodule);
+    $stepid = islandora_prepare_ingest_insert_step($wfid, $stepname, $stepmodule);
     foreach ($step['config'] as $key => $value) {
-      ubl_prepare_ingest_insert_step_configuration($stepid, $key, $value); 
+      islandora_prepare_ingest_insert_step_configuration($stepid, $key, $value); 
     }
   }
 

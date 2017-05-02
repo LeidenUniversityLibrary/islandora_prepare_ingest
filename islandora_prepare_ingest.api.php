@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Hooks provided by UBL prepare ingest.
+ * Hooks provided by islandora prepare ingest.
  */
 
 /**
