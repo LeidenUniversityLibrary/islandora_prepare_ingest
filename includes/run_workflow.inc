@@ -63,6 +63,7 @@ function islandora_prepare_ingest_run_workflow($workflowid, array &$workflowdata
 function islandora_prepare_ingest_full_run_workflow($workflowid) {
   module_load_include('inc', 'islandora_prepare_ingest', 'workflow_step');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
 
   $extent = WORK_EXTENT_DO_ALL;
 
@@ -78,6 +79,7 @@ function islandora_prepare_ingest_full_run_workflow($workflowid) {
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+    $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
     $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
     $results = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
