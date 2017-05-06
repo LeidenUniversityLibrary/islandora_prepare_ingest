@@ -27,10 +27,10 @@ define('WORK_EXTENT_ONLY_DO_ALL', 16);
 define('WORK_EXTENT_CHECK_INPUT', WORK_EXTENT_ONLY_CHECK_INPUT);
 
 // checks if the proper keys are given and checks if the filled arguments are filled out with the correct values.
-define('WORK_EXTENT_CHECK_FILLED_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS); 
+define('WORK_EXTENT_CHECK_FILLED_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS);
 
 // checks if the proper keys are given and checks if the arguments are all filled out with the correct values.
-define('WORK_EXTENT_CHECK_ALL_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS); 
+define('WORK_EXTENT_CHECK_ALL_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS);
 
 // does the above two levels and does a dry run with testdata.
 define('WORK_EXTENT_DRY_RUN_WITH_TESTDATA', WORK_EXTENT_ONLY_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS | WORK_EXTENT_ONLY_DRY_RUN);
@@ -95,7 +95,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Add items'),
+    'type group' => t('Handling files'),
   );
   $info['add_key_regexp'] = array(
     'arguments' => array(
@@ -359,7 +359,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Add key(s)'),
+    'type group' => t('Handling XML'),
   );
   $info['value_from_xml'] = array(
     'arguments' => array(
@@ -391,7 +391,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Add key(s)'),
+    'type group' => t('Handling XML'),
   );
   $info['xml_parts_from_xml'] = array(
     'arguments' => array(
@@ -429,7 +429,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Add items'),
+    'type group' => t('Handling XML'),
   );
   $info['read_csv_file'] = array(
     'arguments' => array(
@@ -455,7 +455,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Add items'),
+    'type group' => t('Handling files'),
   );
   $info['end_filter'] = array(
     'arguments' => array(),
@@ -541,6 +541,31 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'type group' => t('Sorting, filtering and grouping'),
   );
+  $info['transform_xml'] = array(
+    'arguments' => array(
+      'xml_key_name' => array(
+        'label' => t('XML key'),
+        'description' => t('The input XML. The value of this key is either an absolute filepath to an XML file or contains XML itself.'),
+        'type' => 'key',
+      ),
+      'xsl_key_name' => array(
+        'label' => t('XSLT key'),
+        'description' => t('The input XSLT. The value of this key is either an absolute filepath to an XSLT file or contains XSLT itself.'),
+        'type' => 'key',
+      ),
+      'target_filepath' => array(
+        'label' => t('Target filepath'),
+        'description' => t('This should hold an absolute path to a not existing file where the output XML file will be written.'),
+        'type' => 'templatestring',
+      ),
+    ),
+    'input keys' => array('xml_key_name', 'xsl_key_name'),
+    'output keys' => array(),
+    'changes count' => FALSE,
+    'changes keys' => FALSE,
+    'changes files' => TRUE,
+    'type group' => t('Handling XML'),
+  );
   $info['validate_xml'] = array(
     'arguments' => array(
       'xml_key_name' => array(
@@ -565,7 +590,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => FALSE,
     'changes keys' => FALSE,
     'changes files' => FALSE,
-    'type group' => t('Validation'),
+    'type group' => t('Handling XML'),
    );
    $validateconfig = array(
     'arguments' => array(
@@ -624,7 +649,7 @@ function islandora_prepare_ingest_callback_for_step($stepname, $callbacktype) {
   if (function_exists($callbacktype . '_' . $stepname)) {
     $func = $callbacktype . '_' . $stepname;
   }
-  return $func;  
+  return $func;
 }
 
 function fill_data_for_check_input_keys_if_needed(array $info, array $config, array &$data, $extent) {
@@ -665,16 +690,16 @@ function check_input_keys_in_data(array $info, array $config, array $data) {
       foreach ($data as $d) {
         if (!array_key_exists($key, $d)) {
            $missingcount++;
-        }     
-      }     
+        }
+      }
       if ($missingcount > 0) {
         if (count($data) === $missingcount) {
           $results[] = array('text' => t("Missing key '@key'. This key is not defined in any of the previous steps.", array('@key' => $key)), 'type' => 'key_error');
-        }     
+        }
         else {
           $results[] = array('text' => t("Missing key '@key'. This key is defined in a previous step but not available for all items. Use a filter before this step to keep the items with the right keys.", array('@key' => $key)), 'type' => 'key_error');
-        }     
-      }     
+        }
+      }
     }
   }
   elseif (array_key_exists('input keys', $info)) {
@@ -738,7 +763,7 @@ function check_arguments(array $info, array $config, $extent) {
           switch($type) {
             case "number":
               if (!is_numeric($value)) {
-                $results[] = array('text' => t("Argument '@key' should be a numeric value, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be a numeric value, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
@@ -747,7 +772,7 @@ function check_arguments(array $info, array $config, $extent) {
               break;
             case "boolean":
               if ($value !== "0" && $value !== "1") {
-                $results[] = array('text' => t("Argument '@key' should be a boolean value, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be a boolean value, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
@@ -757,25 +782,25 @@ function check_arguments(array $info, array $config, $extent) {
             case "key":
             case "constantkey":
               if (preg_match("/^[a-zA-Z0-9_-]+$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be a key value, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be a key value, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "keys":
               if (preg_match("/^[a-zA-Z0-9_;-]+$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "filepath":
               if (preg_match("/^(?:\/[a-zA-Z0-9_.-]+)+\/?$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be a filepath, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be a filepath, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
             case "regexp":
               if (@preg_match($value, "XXX") === false) {
-                $results[] = array('text' => t("Argument '@key' should be a regular expression, but is '@value'", 
+                $results[] = array('text' => t("Argument '@key' should be a regular expression, but is '@value'",
                   array('@key' => $argkeytext, '@value' => $value)), 'type' => 'argument_error');
               }
               break;
@@ -786,7 +811,7 @@ function check_arguments(array $info, array $config, $extent) {
               $valuewons = preg_replace('#[^/:\\]\\[]+:#', '', $value);
 
               if ($xpath->query($valuewons) === false) {
-                $results[] = array('text' => t("Argument '@key' should be a valid XPath, but is '@value'.", 
+                $results[] = array('text' => t("Argument '@key' should be a valid XPath, but is '@value'.",
                   array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
@@ -800,14 +825,14 @@ function check_arguments(array $info, array $config, $extent) {
                 }
               }
               if (!$is_collection) {
-                $results[] = array('text' => t("Argument '@key' should be a valid PID of a collection, but is '@value'.", 
+                $results[] = array('text' => t("Argument '@key' should be a valid PID of a collection, but is '@value'.",
                   array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
             case "namespace":
               module_load_include('inc', 'islandora', 'includes/utilities');
               if (preg_match('/^([A-Za-z0-9-\.]+)$/', $value) === 0 || !islandora_namespace_accessible($value)) {
-                $results[] = array('text' => t("Argument '@key' should be a valid namespace, but is '@value'.", 
+                $results[] = array('text' => t("Argument '@key' should be a valid namespace, but is '@value'.",
                   array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'type' => 'argument_error');
               }
               break;
@@ -833,7 +858,7 @@ function check_arguments(array $info, array $config, $extent) {
           $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'type' => 'argument_error');
         }
       }
-    } 
+    }
   }
   else {
     $results[] = array('text' => t('Missing arguments in info.'), 'type' => 'argument_error');
@@ -847,7 +872,7 @@ function fill_out_template($template, $keyvalues) {
     $values = array_values($keyvalues);
     foreach ($keyvalues as $k => $v) {
       $keys[] = '{' . $k . '}';
-    } 
+    }
     $template = str_replace($keys, $values, $template);
   }
   return $template;
@@ -963,7 +988,7 @@ function label_add_key_regexp(array $info, array $config) {
   if (array_key_exists('replacement', $config) && strlen($config['replacement']) > 0) {
     $title .= ' ' . t('with "@replacement"', array('@replacement' => $config['replacement']));
   }
-  
+
   if (strlen($title) == 0) {
     $title = t('Add key with regular expression based value');
   }
@@ -997,7 +1022,7 @@ function work_add_key_regexp(array $info, array $config, &$data, &$context, $ext
     foreach ($data as $current => $d) {
       if (array_key_exists($sourcekey, $d)) {
         $newvalue = preg_replace($regexp, $replacement, $d[$sourcekey]);
-        $data[$current][$targetkey] = $newvalue; 
+        $data[$current][$targetkey] = $newvalue;
       }
     }
   }
@@ -1136,7 +1161,7 @@ function work_add_key_counter(array $info, array $config, &$data, &$context, $ex
     foreach ($data as $current => $d) {
       $foreachvalue = isset($d[$foreachkey])?$d[$foreachkey]:'_GLOB_COUNTER_';
       if (!array_key_exists($foreachvalue, $counter)) {
-        $counter[$foreachvalue] = $start; 
+        $counter[$foreachvalue] = $start;
       }
       $newvalue = sprintf($format, $counter[$foreachvalue]);
       $counter[$foreachvalue] += $step;
@@ -1423,7 +1448,7 @@ function work_make_directory(array $info, array $config, &$data, &$context, $ext
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $dirnametemplate = $config['directory_name'];
     foreach ($data as $current => $d) {
-      $dirname = fill_out_template($dirnametemplate, $d); 
+      $dirname = fill_out_template($dirnametemplate, $d);
       $parentdir = dirname($dirname);
       if (pifs_file_exists($dirname, $context) && !pifs_is_dir($dirname, $context)) {
         $results[] = array('text' => t("'@directory' in key '@key' already exists but is not a directory.",
@@ -1444,7 +1469,7 @@ function work_make_directory(array $info, array $config, &$data, &$context, $ext
           mkdir($dirname);
         }
       }
-    }    
+    }
   }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
@@ -1482,15 +1507,15 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
   }
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+    $sourcefilepathtemplate = $config['source_filepath'];
+    $targetfilepathtemplate = $config['target_filepath'];
     foreach ($data as $current => $d) {
-      $sourcefilepath = $config['source_filepath'];
-      $targetfilepath = $config['target_filepath'];
-      $sourcefilepath = fill_out_template($sourcefilepath, $d);
+      $sourcefilepath = fill_out_template($sourcefilepathtemplate, $d);
       if (!pifs_is_file($sourcefilepath, $context)) {
 	$results[] = array('text' => t("File '@file' does not exist.",
 		  array('@file' => $sourcefilepath)), 'type' => 'run_error');
       }
-      $targetfilepath = fill_out_template($targetfilepath, $d);
+      $targetfilepath = fill_out_template($targetfilepathtemplate, $d);
       if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $context)) {
         $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
       }
@@ -1510,15 +1535,15 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
     }
   }
   if ($extent & WORK_EXTENT_ONLY_DO_ALL) {
-    $sourcefilepath = $config['source_filepath'];
-    $targetfilepath = $config['target_filepath'];
+    $sourcefilepathtemplate = $config['source_filepath'];
+    $targetfilepathtemplate = $config['target_filepath'];
     foreach ($data as $current => $d) {
-      $sourcefilepath = fill_out_template($sourcefilepath, $d);
+      $sourcefilepath = fill_out_template($sourcefilepathtemplate, $d);
       if (!is_file($sourcefilepath)) {
         $results[] = array('text' => t("File '@file' does not exist.",
                   array('@file' => $sourcefilepath)), 'type' => 'run_error');
       }
-      $targetfilepath = fill_out_template($targetfilename, $d);
+      $targetfilepath = fill_out_template($targetfilenametemplate, $d);
       if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || is_dir($targetfilepath)) {
         $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
       }
@@ -1539,7 +1564,7 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
         @copy($sourcefilepath, $targetfilepath);
       }
     }
-  }  
+  }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
   return FALSE;
@@ -1578,10 +1603,10 @@ function work_write_file(array $info, array $config, &$data, &$context, $extent)
   if ($extent & WORK_EXTENT_ONLY_DRY_RUN) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $contentkey = $config['content_key_name'];
-    $targetfilepath = $config['target_filepath'];
+    $targetfilepathtemplate = $config['target_filepath'];
     foreach ($data as $current => $d) {
       $content = $d[$contentkey];
-      $targetfilepath = fill_out_template($targetfilepath, $d);
+      $targetfilepath = fill_out_template($targetfilepathtemplate, $d);
       $targetdirectory = dirname($targetfilepath);
       if (!pifs_is_dir($targetdirectory, $context)) {
         $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
@@ -1607,10 +1632,10 @@ function work_write_file(array $info, array $config, &$data, &$context, $extent)
   }
   if ($extent & WORK_EXTENT_ONLY_DO_ALL) {
     $contentkey = $config['content_key_name'];
-    $targetfilepath = $config['target_filepath'];
+    $targetfilepathtemplate = $config['target_filepath'];
     foreach ($data as $current => $d) {
       $content = $d[$contentkey];
-      $targetfilepath = fill_out_template($targetfilepath, $d);
+      $targetfilepath = fill_out_template($targetfilepathtemplate, $d);
       $targetdirectory = dirname($targetfilepath);
       if (!is_dir($targetdirectory)) {
         $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
@@ -1727,36 +1752,36 @@ function label_filter_items(array $info, array $config) {
 function work_filter_items(array $info, array $config, &$data, &$context, $extent) {
   if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
     // do not check input keys, because some might be missing and that is okay
-  }     
+  }
   if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
     $results = check_arguments($info, $config, $extent);
     if (array_key_exists('filter_type', $config) && strlen($config['filter_type']) > 0) {
       if ($config['filter_type'] === 'exists') {
         // no check needed, filter_value does not matter.
         unset($results['filter_value']);
-      } 
+      }
       elseif ($config['filter_type'] === 'equals') {
         if (!(array_key_exists('filter_value', $config) && strlen($config['filter_value']) > 0)) {
           $results[] = array('text' => t("Filter with type 'equals' should have a value."), 'type' => 'argument_error');
         }
-      } 
+      }
       elseif ($config['filter_type'] === 'matches') {
         if (!(array_key_exists('filter_value', $config) && (@preg_match($config['filter_value'], "XXX") !== FALSE))) {
           $results[] = array('text' => t("Filter with type 'matches' should have a regular expression, but has '@value'.",
                              array('@value' => $config['filter_value'])), 'type' => 'argument_error');
         }
-      } 
+      }
     }
     if (count($results) > 0) {
       return $results;
-    }   
+    }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     $filterkey = $config['filter_key_name'];
     $type = $config['filter_type'];
     $value = $config['filter_value'];
     $negate = $config['negate'];
-    
+
     $keep = array();
     $remove = array();
     $newdata = array();
@@ -1774,7 +1799,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
       }
       if ($negate) {
         $shouldkeep = !$shouldkeep;
-      } 
+      }
       if ($shouldkeep) {
         $keep[$current] = $newindex;
         $newdata[$newindex] = $d;
@@ -1785,7 +1810,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
       }
     }
     // Remove all items from the data array and replace by newdata
-    array_splice($data, 0, count($data), $newdata); 
+    array_splice($data, 0, count($data), $newdata);
 
     if (!array_key_exists('_filters', $context)) {
       $context['_filters'] = array();
@@ -1799,7 +1824,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
   if (!(($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL))) {
     $filterkey = $config['filter_key_name'];
     $negate = $config['negate'];
-    
+
     $keep = array();
     $remove = array();
     $newdata = array();
@@ -1809,7 +1834,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
       $shouldkeep = is_array($d) && array_key_exists($filterkey, $d);
       if ($negate) {
         $shouldkeep = !$shouldkeep;
-      } 
+      }
       if ($shouldkeep) {
         $keep[$current] = $newindex;
         $newdata[$newindex] = $d;
@@ -1820,7 +1845,7 @@ function work_filter_items(array $info, array $config, &$data, &$context, $exten
       }
     }
     // Remove all items from the data array and replace by newdata
-    array_splice($data, 0, count($data), $newdata); 
+    array_splice($data, 0, count($data), $newdata);
 
     if (!array_key_exists('_filters', $context)) {
       $context['_filters'] = array();
@@ -1847,7 +1872,7 @@ function label_parse_xml(array $info, array $config) {
   }
   $title .= '.';
 
-  return $title; 
+  return $title;
 }
 
 function work_parse_xml(array $info, array $config, &$data, &$context, $extent) {
@@ -1861,14 +1886,14 @@ function work_parse_xml(array $info, array $config, &$data, &$context, $extent) 
     $results = check_arguments($info, $config, $extent);
     if (count($results) > 0) {
       return $results;
-    }   
+    }
   }
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
-    $filepath = $config['filepath'];
+    $filepathtemplate = $config['filepath'];
     $xmlkey = $config['xml_key_name'];
     foreach ($data as $current => $d) {
-      $filepath = fill_out_template($filepath, $d);
+      $filepath = fill_out_template($filepathtemplate, $d);
       if (!pifs_is_file($filepath, $context)) {
         $results[] = array('text' => t("File '@file' does not exist.",
                   array('@file' => $filepath)), 'type' => 'run_error');
@@ -1924,14 +1949,14 @@ function label_value_from_xml(array $info, array $config) {
 
   $title .= '.';
 
-  return $title; 
+  return $title;
 }
 
 function _parse_namespaces_string($nsstr) {
   $namespaces = array();
   $nslines = explode("\n", $nsstr);
   foreach ($nslines as $nsline) {
-    $nsline = trim($nsline); 
+    $nsline = trim($nsline);
     if (strlen($nsline) > 0) {
       $parts = explode("=", $nsline);
       if (count($parts) == 2) {
@@ -1971,7 +1996,7 @@ function work_value_from_xml(array $info, array $config, &$data, &$context, $ext
       $domxpath = new DOMXPath($domdoc);
       foreach ($namespaces as $prefix => $nsuri) {
         $domxpath->registerNamespace($prefix, $nsuri);
-      } 
+      }
       $domnodelist = $domxpath->query($xpath);
       if ($domnodelist === FALSE) {
         $result[] = array('text' => t("Malformed XPath at '@key' with '@value'.",
@@ -1987,7 +2012,7 @@ function work_value_from_xml(array $info, array $config, &$data, &$context, $ext
           }
         }
       }
-    } 
+    }
   }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
@@ -2023,7 +2048,7 @@ function label_xml_parts_from_xml(array $info, array $config) {
 
   $title .= '.';
 
-  return $title; 
+  return $title;
 }
 
 function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, $extent) {
@@ -2057,7 +2082,7 @@ function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, 
       $domxpath = new DOMXPath($domdoc);
       foreach ($namespaces as $prefix => $nsuri) {
         $domxpath->registerNamespace($prefix, $nsuri);
-      } 
+      }
       $domnodelist = $domxpath->query($xpath);
       if ($domnodelist === FALSE) {
         $result[] = array('text' => t("Malformed XPath at '@key' with '@value'.",
@@ -2079,7 +2104,7 @@ function work_xml_parts_from_xml(array $info, array $config, &$data, &$context, 
           }
         }
       }
-    } 
+    }
   }
   fill_data_for_check_input_keys_if_needed($info, $config, $data, $extent);
 
@@ -2123,7 +2148,7 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
       $csvfilepath = $config['csv_filepath'];
       $columnkeys = explode(';', $config['column_keys']);
       $hasheader = $config['has_header'];
-      
+
       if (!is_file($csvfilepath)) {
         $result[] = array('text' => t("File not found at '@fp'.",
                   array('@fp' => $csvfilepath)), 'type' => 'run_error');
@@ -2154,10 +2179,10 @@ function work_read_csv_file(array $info, array $config, &$data, &$context, $exte
 	  $d = array();
 	  foreach ($columnkeys as $columnindex => $columnkey) {
             if (isset($csvdata[$columnindex])) {
-	      $d[$columnkey] = $csvdata[$columnindex]; 
+	      $d[$columnkey] = $csvdata[$columnindex];
             }
             else {
-	      $d[$columnkey] = ''; 
+	      $d[$columnkey] = '';
             }
 	  }
 	  $data[] = $d;
@@ -2401,6 +2426,161 @@ function intcmp($a, $b) {
 }
 
 /**
+ * transform_xml
+ **/
+function label_transform_xml(array $info, array $config) {
+  $title = t('Transform XML');
+  if (array_key_exists('xml_key_name', $config) && strlen($config['xml_key_name']) > 0) {
+    $title .= ' ' . t('at "@key"', array('@key' => $config['xml_key_name']));
+  }
+  if (array_key_exists('xsl_key_name', $config) && strlen($config['xsl_key_name']) > 0) {
+    $title .= ' ' . t('with XSL at "@key"', array('@key' => $config['xsl_key_name']));
+  }
+  if (array_key_exists('target_filepath', $config) && strlen($config['target_filepath']) > 0) {
+    $title .= ' ' . t('and write to file at "@key"', array('@key' => $config['target_filepath']));
+  }
+  $title .= '.';
+  return $title;
+}
+
+function _load_xml_from_value($xmlvalue, $xmldom, $context) {
+  $isFilePath = FALSE;
+  if ($context === NULL) {
+    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && is_file($xmlvalue));
+  }
+  else {
+    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $context));
+  }
+  if ($isFilePath) {
+    if ($context === NULL) {
+      $isValidXml = @$xmldom->load($xmlvalue);
+    }
+    else {
+      if (is_file($xmlvalue)) {
+        $isValidXml = @$xmldom->load($xmlvalue);
+      }
+      else {
+        $content = pifs_read_content($xmlvalue, $context);
+        $isValidXml = @$xmldom->loadXml($content);
+        $xmldom->documentURI = $xmlvalue;
+      }
+    }
+  }
+  else {
+    $isValidXml = @$xmldom->loadXml($xmlvalue);
+  }
+  if (!$isValidXml) {
+    $error = libxml_get_last_error();
+    $message = $error?$error->message:t("Unknown error");
+    $line = $error?$error->line:t("unknown");
+    if ($isFilePath) {
+      return array('text' => t("File @file does not contain valid XML: @error at line @line",
+        array('@file' => $xmlvalue, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
+    }
+    else {
+      return array('text' => t("Item @nr does not contain valid XML: @error at line @line",
+        array('@nr' => $current, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
+    }
+  }
+  return FALSE;
+}
+
+function work_transform_xml(array $info, array $config, &$data, &$context, $extent) {
+  if ($extent & WORK_EXTENT_ONLY_CHECK_INPUT) {
+    $results = check_input_keys_in_data($info, $config, $data);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if ($extent & WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS) {
+    $results = check_arguments($info, $config, $extent);
+
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+    $doAll = ($extent & WORK_EXTENT_ONLY_DO_ALL);
+    $xmlkey = $config['xml_key_name'];
+    $xslkey = $config['xsl_key_name'];
+    $targetfilepathtemplate = $config['target_filepath'];
+    $results = array();
+    $prevuseerr = libxml_use_internal_errors(true);
+    foreach ($data as $current => $d) {
+      $isValidXml = TRUE; // be positive about it!
+      $xmlvalue = $d[$xmlkey];
+      $xslvalue = $d[$xslkey];
+      $xml = new DOMDocument();
+      $result = _load_xml_from_value($xmlvalue, $xml, $doAll?NULL:$context);
+      if ($result !== FALSE) {
+        $results[] = $result;
+        $isValidXml = FALSE;
+      }
+      $xsl = new DOMDocument();
+      $result = _load_xml_from_value($xslvalue, $xsl, $doAll?NULL:$context);
+      if ($result !== FALSE) {
+        $results[] = $result;
+        $isValidXml = FALSE;
+      }
+      if ($isValidXml) {
+        $xsltproc = new XSLTProcessor;
+        if ($xsltproc->importStyleSheet($xsl)) { // attach the xsl rules
+          $content = $xsltproc->transformToXML($xml);
+          if ($content !== FALSE) {
+            $targetfilepath = fill_out_template($targetfilepathtemplate, $d);
+            if ($doAll) {
+              $targetdirectory = dirname($targetfilepath);
+              if (!is_dir($targetdirectory)) {
+                $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                          array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
+              }
+              if (count($results) > 0) {
+                return $results;
+              }
+              $fh = fopen($targetfilepath, "a"); // always append to file
+              fwrite($fh, $content);
+              fclose($fh);
+            }
+            else {
+              $targetdirectory = dirname($targetfilepath);
+              if (!pifs_is_dir($targetdirectory, $context)) {
+                $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                          array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
+              }
+              if (count($results) > 0) {
+                return $results;
+              }
+              if (pifs_entry_exists($targetfilepath, $context)) {
+                if (pifs_entry_is_file($targetfilepath, $context)) {
+                  pifs_append_content($targetfilepath, $content, $context);
+                }
+                else {
+                  $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
+                            array('@directory' => $targetfilepath)), 'type' => 'run_error');
+                }
+              }
+              else {
+                pifs_write_content($targetfilepath, $content, $context);
+              }
+            }
+          }
+          else {
+            $results[] =  array('text' => t("Transform failed for item at @nr", array('@nr' => $current)), 'type' => 'run_error');
+          }
+        }
+      }
+      libxml_clear_errors();
+    }
+    libxml_use_internal_errors($prevuseerr);
+    if (count($results) > 0) {
+      return $results;
+    }
+  }
+  return FALSE;
+}
+
+/**
  * validate_xml
  **/
 function label_validate_xml(array $info, array $config) {
@@ -2440,7 +2620,7 @@ function work_validate_xml(array $info, array $config, &$data, &$context, $exten
     foreach ($data as $current => $d) {
       $isValidXml = FALSE;
       $xmlvalue = $d[$xmlkey];
-      $xml = new DOMDocument(); 
+      $xml = new DOMDocument();
       $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $context));
       if ($isFilePath) {
         $isValidXml = @$xml->load($xmlvalue);
@@ -2448,7 +2628,7 @@ function work_validate_xml(array $info, array $config, &$data, &$context, $exten
       else {
         $isValidXml = @$xml->loadXml($xmlvalue);
       }
-      if ($config['validate_dtd']) {
+      if ($isValidXml && $config['validate_dtd']) {
         $isValidXml = $xml->validate();
       }
       if ($isValidXml && isset($config['schema_key_name']) && strlen($config['schema_key_name']) > 0) {
@@ -2514,7 +2694,7 @@ function _work_validate_flat_structure(array $models, array $info, array $config
   if (($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
     module_load_include('inc', 'islandora', 'includes/utilities');
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
-   
+
     $importdirectory = rtrim($config['filepath'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
     $dsreqs = islandora_get_datastreams_requirements_from_models($models);
     $requiredmime2ds = array();
@@ -2544,8 +2724,8 @@ function _work_validate_flat_structure(array $models, array $info, array $config
         $isgood = FALSE;
       }
       $info = pathinfo($filename);
-      $mime = $mime_detect->getMimetype($filename); 
-      $groupedfilenames[$info['filename']][$mime] = $filename; 
+      $mime = $mime_detect->getMimetype($filename);
+      $groupedfilenames[$info['filename']][$mime] = $filename;
     }
     if (count($results) > 0) {
       return $results;
@@ -2593,7 +2773,7 @@ function _work_validate_flat_structure(array $models, array $info, array $config
       }
     }
     $text .= '.';
-    $results[] = array('text' => $text, 'type' => 'validate_info'); 
+    $results[] = array('text' => $text, 'type' => 'validate_info');
     if ($isgood && ($extent & WORK_EXTENT_ONLY_DO_ALL)) {
       global $base_url;
       global $user;
@@ -2679,7 +2859,7 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
       'TN'   => array('image/jpeg', 'image/png', 'image/gif'),
       'PDF'  => array('application/pdf'),
     );
-    
+
     /* this does not work (yet)
     $bookmodels = array("islandora:bookCModel");
     $bookdsreqs = islandora_get_datastreams_requirements_from_models($bookmodels);
@@ -2776,14 +2956,14 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
             $mime = $mime_detect->getMimetype($filename);
             if (in_array($mime, $pagerequiredds2mimes[$name])) {
               $allowedfile = TRUE;
-              $booksarray[$bookname][$pagenr][$name] = $filename; 
+              $booksarray[$bookname][$pagenr][$name] = $filename;
             }
           }
           if (array_key_exists($name, $pageoptionalds2mimes)) {
             $mime = $mime_detect->getMimetype($filename);
             if (in_array($mime, $pageoptionalds2mimes[$name])) {
               $allowedfile = TRUE;
-              $booksarray[$bookname][$pagenr][$name] = $filename; 
+              $booksarray[$bookname][$pagenr][$name] = $filename;
             }
           }
           if (!$allowedfile) {
