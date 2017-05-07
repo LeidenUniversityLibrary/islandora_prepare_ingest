@@ -352,9 +352,10 @@ function islandora_prepare_ingest_edit_workflow_form_check(array $form, array &$
 
   $workflowid = $form_state['values']['workflowid'];
   $workflowdata = array();
-  $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $workflowdata, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
+  $otherid = islandora_prepare_ingest_random_string(10);
+  $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
   $_SESSION['workflowresults'] = $workflowresults; 
-  $_SESSION['workflowdata'] = $workflowdata; 
+  $_SESSION['otherid'] = $otherid; 
   if (islandora_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
     islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
     $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/check/' . $workflowid;
@@ -563,6 +564,30 @@ function islandora_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $
   }
 
   return $form;
+}
+
+function islandora_prepare_ingest_ajax_datacache_handler() {
+  $query = drupal_get_query_parameters();
+  $workflowid = isset($query['workflowid'])?$query['workflowid']:0;
+  $stepid = isset($query['stepid'])?$query['stepid']:0;
+  $otherid = isset($query['otherid'])?$query['otherid']:0;
+  $type = isset($query['type'])?$query['type']:0;
+  $minitemnr = isset($query['minitemnr'])?$query['minitemnr']:0;
+  $maxitemnr = isset($query['maxitemnr'])?$query['maxitemnr']:0;
+  if ($workflowid && $stepid && $otherid && $type) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
+    if ($maxitemnr === 0) {
+      $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
+      $result = array("count" => $count);
+      return json_encode($result);
+    }
+    else {
+      $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $minitemnr, $maxitemnr);
+      return '[' . implode(",", $result) . ']';
+    }
+  }
+  return "{ }";
 }
 
 function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {

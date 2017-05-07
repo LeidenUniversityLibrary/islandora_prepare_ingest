@@ -162,7 +162,65 @@ function islandora_prepare_ingest_schema() {
       ),
     ),
   );
-
+  $schema['islandora_prepare_ingest_data_cache'] = array(
+    'description' => 'Holds the cache for all the data that is generated during a workflow run.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'workflow_id' => array(
+        'description' => 'The cache is about this workflow.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'step_id' => array(
+        'description' => 'The cache is about this step.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'other_id' => array(
+        'description' => 'Another id to identifiy this cache.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 100,
+      ),
+      'item_nr' => array(
+        'description' => 'The cache is about this item nr.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'description' => 'The timestamp for this cache entry.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'The type for this cache entry, is 1 for data and 2 for files.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'value' => array(
+        'description' => 'The value of the cache of the item nr of the step.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'length' => 65535,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+      'workflow_id_index' => array('workflow_id'),
+      'workflow_step_other_id_type_index' => array('workflow_id', 'step_id', 'other_id', 'type'),
+      'item_nr_index' => array('item_nr'),
+    ),
+    'foreign keys' => array(
+    ),
+  );  
 
   return $schema;
 }

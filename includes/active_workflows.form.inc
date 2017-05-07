@@ -216,10 +216,11 @@ function islandora_prepare_ingest_active_workflow_form_submit(array $form, array
   
   if ($form_state['clicked_button']['#id'] === 'dryrun') {
     $workflowdata = array();
-    $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $workflowdata, WORK_EXTENT_DRY_RUN);
+    $otherid = islandora_prepare_ingest_random_string(10);
+    $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_DRY_RUN);
     islandora_prepare_ingest_report_result_summary($workflowid, 'dryrun', $workflowresults);
     $_SESSION['workflowresults'] = $workflowresults;
-    $_SESSION['workflowdata'] = $workflowdata;
+    $_SESSION['otherid'] = $otherid;
     $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/active_workflow/' . $workflowid . '/dryrun';
   }
 }

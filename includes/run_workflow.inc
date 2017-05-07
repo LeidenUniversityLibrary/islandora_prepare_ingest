@@ -16,13 +16,17 @@
  *   Any additional configuration, associated by step id..
  */
 
-function islandora_prepare_ingest_run_workflow($workflowid, array &$workflowdata, $extent, array $additionalconfig = NULL) {
+function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, array $additionalconfig = NULL) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
   $results = array();
   $data = array();
   $context = array();
+
+  # clear old cached data.
+  islandora_prepare_ingest_data_cache_delete_old($otherid);
 
   # Workflow steps
   $stepsinfo = module_invoke_all('workflow_step_info');
@@ -40,25 +44,30 @@ function islandora_prepare_ingest_run_workflow($workflowid, array &$workflowdata
     $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
     $results[$stepid] = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
-    $limiteddata = array();
-    $limitbytype = array();
-    foreach ($data as $d) {
-      $type = implode('_', array_keys($d));
-      if (!array_key_exists($type, $limitbytype)) {
-        $limitbytype[$type] = 0;
-      }
-      $limitbytype[$type]++;
-      if ($limitbytype[$type] <= 6) {
-        $limiteddata[] = $d;
-      }
+    $jsonvalues = array();
+    foreach ($data as $current => $d) {
+      $d['item nr'] = $current;
+      $jsonvalues[] = json_encode($d);
     }
+    islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 1, $jsonvalues);
 
-    $workflowdata[$stepid]['data'] = $limiteddata;
-    $workflowdata[$stepid]['context'] = array_key_exists('_PIFS', $context)?array('_PIFS' => $context['_PIFS']):array();
+    if (array_key_exists('_PIFS', $context)) {
+      $files = $context['_PIFS'];
+      sort($files);
+      $jsonfiles = array();
+      foreach ($files as $current => $d) {
+        $d['file nr'] = $current;
+        $jsonfiles[] = json_encode($d);
+      } 
+      islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 2, $jsonfiles);
+    }
+dpm(array($workflowid, $stepid, $otherid), 'wf,s,o id');
+
+    //$workflowdata[$stepid]['data'] = $limiteddata;
+    //$workflowdata[$stepid]['context'] = array_key_exists('_PIFS', $context)?array('_PIFS' => $context['_PIFS']):array();
   }
   return $results;
 }
-
 
 function islandora_prepare_ingest_full_run_workflow($workflowid) {
   module_load_include('inc', 'islandora_prepare_ingest', 'workflow_step');
@@ -103,4 +112,11 @@ function islandora_prepare_ingest_full_run_workflow($workflowid) {
   }
 }
 
-
+function islandora_prepare_ingest_random_string($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+  $str = '';
+  $max = mb_strlen($keyspace, '8bit') - 1;
+  for ($i = 0; $i < $length; ++$i) {
+    $str .= $keyspace[rand(0, $max)];
+  }
+  return $str;
+}

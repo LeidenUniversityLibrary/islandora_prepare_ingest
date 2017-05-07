@@ -118,6 +118,14 @@ function islandora_prepare_ingest_menu() {
       'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
       'type' => MENU_CALLBACK,
     ),
+    'admin/islandora/islandora_prepare_ingest/ajax/datacache' => array(
+      'page callback' => 'islandora_prepare_ingest_ajax_datacache_handler',
+      'page arguments' => array(),
+      'delivery callback' => 'islandora_prepare_ingest_ajax_delivery_handler',
+      'file' => 'includes/manage.form.inc',
+      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
+      'type' => MENU_CALLBACK,
+    ),
   );
   return $menu;
 }
