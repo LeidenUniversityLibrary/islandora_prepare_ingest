@@ -61,10 +61,6 @@ function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, a
       } 
       islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 2, $jsonfiles);
     }
-dpm(array($workflowid, $stepid, $otherid), 'wf,s,o id');
-
-    //$workflowdata[$stepid]['data'] = $limiteddata;
-    //$workflowdata[$stepid]['context'] = array_key_exists('_PIFS', $context)?array('_PIFS' => $context['_PIFS']):array();
   }
   return $results;
 }

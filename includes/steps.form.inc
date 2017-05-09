@@ -11,7 +11,7 @@
  * @param array $form
  *   The Drupal form definition.
  */
-function islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $type) {
+function islandora_prepare_ingest_steps($workflowid, $workflowresults, $type) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
@@ -48,8 +48,6 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflow
     $j++;
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
-    $data = isset($workflowdata[$stepid]['data'])?$workflowdata[$stepid]['data']:array();
-    $context = isset($workflowdata[$stepid]['context'])?$workflowdata[$stepid]['context']:array();
 
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     if ($istesting || $isdryrun) {
@@ -73,125 +71,30 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflow
     }
 
     if (($istesting || $isdryrun) && $showdata) {
-      $islimited = FALSE;
-      $header = array();
-      $rows = array();
-      $limitbytype = array();
-      foreach ($data as $d) {
-	$type = implode('_', array_keys($d));
-	if (!array_key_exists($type, $limitbytype)) {
-	  $limitbytype[$type] = 0;
-	}
-	$limitbytype[$type]++;
-	if ($limitbytype[$type] <= 5) {
-	 $rows[] = $d;
-	}
-	else {
-	  $islimited = TRUE;
-	}
-	$header = array_merge($header, array_keys($d));
-      }
-      $header = array_unique($header);
-      $hasdata = (count($header) > 0);
-      if (!$hasdata) {
-	$header[] = t('No data');
-      }
-      $table = '<table class="checkdatatable"><tr>';
-      if ($hasdata) {
-	$table .= '<th></th>';
-      }
-      foreach ($header as $h) {
-	$table .= '<th>' . $h . '</th>';
-      }
-      $table .= '</tr>';
-      foreach ($rows as $i => $row) {
-	$table .= '<tr>';
-	$table .= '<th>' . $i . '</th>';
-	foreach ($header as $h) {
-	  $value = (array_key_exists($h, $row)?$row[$h]:'-');
-          if (!is_string($value)) {
-	    $value = (string)$value;
-          }
-          if (strlen($value) > 28) {
-            $shortvalue = substr($value, 0, 13) . '...' . substr($value, -12);
-            $shortvalue = check_plain($shortvalue);
-            $value = check_plain($value);
-            $value = str_replace("\n", "<BR/>", $value);
-	    $table .= '<td><span class="upi_fullvalue">' . $value . '</span><span class="upi_shortvalue">' . $shortvalue . '</span></td>';
-          }
-          else {
-            $value = check_plain($value);
-            $table .= '<td>' . $value . '</td>';
-          }
-	}
-	$table .= '</tr>';
-      }
-      if ($hasdata && $islimited) {
-	$table .= '<tr><td colspan="'.(count($header) + 1).'">The data above are only the first 5 samples of each type</td></tr>';
-      }
-
-      $table .= '</table>';
       $steps['step_' . $stepid]['datalisting'] = array(
         '#type' => 'fieldset',
         '#title' => t('Data'),
-      );
-      $steps['step_' . $stepid]['datalisting']['datatable'] = array(
-	'#markup' => $table,
+        '#attributes' => array(
+          'class' => array('datacache'),
+          'data-stepid' => $stepid,
+          'data-type' => 1,
+          'data-minitemnr' => 0,
+          'data-maxitemnr' => 10,
+        ),
       );
     }
     if (($istesting || $isdryrun) && $showfiles) {
-      $header = array('number' => '', 'filepath' => t('Filepath'), 'type' => t('Type'));
-      $files = array_key_exists('_PIFS', $context)?array_keys($context['_PIFS']):array();
-      sort($files);
-      if (count($files) > 0) {
-	$table = '<table class="checkdatatable"><tr>';
-	foreach ($header as $h) {
-	  $table .= '<th>' . $h . '</th>';
-	}
-	$table .= '</tr>';
-	$lastdir = '';
-	$countperdir = array();
-	$islimited = FALSE;
-	foreach ($files as $i => $file) {
-	  $isdir = pifs_is_dir($file, $context);
-	  $parentdir = dirname($file);
-	  if (!array_key_exists($parentdir, $countperdir)) {
-	    $countperdir[$parentdir] = 0;
-	  }
-	  $countperdir[$parentdir]++;
-	  $showfile = TRUE;
-	  while (strlen($parentdir) > 1) {
-	    if (!array_key_exists($parentdir, $countperdir)) {
-	      break;
-	    }
-	    if ($countperdir[$parentdir] > 5) {
-	      $showfile = FALSE;
-	      $islimited = TRUE;
-	      break;
-	    }
-	    $parentdir = dirname($parentdir);
-	  }
-	  if ($showfile) {
-	    $table .= '<tr>';
-	    $table .= '<th>' . $i . '</th>';
-	    $table .= '<td>' . check_plain($file) . '</td>'; 
-	    $table .= '<td>' . ($isdir?t('Directory'):t('File')) . '</td>'; 
-	    $table .= '</tr>';
-	  }
-	}
-	if ($islimited) {
-	  $table .= '<tr><td colspan="'.(count($header) + 1).'">The file listing is limited to 5 items per directory</td></tr>';
-	}
-
-	$table .= '</table>';
-        $steps['step_' . $stepid]['filelisting'] = array(
-          '#type' => 'fieldset',
-          '#title' => t('File listing (virtual)'),
-        );
-	$steps['step_' . $stepid]['filelisting']['filetable'] = array(
-	  '#markup' => $table,
-	);
-      }
+      $steps['step_' . $stepid]['filelisting'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('File listing (virtual)'),
+        '#attributes' => array(
+          'class' => array('datacache'),
+          'data-stepid' => $stepid,
+          'data-type' => 2,
+          'data-minitemnr' => 0,
+          'data-maxitemnr' => 10,
+        ),
+      );
     }
     if (!$steps['step_' . $stepid]['#collapsed']) {
       $len = count($groups);

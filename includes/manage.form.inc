@@ -144,9 +144,15 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
 
+    $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+
     $form['workflowid'] = array(
       '#type' => 'hidden',
       '#value' => $workflowid,
+    );
+    $form['otherid'] = array(
+      '#type' => 'hidden',
+      '#value' => $otherid,
     );
   }
  
@@ -180,8 +186,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     # steps
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
     $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-    $workflowdata = isset($_SESSION['workflowdata'])?$_SESSION['workflowdata']:array();
-    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, 'edit');
+    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, 'edit');
 
     # Add another step
     $options = array();
@@ -260,7 +265,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['workflowdata']);
+  unset($_SESSION['otherid']);
 
   $name = $form_state['values']['workflowname'];
   $description = $form_state['values']['workflowdescription'];
@@ -341,7 +346,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
 
 function islandora_prepare_ingest_edit_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['workflowdata']);
+  unset($_SESSION['otherid']);
 
   $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflows';
 }
@@ -351,7 +356,6 @@ function islandora_prepare_ingest_edit_workflow_form_check(array $form, array &$
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
-  $workflowdata = array();
   $otherid = islandora_prepare_ingest_random_string(10);
   $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
   $_SESSION['workflowresults'] = $workflowresults; 

@@ -20,9 +20,16 @@ function islandora_prepare_ingest_check_workflow_form(array $form, array &$form_
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   $workflow = islandora_prepare_ingest_select_workflow($workflowid);
 
+  $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
+  $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+
   $form['workflowid'] = array(
     '#type' => 'hidden',
     '#value' => $workflowid,
+  );
+  $form['otherid'] = array(
+    '#type' => 'hidden',
+    '#value' => $otherid,
   );
  
   # name, description and type
@@ -36,9 +43,7 @@ function islandora_prepare_ingest_check_workflow_form(array $form, array &$form_
 
   # steps
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-  $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-  $workflowdata = isset($_SESSION['workflowdata'])?$_SESSION['workflowdata']:array();
-  $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $istesting?'test':'check');
+  $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $istesting?'test':'check');
  
   # back
   $form['back'] = array(
@@ -74,7 +79,6 @@ function islandora_prepare_ingest_check_workflow_form_submit(array $form, array 
         }
       }
     }
-    $workflowdata = array();
     $otherid = islandora_prepare_ingest_random_string(10);
     $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_DRY_RUN, $testdata);
     islandora_prepare_ingest_report_result_summary($workflowid, 'test', $workflowresults);
@@ -87,6 +91,6 @@ function islandora_prepare_ingest_check_workflow_form_submit(array $form, array 
 
 function islandora_prepare_ingest_check_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['workflowdata']);
+  unset($_SESSION['otherid']);
   $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $form_state['values']['workflowid'];
 }

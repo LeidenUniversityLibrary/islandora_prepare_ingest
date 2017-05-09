@@ -102,6 +102,14 @@ function islandora_prepare_ingest_active_workflow_form(array $form, array &$form
   );
 
   if ($action === 'activeedit') {
+    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
+    $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+  
+    $form['otherid'] = array(
+      '#type' => 'hidden',
+      '#value' => $otherid,
+    );
+
     # name, description
     $form['workflowinfo'] = array(
       '#title' => t('Workflow'),
@@ -123,9 +131,7 @@ function islandora_prepare_ingest_active_workflow_form(array $form, array &$form
     );
 
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-    $workflowdata = isset($_SESSION['workflowdata'])?$_SESSION['workflowdata']:array();
-    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $action);
+    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $action);
 
     # back
     $form['back'] = array(
@@ -147,6 +153,9 @@ function islandora_prepare_ingest_active_workflow_form(array $form, array &$form
     );
   }
   elseif ($action === 'dryrun') {
+    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
+    $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+
     # name, description and type
     $form['workflowinfo'] = array(
       '#title' => $workflow['name'],
@@ -157,9 +166,7 @@ function islandora_prepare_ingest_active_workflow_form(array $form, array &$form
     );
 
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-    $workflowdata = isset($_SESSION['workflowdata'])?$_SESSION['workflowdata']:array();
-    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $workflowdata, $action);
+    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $action);
 
     # back
     $form['back'] = array(
@@ -215,7 +222,6 @@ function islandora_prepare_ingest_active_workflow_form_submit(array $form, array
 
   
   if ($form_state['clicked_button']['#id'] === 'dryrun') {
-    $workflowdata = array();
     $otherid = islandora_prepare_ingest_random_string(10);
     $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_DRY_RUN);
     islandora_prepare_ingest_report_result_summary($workflowid, 'dryrun', $workflowresults);
@@ -227,13 +233,13 @@ function islandora_prepare_ingest_active_workflow_form_submit(array $form, array
 
 function islandora_prepare_ingest_active_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['workflowdata']);
+  unset($_SESSION['otherid']);
   $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/active_workflows';
 }
 
 function islandora_prepare_ingest_active_workflow_form_back_dryrun(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['workflowdata']);
+  unset($_SESSION['otherid']);
   $workflowid = $form_state['values']['workflowid'];
   $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/active_workflow/' . $workflowid . '/edit';
 }
