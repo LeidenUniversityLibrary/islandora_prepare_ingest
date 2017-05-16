@@ -652,20 +652,25 @@ function islandora_prepare_ingest_callback_for_step($stepname, $callbacktype) {
   return $func;
 }
 
-function fill_data_for_check_input_keys_if_needed(array $info, array $config, array &$data, $extent) {
-  if (!(($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL))) {
-    $keys = array();
-    if (array_key_exists('output keys callback', $info)) {
-      $keys = $info['output keys callback']($info, $config);
-    }
-    elseif (array_key_exists('output keys', $info)) {
-      $outputkeys = $info['output keys'];
-      foreach ($outputkeys as $ikey) {
-        if (array_key_exists($ikey, $config)) {
-          $keys[] = $config[$ikey];
-        }
+function islandora_prepare_ingest_keys_for_step($which, array $info, array $config) {
+  $keys = array();
+  if (array_key_exists("$which callback", $info)) {
+    $keys = $info["$which callback"]($info, $config);
+  }
+  elseif (array_key_exists($which, $info)) {
+    $outputkeys = $info[$which];
+    foreach ($outputkeys as $ikey) {
+      if (array_key_exists($ikey, $config)) {
+        $keys[] = $config[$ikey];
       }
     }
+  }
+  return $keys;
+}
+
+function fill_data_for_check_input_keys_if_needed(array $info, array $config, array &$data, $extent) {
+  if (!(($extent & WORK_EXTENT_ONLY_DRY_RUN) || ($extent & WORK_EXTENT_ONLY_DO_ALL))) {
+    $keys = islandora_prepare_ingest_keys_for_step('output keys', $info, $config);
     if (count($keys) > 0) {
       if ($info['changes count']) {
         $data[] = array_combine($keys, $keys);
@@ -901,11 +906,13 @@ function label_define_constant(array $info, array $config) {
 
 function work_define_constant(array $info, array $config, &$data, &$context, $extent) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
-  $name = $config['name'];
-  $value = $config['value'];
-  $results = islandora_prepare_ingest_constants_set($name, $value, $context);
-  if ($results) {
-    return $results;
+  if (isset($config['name'])) {
+    $name = $config['name'];
+    $value = isset($config['value'])?$config['value']:'';
+    $results = islandora_prepare_ingest_constants_set($name, $value, $context);
+    if ($results) {
+      return $results;
+    }
   }
   return FALSE;
 }
@@ -1531,6 +1538,7 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
       if (count($results) > 0) {
         return $results;
       }
+dpm(array('source' => $sourcefilepath, 'target' => $targetfilepath, 'context' => $context), 'work_copy_file');
       pifs_copy($sourcefilepath, $targetfilepath, $context);
     }
   }

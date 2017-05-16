@@ -7,6 +7,31 @@ var hasUnsavedChanges = false;
 
 jQuery(document).ready(function() {
   setUpButtonsAndFields(jQuery(document));
+
+  var allkeysobj = {};
+  jQuery('.datacache').each(function() {
+    var type = jQuery(this).data('type');
+    if (type == 1) {
+      var inputkeysstring = jQuery(this).data('inputkeys')
+      var outputkeysstring = jQuery(this).data('outputkeys')
+      var inputkeys = (typeof inputkeysstring == 'string' && inputkeysstring.length)?inputkeysstring.split(','):[];
+      var outputkeys = (typeof outputkeysstring == 'string' && outputkeysstring.length)?outputkeysstring.split(','):[];
+      jQuery(this).data('inputkeys', inputkeys);
+      jQuery(this).data('outputkeys', outputkeys);
+      for (var i=0; i<inputkeys.length; i++) {
+        allkeysobj[inputkeys[i]] = 1;
+      }
+      for (var i=0; i<outputkeys.length; i++) {
+        allkeysobj[outputkeys[i]] = 1;
+      }
+      var allkeys = [];
+      for (var key in allkeysobj) {
+        allkeys.push(key);
+      }
+      jQuery(this).data('allkeys', allkeys);
+    }
+    filloutDataCacheElement(this);
+  });
 });
 
 function setUpButtonsAndFields($context) {
@@ -206,6 +231,7 @@ function setUpButtonsAndFields($context) {
         }
       }
       if ($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring') || $textfield.hasClass('regexp')) {
+        var $prevLastItem = $menu.find('> DIV').last();
         var $prevFields = $textfield.parents('.workflow_step').prevAll('.workflow_step').find('.output_key, .keys, .keystemplate');
         if ($prevFields.size() > 0) {
           var hasMenuItems = false;
@@ -238,7 +264,13 @@ function setUpButtonsAndFields($context) {
             }
           }); 
           if (hasMenuItems) {
-            $menu.prepend('<DIV class="autosuggestmenuheader">Possible keys:</DIV>');
+            var headHtml = '<DIV class="autosuggestmenuheader">Possible keys:</DIV>';
+            if ($prevLastItem) {
+              $prevLastItem.after(headHtml);
+            }
+            else {
+              $menu.prepend(headHtml);
+            }
           }
         }
       }
@@ -475,6 +507,92 @@ function loadContent(loadUrl, $addStepDiv) {
     jQuery(this).hide();
   });
 };
+
+function filloutDataCacheElement(element) {
+  var workflowid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="workflowid"]').val();
+  var otherid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="otherid"]').val();
+  var stepid = jQuery(element).data('stepid');
+  var type = jQuery(element).data('type');
+  var minitemnr = jQuery(element).data('minitemnr');
+  var maxitemnr = jQuery(element).data('maxitemnr');
+
+  if (workflowid && otherid && stepid && type && (minitemnr < maxitemnr)) {
+    var query = {
+       'workflowid' : workflowid,
+       'otherid'    : otherid,
+       'stepid'     : stepid,
+       'type'       : type,
+       'minitemnr'  : minitemnr,
+       'maxitemnr'  : maxitemnr
+    };
+    jQuery.getJSON('/admin/islandora/islandora_prepare_ingest/ajax/datacache', query, function(data) {
+      var nrOfRows = data['list'].length;
+      var usedKeys = [];
+      var header = {};
+      var itemcount = data['count'];
+      if (itemcount == 0) {
+        jQuery(element).find('> DIV').html('<DIV>No data</DIV>');
+        return;
+      }
+      if (type === 2) {
+        usedKeys.push('path', 'type');
+      }
+      else if (type === 1) {
+        usedKeys = jQuery(element).data('allkeys');
+      }
+      var usedKeysCount = usedKeys.length;
+      var table = '<TABLE class="datacache">';
+      table += '<TR>';
+      table += '<TH class="itemnr">item nr</TH>';
+      for (var k=0; k<usedKeysCount; k++) {
+        table += '<TH>' + usedKeys[k] + '</TH>';
+      }
+      table += '</TR>';
+      for (var i=0; i<nrOfRows; i++) {
+        var d = data['list'][i];
+        table += '<TR>';
+        table += '<TH>' + d['item nr'] + '</TH>';
+        for (var k=0; k<usedKeysCount; k++) {
+          var key = usedKeys[k];
+          table += '<TD>' + (d.hasOwnProperty(key)?d[key]:'-') + '</TD>';
+        }
+        table += '</TR>';
+      }
+      table += '<TR><TH>&nbsp;</TH><TH colspan="' + usedKeysCount + '">';
+      table += '<BUTTON type="button" id="usebutton">';
+      table += 'Show step data only';
+      table += '</BUTTON>';
+      table += '&nbsp;';
+      table += '<BUTTON type="button" id="startbutton">|&lt;</BUTTON>';
+      table += '<BUTTON type="button" id="prevbutton">&lt;</BUTTON>';
+      table += '<SPAN>' + minitemnr + ' to ' + Math.min(itemcount, maxitemnr) + ' of ' + itemcount; 
+      table += '<BUTTON type="button" id="nextbutton">&gt;</BUTTON>';
+      table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
+      table += '</TH></TR>';
+      table += '</TABLE>';
+      jQuery(element).find('> DIV').html(table);
+      var batchsize = 10;
+      var reloadForMinMax = function(min, max) {
+        jQuery(element).data('minitemnr', min);     
+        jQuery(element).data('maxitemnr', max);     
+        filloutDataCacheElement(element);
+      };
+      jQuery(element).find('> DIV > TABLE #startbutton').prop('disabled', (minitemnr <= 1)).click(function(e) {
+        reloadForMinMax(1, batchsize);
+      });
+      jQuery(element).find('> DIV > TABLE #prevbutton').prop('disabled', (minitemnr <= 1)).click(function(e) {
+        reloadForMinMax(minitemnr - batchsize, maxitemnr - batchsize);
+      });
+      jQuery(element).find('> DIV > TABLE #nextbutton').prop('disabled', (maxitemnr >= itemcount)).click(function(e) {
+        reloadForMinMax(minitemnr + batchsize, maxitemnr + batchsize);
+      });
+      jQuery(element).find('> DIV > TABLE #endbutton').prop('disabled', (maxitemnr >= itemcount)).click(function(e) {
+        var newend = Math.floor((itemcount + batchsize - 1) / batchsize) * batchsize; 
+        reloadForMinMax(newend - batchsize + 1, newend);
+      });
+    });
+  }
+}
 
 {
 var isSwapping = false;

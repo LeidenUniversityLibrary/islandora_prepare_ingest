@@ -46,17 +46,20 @@ function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, a
 
     $jsonvalues = array();
     foreach ($data as $current => $d) {
-      $d['item nr'] = $current;
+      $d['item nr'] = $current + 1;
       $jsonvalues[] = json_encode($d);
     }
     islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 1, $jsonvalues);
 
     if (array_key_exists('_PIFS', $context)) {
-      $files = $context['_PIFS'];
+      $files = array_keys($context['_PIFS']);
       sort($files);
       $jsonfiles = array();
-      foreach ($files as $current => $d) {
-        $d['file nr'] = $current;
+      foreach ($files as $current => $file) {
+        $d = array();
+        $d['item nr'] = $current + 1;
+        $d['path'] = $file;
+        $d['type'] = $context['_PIFS'][$file]['type'];
         $jsonfiles[] = json_encode($d);
       } 
       islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 2, $jsonfiles);

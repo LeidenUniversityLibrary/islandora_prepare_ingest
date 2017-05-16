@@ -49,7 +49,7 @@ function islandora_prepare_ingest_data_cache_count($workflow_id, $step_id, $othe
 function islandora_prepare_ingest_data_cache_insert($workflow_id, $step_id, $other_id, $type, $values) {
   $fields = array('workflow_id', 'step_id', 'other_id', 'item_nr', 'timestamp', 'type', 'value');
   $insert = db_insert('islandora_prepare_ingest_data_cache')->fields($fields);
-  $item_nr = 0;
+  $item_nr = 1;
   $timestamp = REQUEST_TIME;
   foreach ($values as $value) {
     $record = array(

@@ -581,15 +581,9 @@ function islandora_prepare_ingest_ajax_datacache_handler() {
   if ($workflowid && $stepid && $otherid && $type) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-    if ($maxitemnr === 0) {
-      $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
-      $result = array("count" => $count);
-      return json_encode($result);
-    }
-    else {
-      $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $minitemnr, $maxitemnr);
-      return '[' . implode(",", $result) . ']';
-    }
+    $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
+    $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $minitemnr, $maxitemnr);
+    return '{ "count" : ' . $count . ', "list" : [' . implode(",", $result) . '] }';
   }
   return "{ }";
 }

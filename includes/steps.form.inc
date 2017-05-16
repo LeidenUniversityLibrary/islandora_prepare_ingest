@@ -70,31 +70,37 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $type) {
       }
     }
 
-    if (($istesting || $isdryrun) && $showdata) {
-      $steps['step_' . $stepid]['datalisting'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Data'),
-        '#attributes' => array(
-          'class' => array('datacache'),
-          'data-stepid' => $stepid,
-          'data-type' => 1,
-          'data-minitemnr' => 0,
-          'data-maxitemnr' => 10,
-        ),
-      );
-    }
-    if (($istesting || $isdryrun) && $showfiles) {
-      $steps['step_' . $stepid]['filelisting'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('File listing (virtual)'),
-        '#attributes' => array(
-          'class' => array('datacache'),
-          'data-stepid' => $stepid,
-          'data-type' => 2,
-          'data-minitemnr' => 0,
-          'data-maxitemnr' => 10,
-        ),
-      );
+    if ($istesting || $isdryrun) {
+      $inputkeys = islandora_prepare_ingest_keys_for_step('input keys', $stepsinfo[$stepname], $stepconfig);
+      $outputkeys = islandora_prepare_ingest_keys_for_step('output keys', $stepsinfo[$stepname], $stepconfig);
+      if ($showdata) {
+        $steps['step_' . $stepid]['datalisting'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('Data'),
+          '#attributes' => array(
+            'class' => array('datacache'),
+            'data-stepid' => $stepid,
+            'data-type' => 1,
+            'data-minitemnr' => 1,
+            'data-maxitemnr' => 10,
+            'data-inputkeys' => implode(',', $inputkeys),
+            'data-outputkeys' => implode(',', $outputkeys),
+          ),
+        );
+      }
+      if ($showfiles) {
+        $steps['step_' . $stepid]['filelisting'] = array(
+          '#type' => 'fieldset',
+          '#title' => t('File listing (virtual)'),
+          '#attributes' => array(
+            'class' => array('datacache'),
+            'data-stepid' => $stepid,
+            'data-type' => 2,
+            'data-minitemnr' => 1,
+            'data-maxitemnr' => 10,
+          ),
+        );
+      }
     }
     if (!$steps['step_' . $stepid]['#collapsed']) {
       $len = count($groups);
