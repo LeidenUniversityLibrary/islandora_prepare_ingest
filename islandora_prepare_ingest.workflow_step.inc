@@ -1538,7 +1538,6 @@ function work_copy_file(array $info, array $config, &$data, &$context, $extent) 
       if (count($results) > 0) {
         return $results;
       }
-dpm(array('source' => $sourcefilepath, 'target' => $targetfilepath, 'context' => $context), 'work_copy_file');
       pifs_copy($sourcefilepath, $targetfilepath, $context);
     }
   }
@@ -1551,7 +1550,7 @@ dpm(array('source' => $sourcefilepath, 'target' => $targetfilepath, 'context' =>
         $results[] = array('text' => t("File '@file' does not exist.",
                   array('@file' => $sourcefilepath)), 'type' => 'run_error');
       }
-      $targetfilepath = fill_out_template($targetfilenametemplate, $d);
+      $targetfilepath = fill_out_template($targetfilepathtemplate, $d);
       if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || is_dir($targetfilepath)) {
         $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
       }
@@ -2896,7 +2895,7 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
       'HOCR'  => array('text/html', 'application/xml', 'text/xml', 'application/xhtml+xml'),
       'ALTO'  => array('application/xml', 'text/xml'),
     );
-    /* this does not wrok (yet)
+    /* this does not work (yet)
     $pagemodels = array("islandora:pageCModel");
     $pagedsreqs = islandora_get_datastreams_requirements_from_models($pagemodels);
     foreach ($pagedsreqs as $dsid => $dsreq) {
@@ -2913,10 +2912,15 @@ function work_validate_book(array $info, array $config, &$data, &$context, $exte
     }
     */
     $mime_detect = new MimeDetect();
+    $importdirectory = rtrim($importdirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR; 
     $filenames = pifs_full_filenames_from_directory($importdirectory, $context, '', TRUE, TRUE);
     $booksarray = array();
     foreach ($filenames as $filename) {
       $relpath = preg_replace('#^' . $importdirectory . '/*#', '', $filename);
+      if (!$relpath) {
+        $results[] = array('text' => t("Unexpected file at '@filename'.", array('@filename' => $filename)), 'type' => 'validate_error');
+        continue;
+      }
       $relpathparts = explode(DIRECTORY_SEPARATOR, $relpath);
       $bookname = $relpathparts[0];
       if (pifs_is_dir($filename, $context)) {
