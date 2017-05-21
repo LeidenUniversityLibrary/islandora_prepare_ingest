@@ -576,13 +576,13 @@ function islandora_prepare_ingest_ajax_datacache_handler() {
   $stepid = isset($query['stepid'])?$query['stepid']:0;
   $otherid = isset($query['otherid'])?$query['otherid']:0;
   $type = isset($query['type'])?$query['type']:0;
-  $minitemnr = isset($query['minitemnr'])?$query['minitemnr']:0;
-  $maxitemnr = isset($query['maxitemnr'])?$query['maxitemnr']:0;
+  $startitemnr = isset($query['startitemnr'])?$query['startitemnr']:0;
+  $enditemnr = isset($query['enditemnr'])?$query['enditemnr']:0;
   if ($workflowid && $stepid && $otherid && $type) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
     $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
-    $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $minitemnr, $maxitemnr);
+    $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $startitemnr, $enditemnr);
     return '{ "count" : ' . $count . ', "list" : [' . implode(",", $result) . '] }';
   }
   return "{ }";

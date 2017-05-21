@@ -138,3 +138,9 @@ FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end > .moveherelin
 TABLE.datacache TH.itemnr {
   width : 5em;
 }
+TABLE.datacache.filelisting TH:first-child + TH + TH {
+  width: 10em;
+}
+TABLE.datacache.datalisting TH {
+  width: 12em;
+}

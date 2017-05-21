@@ -9,6 +9,8 @@ jQuery(document).ready(function() {
   setUpButtonsAndFields(jQuery(document));
 
   var allkeysobj = {};
+  var prevElement1 = undefined;
+  var prevElement2 = undefined;
   jQuery('.datacache').each(function() {
     var type = jQuery(this).data('type');
     if (type == 1) {
@@ -29,8 +31,23 @@ jQuery(document).ready(function() {
         allkeys.push(key);
       }
       jQuery(this).data('allkeys', allkeys);
+      jQuery(this).data('prevelement', prevElement1);
+      prevElement1 = this;
     }
-    filloutDataCacheElement(this);
+    else if (type == 2) {
+      jQuery(this).data('prevelement', prevElement2);
+      prevElement2 = this;
+    }
+    jQuery(this).data('show', 1);
+    var element = this;
+    if (jQuery(this).parents('.workflow_step').last().hasClass('collapsed')) {
+      jQuery(this).parents('.workflow_step').last().find('A').click(function() {
+        filloutDataCacheElement(element, true);
+      });
+    }
+    else {
+      filloutDataCacheElement(this, true);
+    }
   });
 });
 
@@ -39,7 +56,7 @@ function setUpButtonsAndFields($context) {
   $context.find('.remove_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).parents('fieldset.workflow_step').first();
-    if ($thisstep) { 
+    if ($thisstep) {
       if (jQuery(this).hasClass('groupremove')) {
         var groupitemscount = $thisstep.find('.remove_step').size() - 1;
         if (confirm('Are you sure you want to remove this group containing '+groupitemscount+' item' + ((groupitemscount == 1)?'':'s') + '?')) {
@@ -47,7 +64,7 @@ function setUpButtonsAndFields($context) {
           $thisstep.hide(500);
           var $nextstep = $thisstep.next();
           $nextstep.find('.remove_step').val('1');
-          $nextstep.hide(500); 
+          $nextstep.hide(500);
           hasUnsavedChanges = true;
         }
       }
@@ -58,22 +75,22 @@ function setUpButtonsAndFields($context) {
       }
     }
   });
- 
+
   // ungroup button
   $context.find('.ungroup_step_button').click(function(e) {
     e.preventDefault();
     var $thisstep = jQuery(this).parents('fieldset.workflow_step').first();
-    if ($thisstep) { 
+    if ($thisstep) {
       $thisstep.find('.remove_step').first().val('1');
       var $nextstep = $thisstep.next();
       $nextstep.find('.remove_step').val('1');
-      $nextstep.hide(500); 
+      $nextstep.hide(500);
       var $groupitems = $thisstep.find('> div > div.grouped_steps > fieldset.workflow_step');
       swapElements($nextstep, $groupitems, function() { $nextstep.before($groupitems); $thisstep.hide(100); });
       hasUnsavedChanges = true;
     }
   });
-  
+
   var prefix = 'new_weight=';
   // move to button
   $context.find('.moveto_step_button').click(function(e) {
@@ -137,7 +154,7 @@ function setUpButtonsAndFields($context) {
       $moveherestep.before($tmpTo);
       $tmpTo.height(currentStepHeight);
       $tmpTo.width(currentStepWidth);
-      $tmpTo.hide().show(animTime); 
+      $tmpTo.hide().show(animTime);
       $tmpFrom.hide(animTime);
       var newTop;
       if (currentstepweight < moveherestepweight) {
@@ -149,7 +166,7 @@ function setUpButtonsAndFields($context) {
       $currentstep.animate({'top' : newTop }, animTime, function() {
         $currentstep.removeAttr('style');
         $tmpTo.remove();
-        $tmpFrom.remove(); 
+        $tmpFrom.remove();
         if ($moveherestep.prev('FIELDSET.workflow_step').hasClass('visual_group_start')) {
           $moveherestep.prev('FIELDSET.workflow_step').find('> DIV > DIV.grouped_steps').append($currentstep);
         }
@@ -176,7 +193,7 @@ function setUpButtonsAndFields($context) {
         jQuery(this).find('.weight_step').first().val(prefix + currentWeight);
       }
       currentWeight += 1;
-    }); 
+    });
   }
 
   // autosuggest menu
@@ -184,7 +201,7 @@ function setUpButtonsAndFields($context) {
     var $textfield = jQuery(e.target);
     var $menu = jQuery('#autosuggestmenu');
     //if (!($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring') || $textfield.hasClass('regexp'))) {
-    //  $menu.hide(500); 
+    //  $menu.hide(500);
     //  return;
    // }
     if ($menu.size() == 0) {
@@ -206,7 +223,7 @@ function setUpButtonsAndFields($context) {
       $menu.html('');
     }
     var hasValue = [];
-    if (($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring')) 
+    if (($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring'))
         || (!$textfield.hasClass('key') && !$textfield.hasClass('constantkey'))) {
       var menuMaker = function(value, type) {
         if (value.length > 0 && !hasValue[value]) {
@@ -224,7 +241,7 @@ function setUpButtonsAndFields($context) {
               menuMaker(outputvalue, 'constant');
               hasMenuItems = true;
             }
-          }); 
+          });
           if (hasMenuItems) {
             $menu.prepend('<DIV class="autosuggestmenuheader">Possible constants:</DIV>');
           }
@@ -262,7 +279,7 @@ function setUpButtonsAndFields($context) {
                 hasMenuItems = true;
               }
             }
-          }); 
+          });
           if (hasMenuItems) {
             var headHtml = '<DIV class="autosuggestmenuheader">Possible keys:</DIV>';
             if ($prevLastItem) {
@@ -309,14 +326,14 @@ function setUpButtonsAndFields($context) {
         }
       }
       else {
-        $textfield.val(jQuery(e.target).data('value')); 
+        $textfield.val(jQuery(e.target).data('value'));
       }
       hasUnsavedChanges = true;
     });
     if ($menu.html().length > 0) {
       var offset = $textfield.offset();
       var height = $textfield.outerHeight();
-      var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')}; 
+      var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')};
       $menu.css(newPos);
       $menu.show(500);
 
@@ -338,7 +355,7 @@ function setUpButtonsAndFields($context) {
     }
   };
   $context.find("INPUT[type='text'], TEXTAREA").change(autosuggestfunc).focus(autosuggestfunc).click(autosuggestfunc);
-  
+
   // check value of key field
   var checkvaluefunc = function($textfield, regexp) {
     var value = $textfield.val();
@@ -393,7 +410,7 @@ function setUpButtonsAndFields($context) {
       var stepname = $whichStep.val();
       if (workflowid && stepname) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname; 
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();
@@ -408,7 +425,7 @@ function setUpButtonsAndFields($context) {
       var whichWorkflowId = $whichWorkflow.val();
       if (workflowid && whichWorkflowId) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId; 
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();
@@ -426,7 +443,7 @@ function loadContent(loadUrl, $addStepDiv) {
     });
   }
   $tmpAddStepContent.load(loadUrl, function() {
-    var $newcontent = $tmpAddStepContent.find('> FORM > DIV > .workflow_step'); 
+    var $newcontent = $tmpAddStepContent.find('> FORM > DIV > .workflow_step');
     $newcontent.each(function() {
       jQuery(this).addClass('collapsible collapse-processed');
       jQuery(this).hide();
@@ -445,12 +462,12 @@ function loadContent(loadUrl, $addStepDiv) {
         if ($newcontent.hasClass('visual_group_end')) {
           if ($lastGroup) {
             $lastGroup.append($newcontent);
-            didAddContent = true; 
+            didAddContent = true;
           }
         }
         else {
           $group.append($newcontent);
-          didAddContent = true; 
+          didAddContent = true;
         }
       }
       $lastStep = $newLastStep;
@@ -464,7 +481,206 @@ function loadContent(loadUrl, $addStepDiv) {
     });
   });
 }
+};
 
+{
+var batchsize = 10;
+
+function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
+  var workflowid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="workflowid"]').val();
+  var otherid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="otherid"]').val();
+  var stepid = jQuery(element).data('stepid');
+  var type = jQuery(element).data('type');
+  var startitemnr = jQuery(element).data('startitemnr');
+  var enditemnr = jQuery(element).data('enditemnr');
+  var show = jQuery(element).data('show');
+
+  if (prevcount === undefined) {
+    prevcount = 0;
+  }
+  if (workflowid && otherid && stepid && type && (startitemnr < enditemnr)) {
+    if (isStarting && (show === 2)) {
+      var prevElement = jQuery(element).data('prevelement');
+      if (prevElement) {
+        prevcount = jQuery(prevElement).data('count');
+
+        if (prevcount === undefined) {
+          filloutDataCacheElement(prevElement, true, 0, function() {
+            filloutDataCacheElement(element, isStarting);
+          });
+          return;
+        }
+        if (prevcount < jQuery(element).data('count')) {
+          // The previous step count is smaller than the current, so there are items added:
+          if (enditemnr <= prevcount) {
+            // the added items are not visible yet, so go to the batch where the new items are visible:
+            enditemnr = Math.floor((prevcount + batchsize - 1) / batchsize) * batchsize;
+            startitemnr = enditemnr - batchsize + 1;
+          }
+        }
+        else {
+          prevcount = 0;
+        }
+      }
+    }
+
+    var query = {
+       'workflowid'   : workflowid,
+       'otherid'      : otherid,
+       'stepid'       : stepid,
+       'type'         : type,
+       'startitemnr'  : startitemnr,
+       'enditemnr'    : enditemnr
+    };
+    jQuery.getJSON('/admin/islandora/islandora_prepare_ingest/ajax/datacache', query, function(data) {
+      filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, prevcount);
+      if (endFunction) {
+        endFunction();
+      }
+    });
+  }
+}
+
+function filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+  if (jQuery(element).data('count') === undefined) {
+    jQuery(element).data('count', data['count']);
+  }
+  showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr);
+  setupButtonsDataCache(element, data['count'], startitemnr, enditemnr, showfromitemnr);
+}
+
+function showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+  var nrOfRows = data['list'].length;
+  var usedKeys = [];
+  var header = {};
+  var itemcount = data['count'];
+  if (itemcount == 0) {
+    jQuery(element).find('> DIV').html('<DIV>No data</DIV>');
+    return;
+  }
+  if (showfromitemnr === undefined) {
+    showfromitemnr = 0;
+  }
+  if (type === 2) {
+    usedKeys.push('path', 'type');
+  }
+  else if (type === 1) {
+    if (show === 2) {
+      var l = jQuery(element).data('inputkeys');
+      for (var i=0; i<l.length; i++) {
+        usedKeys.push(l[i]);
+      }
+      l = jQuery(element).data('outputkeys');
+      for (var i=0; i<l.length; i++) {
+        usedKeys.push(l[i]);
+      }
+    }
+    if (usedKeys.length === 0) {
+      var l = jQuery(element).data('allkeys');
+      for (var i=0; i<l.length; i++) {
+        usedKeys.push(l[i]);
+      }
+    }
+  }
+  var usedKeysCount = usedKeys.length;
+  var table = '<TABLE class="datacache ' + ((type === 1)?'datalisting':'filelisting') + '">';
+  table += '<TR>';
+  table += '<TH class="itemnr">item nr</TH>';
+  for (var k=0; k<usedKeysCount; k++) {
+    table += '<TH>' + usedKeys[k] + '</TH>';
+  }
+  table += '</TR>';
+  var htmlEncode = function(value) {
+    return jQuery('<div>').text(value).html();
+  };
+  for (var i=0; i<nrOfRows; i++) {
+    var d = data['list'][i];
+    table += '<TR>';
+    table += '<TH>' + d['item nr'] + '</TH>';
+    if (d['item nr'] > showfromitemnr) {
+      for (var k=0; k<usedKeysCount; k++) {
+        var key = usedKeys[k];
+        var value = (d.hasOwnProperty(key)?d[key]:'-');
+        if (value.length > 28) {
+          var shortvalue = value.substr(0, 13) + '...' + value.substr(-12);
+          shortvalue = htmlEncode(shortvalue);
+          value = htmlEncode(value);
+          value = value.replace(/\n/g, "<BR/>");
+	  table += '<TD><SPAN class="upi_fullvalue">' + value + '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN></TD>';
+        }
+        else {
+          value = htmlEncode(value);
+          table += '<TD>' + value + '</TD>';
+        }
+      }
+    }
+    else {
+      for (var k=0; k<usedKeysCount; k++) {
+        table += '<TD>&nbsp;</TD>';
+      }
+    }
+    table += '</TR>';
+  }
+  for (var i=nrOfRows; i<(enditemnr-startitemnr+1); i++) {
+    table += '<TR><TH>&nbsp;</TH><TD colspan="' + usedKeysCount + '">&nbsp;</TD></TR>';
+  }
+  table += '<TR><TH>&nbsp;</TH><TH colspan="' + usedKeysCount + '">';
+  if ((type === 2) || (jQuery(element).data('outputkeys').length > 0)) {
+    table += '<BUTTON type="button" id="usebutton">';
+    if (show === 1) {
+      table += 'Show step data only';
+    }
+    else {
+      table += 'Show all data';
+    }
+    table += '</BUTTON>';
+    table += '&nbsp;';
+  }
+  table += '<BUTTON type="button" id="startbutton">|&lt;</BUTTON>';
+  table += '<BUTTON type="button" id="prevbutton">&lt;</BUTTON>';
+  table += '<SPAN>' + startitemnr + ' to ' + Math.min(itemcount, enditemnr) + ' of ' + itemcount;
+  table += '<BUTTON type="button" id="nextbutton">&gt;</BUTTON>';
+  table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
+  table += '</TH></TR>';
+  table += '</TABLE>';
+  jQuery(element).find('> DIV').html(table);
+  setupDisplayFullValue(jQuery(element));
+}
+
+function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showfromitemnr) {
+  var reloadForMinMax = function(min, max) {
+    jQuery(element).data('startitemnr', min);
+    jQuery(element).data('enditemnr', max);
+    filloutDataCacheElement(element, false, showfromitemnr);
+  };
+  jQuery(element).find('> DIV > TABLE #startbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
+    reloadForMinMax(1, batchsize);
+  });
+  jQuery(element).find('> DIV > TABLE #prevbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
+    var newStart = Math.max(1, startitemnr - batchsize);
+    var newEnd = newStart + batchsize -1;
+    reloadForMinMax(newStart, newEnd);
+  });
+  jQuery(element).find('> DIV > TABLE #nextbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
+    reloadForMinMax(startitemnr + batchsize, enditemnr + batchsize);
+  });
+  jQuery(element).find('> DIV > TABLE #endbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
+    var newend = Math.floor((itemcount + batchsize - 1) / batchsize) * batchsize;
+    reloadForMinMax(newend - batchsize + 1, newend);
+  });
+  jQuery(element).find('> DIV > TABLE #usebutton').click(function(e) {
+    var show = jQuery(element).data('show');
+    if (show === 1) {
+      jQuery(element).data('show', 2);
+    }
+    else {
+      jQuery(element).data('show', 1);
+    }
+    filloutDataCacheElement(element, true);
+  });
+}
+
+function setupDisplayFullValue($context) {
   // display full value
   $context.find('.upi_shortvalue').click(function(e) {
     e.stopPropagation();
@@ -480,7 +696,7 @@ function loadContent(loadUrl, $addStepDiv) {
     if ((fvdivoffset.left + fvdivw) > (fswoffset.left + fsww)) {
       var clipped = (fvdivoffset.left + fvdivw) - (fswoffset.left + fsww) + 100;
       if ((fvdivoffset.left - clipped) > (fswoffset.left + 10)) {
-        fvdiv.offset({ top: fvdivoffset.top, left: (fvdivoffset.left - clipped) }); 
+        fvdiv.offset({ top: fvdivoffset.top, left: (fvdivoffset.left - clipped) });
       }
       else {
         var toolittleleft = (fvdivoffset.left - clipped) - (fswoffset.left + 5);
@@ -493,7 +709,7 @@ function loadContent(loadUrl, $addStepDiv) {
     if ((fvdivoffset.top + fvdivh) > (fswoffset.top + fswh)) {
       var clipped = (fvdivoffset.top + fvdivh) - (fswoffset.top + fswh);
       if ((fvdivoffset.top - clipped) > (fswoffset.top + 10)) {
-        fvdiv.offset({ top: (fvdivoffset.top - clipped), left: fvdivoffset.left }); 
+        fvdiv.offset({ top: (fvdivoffset.top - clipped), left: fvdivoffset.left });
       }
       else {
         var toolittleleft = (fvdivoffset.top - clipped) - (fswoffset.top + 5);
@@ -501,97 +717,13 @@ function loadContent(loadUrl, $addStepDiv) {
         fvdiv.offset({ top: (fvdivoffset.top - clipped), left: fvdivoffset.left });
         fvdiv.height(fvdivh + toolittleleft);
       }
-    } 
+    }
   });
   $context.find('.upi_fullvalue').click(function(e) {
     jQuery(this).hide();
   });
-};
+}
 
-function filloutDataCacheElement(element) {
-  var workflowid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="workflowid"]').val();
-  var otherid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="otherid"]').val();
-  var stepid = jQuery(element).data('stepid');
-  var type = jQuery(element).data('type');
-  var minitemnr = jQuery(element).data('minitemnr');
-  var maxitemnr = jQuery(element).data('maxitemnr');
-
-  if (workflowid && otherid && stepid && type && (minitemnr < maxitemnr)) {
-    var query = {
-       'workflowid' : workflowid,
-       'otherid'    : otherid,
-       'stepid'     : stepid,
-       'type'       : type,
-       'minitemnr'  : minitemnr,
-       'maxitemnr'  : maxitemnr
-    };
-    jQuery.getJSON('/admin/islandora/islandora_prepare_ingest/ajax/datacache', query, function(data) {
-      var nrOfRows = data['list'].length;
-      var usedKeys = [];
-      var header = {};
-      var itemcount = data['count'];
-      if (itemcount == 0) {
-        jQuery(element).find('> DIV').html('<DIV>No data</DIV>');
-        return;
-      }
-      if (type === 2) {
-        usedKeys.push('path', 'type');
-      }
-      else if (type === 1) {
-        usedKeys = jQuery(element).data('allkeys');
-      }
-      var usedKeysCount = usedKeys.length;
-      var table = '<TABLE class="datacache">';
-      table += '<TR>';
-      table += '<TH class="itemnr">item nr</TH>';
-      for (var k=0; k<usedKeysCount; k++) {
-        table += '<TH>' + usedKeys[k] + '</TH>';
-      }
-      table += '</TR>';
-      for (var i=0; i<nrOfRows; i++) {
-        var d = data['list'][i];
-        table += '<TR>';
-        table += '<TH>' + d['item nr'] + '</TH>';
-        for (var k=0; k<usedKeysCount; k++) {
-          var key = usedKeys[k];
-          table += '<TD>' + (d.hasOwnProperty(key)?d[key]:'-') + '</TD>';
-        }
-        table += '</TR>';
-      }
-      table += '<TR><TH>&nbsp;</TH><TH colspan="' + usedKeysCount + '">';
-      table += '<BUTTON type="button" id="usebutton">';
-      table += 'Show step data only';
-      table += '</BUTTON>';
-      table += '&nbsp;';
-      table += '<BUTTON type="button" id="startbutton">|&lt;</BUTTON>';
-      table += '<BUTTON type="button" id="prevbutton">&lt;</BUTTON>';
-      table += '<SPAN>' + minitemnr + ' to ' + Math.min(itemcount, maxitemnr) + ' of ' + itemcount; 
-      table += '<BUTTON type="button" id="nextbutton">&gt;</BUTTON>';
-      table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
-      table += '</TH></TR>';
-      table += '</TABLE>';
-      jQuery(element).find('> DIV').html(table);
-      var batchsize = 10;
-      var reloadForMinMax = function(min, max) {
-        jQuery(element).data('minitemnr', min);     
-        jQuery(element).data('maxitemnr', max);     
-        filloutDataCacheElement(element);
-      };
-      jQuery(element).find('> DIV > TABLE #startbutton').prop('disabled', (minitemnr <= 1)).click(function(e) {
-        reloadForMinMax(1, batchsize);
-      });
-      jQuery(element).find('> DIV > TABLE #prevbutton').prop('disabled', (minitemnr <= 1)).click(function(e) {
-        reloadForMinMax(minitemnr - batchsize, maxitemnr - batchsize);
-      });
-      jQuery(element).find('> DIV > TABLE #nextbutton').prop('disabled', (maxitemnr >= itemcount)).click(function(e) {
-        reloadForMinMax(minitemnr + batchsize, maxitemnr + batchsize);
-      });
-      jQuery(element).find('> DIV > TABLE #endbutton').prop('disabled', (maxitemnr >= itemcount)).click(function(e) {
-        var newend = Math.floor((itemcount + batchsize - 1) / batchsize) * batchsize; 
-        reloadForMinMax(newend - batchsize + 1, newend);
-      });
-    });
-  }
 }
 
 {
@@ -613,7 +745,7 @@ function swapElements($elem1, $elem2, $endfunc, animtime) {
   var elem2h = $elem2.height();
   var betweenSize = elem2y - elem1y - elem1h;
   var displacement1 = elem2h + betweenSize;
-  var displacement2 = elem1y - elem2y; 
+  var displacement2 = elem1y - elem2y;
   if (typeof animtime === 'undefined') {
     animtime = 400;
   }

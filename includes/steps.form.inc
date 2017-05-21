@@ -81,8 +81,8 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $type) {
             'class' => array('datacache'),
             'data-stepid' => $stepid,
             'data-type' => 1,
-            'data-minitemnr' => 1,
-            'data-maxitemnr' => 10,
+            'data-startitemnr' => 1,
+            'data-enditemnr' => 10,
             'data-inputkeys' => implode(',', $inputkeys),
             'data-outputkeys' => implode(',', $outputkeys),
           ),
@@ -96,8 +96,8 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $type) {
             'class' => array('datacache'),
             'data-stepid' => $stepid,
             'data-type' => 2,
-            'data-minitemnr' => 1,
-            'data-maxitemnr' => 10,
+            'data-startitemnr' => 1,
+            'data-enditemnr' => 10,
           ),
         );
       }
