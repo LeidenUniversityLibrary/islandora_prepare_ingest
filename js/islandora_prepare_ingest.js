@@ -582,10 +582,20 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
       }
     }
   }
-  var usedKeysCount = usedKeys.length;
-  var table = '<TABLE class="datacache ' + ((type === 1)?'datalisting':'filelisting') + '">';
+  var width = jQuery(element).data('width');
+  if (width === undefined) {
+    jQuery(element).find('> DIV').html('<DIV id="widthcalculation">&nbsp;</DIV>');
+    var max = 10000;
+    do {
+      width = Math.ceil(jQuery(element).find('#widthcalculation').width());
+    } while ((width <= 0) && (max-- > 0));
+    jQuery(element).data('width', width);
+  }
+  var table = '<DIV class="datacache" style="width:'+width+'px;">';
+  table += '<TABLE class="' + ((type === 1)?'datalisting':'filelisting') + '">';
   table += '<TR>';
   table += '<TH class="itemnr">item nr</TH>';
+  var usedKeysCount = usedKeys.length;
   for (var k=0; k<usedKeysCount; k++) {
     table += '<TH>' + usedKeys[k] + '</TH>';
   }
@@ -596,22 +606,22 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   for (var i=0; i<nrOfRows; i++) {
     var d = data['list'][i];
     table += '<TR>';
-    table += '<TH>' + d['item nr'] + '</TH>';
+    table += '<TH class="itemnr">' + d['item nr'] + '</TH>';
     if (d['item nr'] > showfromitemnr) {
       for (var k=0; k<usedKeysCount; k++) {
         var key = usedKeys[k];
         var value = (d.hasOwnProperty(key)?d[key]:'-');
+        var cellhtml = '';
         if (value.length > 28) {
           var shortvalue = value.substr(0, 13) + '...' + value.substr(-12);
           shortvalue = htmlEncode(shortvalue);
           value = htmlEncode(value);
-          value = value.replace(/\n/g, "<BR/>");
-	  table += '<TD><SPAN class="upi_fullvalue">' + value + '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN></TD>';
+	  cellhtml = '<SPAN class="upi_fullvalue">' + value + '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN>';
         }
         else {
-          value = htmlEncode(value);
-          table += '<TD>' + value + '</TD>';
+          cellhtml = htmlEncode(value);
         }
+        table += '<TD><DIV class="celldata">' + cellhtml + '</DIV></TD>';
       }
     }
     else {
@@ -624,7 +634,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   for (var i=nrOfRows; i<(enditemnr-startitemnr+1); i++) {
     table += '<TR><TH>&nbsp;</TH><TD colspan="' + usedKeysCount + '">&nbsp;</TD></TR>';
   }
-  table += '<TR><TH>&nbsp;</TH><TH colspan="' + usedKeysCount + '">';
+  table += '<TR><TH class="fixedpos">&nbsp;</TH><TH class="fixedpos" colspan="' + usedKeysCount + '">';
   if ((type === 2) || (jQuery(element).data('outputkeys').length > 0)) {
     table += '<BUTTON type="button" id="usebutton">';
     if (show === 1) {
@@ -643,6 +653,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
   table += '</TH></TR>';
   table += '</TABLE>';
+  table += '</DIV>';
   jQuery(element).find('> DIV').html(table);
   setupDisplayFullValue(jQuery(element));
 }
@@ -653,22 +664,22 @@ function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showf
     jQuery(element).data('enditemnr', max);
     filloutDataCacheElement(element, false, showfromitemnr);
   };
-  jQuery(element).find('> DIV > TABLE #startbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
+  jQuery(element).find('TABLE #startbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
     reloadForMinMax(1, batchsize);
   });
-  jQuery(element).find('> DIV > TABLE #prevbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
+  jQuery(element).find('TABLE #prevbutton').prop('disabled', (startitemnr <= 1)).click(function(e) {
     var newStart = Math.max(1, startitemnr - batchsize);
     var newEnd = newStart + batchsize -1;
     reloadForMinMax(newStart, newEnd);
   });
-  jQuery(element).find('> DIV > TABLE #nextbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
+  jQuery(element).find('TABLE #nextbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
     reloadForMinMax(startitemnr + batchsize, enditemnr + batchsize);
   });
-  jQuery(element).find('> DIV > TABLE #endbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
+  jQuery(element).find('TABLE #endbutton').prop('disabled', (enditemnr >= itemcount)).click(function(e) {
     var newend = Math.floor((itemcount + batchsize - 1) / batchsize) * batchsize;
     reloadForMinMax(newend - batchsize + 1, newend);
   });
-  jQuery(element).find('> DIV > TABLE #usebutton').click(function(e) {
+  jQuery(element).find('TABLE #usebutton').click(function(e) {
     var show = jQuery(element).data('show');
     if (show === 1) {
       jQuery(element).data('show', 2);

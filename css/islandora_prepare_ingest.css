@@ -135,12 +135,32 @@ FIELDSET.visual_group_start.collapsed + FIELDSET.visual_group_end > .moveherelin
 }
 
 /* data cache */
-TABLE.datacache TH.itemnr {
-  width : 5em;
+DIV.datacache {
+  overflow-x: scroll;
 }
-TABLE.datacache.filelisting TH:first-child + TH + TH {
+DIV.datacache TABLE.filelisting TH.itemnr {
+  width: 6em;
+}
+DIV.datacache TABLE.filelisting TH:first-child + TH + TH {
   width: 10em;
 }
-TABLE.datacache.datalisting TH {
-  width: 12em;
+DIV.datacache TABLE.datalisting {
+  width: auto;
+  table-layout: fixed;
+}
+DIV.datacache TABLE.datalisting TH.itemnr {
+  width: 6em;
+  white-space: nowrap;
+}
+DIV.datacache TABLE.datalisting DIV.celldata {
+  min-width: 6em;
+  max-width: 24em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+DIV.datacache TABLE.datalisting DIV.celldata .upi_fullvalue {
+  white-space: pre;
+}
+DIV.datacache #usebutton {
+  width: 15em;
 }
