@@ -197,6 +197,8 @@ function setUpButtonsAndFields($context) {
   }
 
   // autosuggest menu
+  {
+  var $currentElement;
   var autosuggestfunc = function(e) {
     var $textfield = jQuery(e.target);
     var $menu = jQuery('#autosuggestmenu');
@@ -223,7 +225,15 @@ function setUpButtonsAndFields($context) {
       $menu.html('');
     }
     var hasValue = [];
-    if (($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring'))
+    if ($textfield.hasClass('regexp')) {
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/(.*\\/)([^\\/]+)$/">Select filepath ($1) and filename ($2)</A></DIV>');
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/(?:.*\\/)?([^\\/]+)\\.([a-zA-Z0-9]+)$/">Select name ($1) and extension ($2) of a filename</A></DIV>');
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/.*?(\\d+)\\.[a-zA-Z0-9]+$/">Select last numbers of a filename before the extension</A></DIV>');
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/.*?(\\d+)\\D\\d+\\.[a-zA-Z0-9]+$/">Select second to last numbers of a filename before the extension</A></DIV>');
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/^.*?(?:(\\d+)\\D*)+$/">Select numbers ($1, $2, ...) in value</A></DIV>');
+      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/\\.([a-zA-Z0-9]+)$/">Replace extension ($1)</A></DIV>');
+    }
+    else if (($textfield.hasClass('input_key') || $textfield.hasClass('template') || $textfield.hasClass('templatestring'))
         || (!$textfield.hasClass('key') && !$textfield.hasClass('constantkey'))) {
       var menuMaker = function(value, type) {
         if (value.length > 0 && !hasValue[value]) {
@@ -292,14 +302,6 @@ function setUpButtonsAndFields($context) {
         }
       }
     }
-    else if ($textfield.hasClass('regexp')) {
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/(.*\\/)([^\\/]+)$/">Select filepath ($1) and filename ($2)</A></DIV>');
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/(?:.*\\/)?([^\\/]+)\\.([a-zA-Z0-9]+)$/">Select name ($1) and extension ($2) of a filename</A></DIV>');
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/.*?(\\d+)\\.[a-zA-Z0-9]+$/">Select last numbers of a filename before the extension</A></DIV>');
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/.*?(\\d+)\\D\\d+\\.[a-zA-Z0-9]+$/">Select second to last numbers of a filename before the extension</A></DIV>');
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/^.*?(?:(\\d+)\\D*)+$/">Select numbers ($1, $2, ...) in value</A></DIV>');
-      $menu.append('<DIV class="autosuggestmenuitem"><A href="#" data-value="/\\.([a-zA-Z0-9]+)$/">Replace extension ($1)</A></DIV>');
-    }
     jQuery('.autosuggestmenuitem').click(function(e) {
       e.preventDefault();
       var keyval = '{' + jQuery(e.target).data('value') + '}';
@@ -327,6 +329,7 @@ function setUpButtonsAndFields($context) {
       }
       else {
         $textfield.val(jQuery(e.target).data('value'));
+        $textfield.focus();
       }
       hasUnsavedChanges = true;
     });
@@ -336,25 +339,22 @@ function setUpButtonsAndFields($context) {
       var newPos = {'top': ((offset.top + height + 5) + 'px'), 'left': (offset.left + 'px')};
       $menu.css(newPos);
       $menu.show(500);
-
-      setTimeout(function() {
-        var hidefunc = function(e) {
-          setTimeout(function() {
-            var $menu = jQuery('#autosuggestmenu');
-            if (!jQuery(e.target).is(':focus')) {
-              jQuery('#autosuggestmenu').hide(500);
-            }
-          }, 50);
-        };
-        $context.find('SELECT, INPUT[type="submit"], BUTTON').one('focus', hidefunc).one('click', hidefunc);
-        jQuery('BODY').one('click', hidefunc);
-      }, 500);
+      $currentElement = $textfield;
     }
     else {
       $menu.hide();
+      $currentElement = null;
     }
+    $textfield.focusout(function() {
+      setTimeout(function() {
+        if (($currentElement == null) || !$currentElement.is(':focus')) {
+          jQuery('#autosuggestmenu').hide(500);
+        }
+      }, 500);
+    });
   };
-  $context.find("INPUT[type='text'], TEXTAREA").change(autosuggestfunc).focus(autosuggestfunc).click(autosuggestfunc);
+  $context.find("INPUT[type='text'], TEXTAREA").focusin(autosuggestfunc);
+  }
 
   // check value of key field
   var checkvaluefunc = function($textfield, regexp) {
