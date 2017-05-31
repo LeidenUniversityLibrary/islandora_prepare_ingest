@@ -603,6 +603,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   var htmlEncode = function(value) {
     return jQuery('<div>').text(value).html();
   };
+  var maxLengthKeyValue = (type === 2)?100:28;
   for (var i=0; i<nrOfRows; i++) {
     var d = data['list'][i];
     table += '<TR>';
@@ -612,8 +613,8 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
         var key = usedKeys[k];
         var value = (d.hasOwnProperty(key)?d[key]:'-');
         var cellhtml = '';
-        if (value.length > 28) {
-          var shortvalue = value.substr(0, 13) + '...' + value.substr(-12);
+        if (value.length > maxLengthKeyValue) {
+          var shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
           shortvalue = htmlEncode(shortvalue);
           value = htmlEncode(value);
 	  cellhtml = '<SPAN class="upi_fullvalue">' + value + '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN>';
@@ -635,7 +636,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
     table += '<TR><TH>&nbsp;</TH><TD colspan="' + usedKeysCount + '">&nbsp;</TD></TR>';
   }
   table += '<TR><TH class="fixedpos">&nbsp;</TH><TH class="fixedpos" colspan="' + usedKeysCount + '">';
-  if ((type === 2) || (jQuery(element).data('outputkeys').length > 0)) {
+  if ((type === 1) && (jQuery(element).data('outputkeys').length > 0)) {
     table += '<BUTTON type="button" id="usebutton">';
     if (show === 1) {
       table += 'Show step data only';
