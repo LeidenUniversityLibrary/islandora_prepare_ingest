@@ -585,13 +585,15 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   var width = jQuery(element).data('width');
   if (width === undefined) {
     jQuery(element).find('> DIV').html('<DIV id="widthcalculation">&nbsp;</DIV>');
-    var max = 10000;
+    var max = 100;
     do {
       width = Math.ceil(jQuery(element).find('#widthcalculation').width());
     } while ((width <= 0) && (max-- > 0));
-    jQuery(element).data('width', width);
+    if (width > 0) {
+      jQuery(element).data('width', width);
+    }
   }
-  var table = '<DIV class="datacache" style="width:'+width+'px;">';
+  var table = '<DIV class="datacache" ' + ((width > 0)?'style="width:'+width+'px;"':'') + '>';
   table += '<TABLE class="' + ((type === 1)?'datalisting':'filelisting') + '">';
   table += '<TR>';
   table += '<TH class="itemnr">item nr</TH>';
