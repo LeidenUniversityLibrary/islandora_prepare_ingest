@@ -95,7 +95,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Handling files'),
+    'type group' => t('Add items from files'),
   );
   $info['add_key_regexp'] = array(
     'arguments' => array(
@@ -455,7 +455,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes count' => TRUE,
     'changes keys' => TRUE,
     'changes files' => FALSE,
-    'type group' => t('Handling files'),
+    'type group' => t('Add items from files'),
   );
   $info['end_filter'] = array(
     'arguments' => array(),
