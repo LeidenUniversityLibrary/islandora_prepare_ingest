@@ -293,7 +293,7 @@ function setUpButtonsAndFields($context) {
           });
           if (hasMenuItems) {
             var headHtml = '<DIV class="autosuggestmenuheader">Possible keys:</DIV>';
-            if ($prevLastItem) {
+            if ($prevLastItem.size() > 0) {
               $prevLastItem.after(headHtml);
             }
             else {
