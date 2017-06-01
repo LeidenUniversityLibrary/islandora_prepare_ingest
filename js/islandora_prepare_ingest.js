@@ -40,13 +40,14 @@ jQuery(document).ready(function() {
     }
     jQuery(this).data('show', 1);
     var element = this;
-    if (jQuery(this).parents('.workflow_step').last().hasClass('collapsed')) {
-      jQuery(this).parents('.workflow_step').last().find('A').click(function() {
+    var $step = jQuery(element).parent('DIV').parent('.workflow_step');
+    if ($step.hasClass('collapsed')) {
+      $step.find('> LEGEND > SPAN > A').click(function() {
         filloutDataCacheElement(element, true);
       });
     }
     else {
-      filloutDataCacheElement(this, true);
+      filloutDataCacheElement(element, true);
     }
   });
 });
@@ -545,6 +546,25 @@ function filloutDataCacheElementWithData(element, data, type, show, startitemnr,
   if (jQuery(element).data('count') === undefined) {
     jQuery(element).data('count', data['count']);
   }
+  var width = jQuery(element).data('width');
+  if (width === undefined) {
+    if (jQuery(element).find('> DIV > #widthcalculation').size() == 0) {
+      jQuery(element).find('> DIV').html('<DIV id="widthcalculation">Loading...</DIV>');
+    }
+    width = Math.ceil(jQuery(element).find('#widthcalculation').width());
+    if (width > 0) {
+      jQuery(element).data('width', width);
+    }
+    else {
+      setTimeout(function() {
+        var stepid = jQuery(element).data('stepid');
+        console.log("did not find width for step " + stepid);
+        filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, showfromitemnr);
+      }, 100);
+      return;
+    }
+  }
+
   showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr);
   setupButtonsDataCache(element, data['count'], startitemnr, enditemnr, showfromitemnr);
 }
@@ -583,16 +603,6 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
     }
   }
   var width = jQuery(element).data('width');
-  if (width === undefined) {
-    jQuery(element).find('> DIV').html('<DIV id="widthcalculation">&nbsp;</DIV>');
-    var max = 100;
-    do {
-      width = Math.ceil(jQuery(element).find('#widthcalculation').width());
-    } while ((width <= 0) && (max-- > 0));
-    if (width > 0) {
-      jQuery(element).data('width', width);
-    }
-  }
   var table = '<DIV class="datacache" ' + ((width > 0)?'style="width:'+width+'px;"':'') + '>';
   table += '<TABLE class="' + ((type === 1)?'datalisting':'filelisting') + '">';
   table += '<TR>';
