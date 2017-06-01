@@ -24,14 +24,14 @@ When this module is installed, under Admin > Islandora there is an entry “Prep
 * “Active workflows”: this contains the workflows you can actually use to prepare an ingest for Islandora. The workflows listed here are specific for one data conversion and ingest.
 
 To make a new workflow, first go to the “Generic workflows” tab and click “Add New workflow”. A screen is presented with fields for the name and description of the workflow. Because we are going to make a general workflow that can be reused and is not specific for a single data set, let the name and description reflect this.
-After saving this workflow, you can add steps to the workflow by choosing the step from the popup menu and clicking on “Add Step".
-After adding a step to the workflow, the step must be configured.  This can be done by clicking the title of the step to open it, and filling out the fields.
-Because this will be a general workflow, not all fields have to be filled in. All fields with the word “key” in their name define or use some data. These should all be filled out.
-Make sure that for every key in every step all input items have a value for that key, otherwise use the filter items step (combined with the end filter step) to filter the items that don't have the key before the items in the list are given to the step that requires the key.
+After saving this workflow, you can add steps to the workflow by choosing the step from the popup menu and clicking on “Add Step”.
+After adding a step to the workflow, the step must be configured.  This can be done by filling out the fields.
+Use the “define constant” step for values that are not general in the workflow, so these values can be easily replaced. It is recommended (but not necessary) to define all constants at the beginning of your workflow.
+Make sure that for every key in every step all input items have a value for that key, otherwise use the filter items step (combined with the end filter step) to filter the items that do not have the key before the items in the list are given to the step that requires the key.
 Add additional steps until the workflow will manipulate the input data in such a way that it is suitable for ingest into Islandora.
 As the last step you should add a “validate” step to make sure your workflow generates a valid ingest directory.
 
-If the order of your steps is incorrect, you can reorder the steps with the “move up” and “move down” buttons. If you have inserted the wrong step, you can delete the step with the “remove” button.
+If the order of your steps is incorrect, you can reorder the steps with the “move to” button and then choose the location where you want to move it to. If you have inserted the wrong step, you can delete the step with the “remove” button.
 
 Save your workflow after any changes you make.
 
@@ -48,7 +48,7 @@ After you have completed your workflow and saved it, you can check it to make su
 After successfully checking a workflow, the workflow can be tested. If you did not fill out al the fields in the step configurations (which is good when you make a general workflow), you can fill in some test values in those fields. Preferably, these values are all constants that you should fill out with a specific value.
 Remember that although it is a test, the values should be correct. For example if you have to fill out a directory path, you should provide a valid path that exists on the server and that contains files of the type the workflow step expects.
 While testing the files will only be read. Any manipulation of files will only be done in memory, so no files will be changes, removed or added for real.
-After filling out the missing values, you can test the workflow. If the test completes successfully, make sure to check the output of every step. If a step manipulates the key-value pairs of items, the items are shown for that step. If a step alters the file system, the files are listed.
+After filling out the missing values, you can test the workflow. If the test completes successfully, make sure to check the output of every step. If a step manipulates the key-value pairs of items, the items are shown. If a step alters the file system, the files are listed.
 
 ## Making an active workflow
 
@@ -67,48 +67,55 @@ The command looks like this: 	drush -v --user=user_name prepare_ingest --workflo
 
 This command should be run on the command line inside the drupal root directory as a user with adequate rights.
 
-If you have include validate steps, these steps will output the drush command to do the actual ingest.
+If you have included validate steps, these steps will output the drush command to do the actual ingest.
 
 
 # The steps
 
-Included in the prepare ingest module are 23 steps. These steps should be sufficient to make any workflow, but other steps can be added from within other modules. See the TECHNICAL documentation on how to do this.
+Included in the prepare ingest module are many basic steps. These steps should be sufficient to make any workflow, but other steps can be added from within other modules. See the TECHNICAL documentation on how to do this.
 Below are the included steps with a description of what they do:
 
 ## Define constant
 
+This step defines a constant for use in subsequent steps.
+
 ## Add items by reading file names
 
-This step reads the file names of the files in a specified directory and stores the full paths of the file names with the given key in new items that will be added to the list. A filter can be used to only include files with a specific name and/or extension. If wanted and needed, also files in subdirectories can be included.
+This step reads the file names of the files in a specified directory and stores the full paths of the file names using the given key in new items that will be added to the list. A filter can be used to only include files with a specific name and/or extension. If wanted and needed, also files in subdirectories can be included.
 
 ## Add key with regular expression based value
 
-This step adds a new key-value to all existing items in the list. The key is given. The values for this key are based on the values of an existing key. These values are modified by the given regular expression and replacement value to obtain the new values for the new key.
+This step adds a new key-value to all existing items in the list. The target key is given. The values for this key are based on the values of an existing key. These values are modified by the given regular expression and replacement value to obtain the new values for the new key.
 The regular expression can match part of the value or the whole value. The replacement can include backreferences ($1, $2, …) of the capturing groups in the regular expression.
 
 ## Add key with template based value
 
-This step adds a new key-value to all existing items in the list. The key is given. The values for this key are based on the values of one or more existing keys. A template is used to make the new value. The template can include one or more existing keys placed between curly braces.
+This step adds a new key-value to all existing items in the list. The target key is given. The values for this key are based on the values of one or more existing keys. A template is used to make the new value. The template can include one or more existing keys placed between curly braces.
 
 ## Add key(s) using template
 
-The template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension. Remember that the template values are greedy; this means that they want to contain the largest possible value that will match the template. In the example above the value "test_1.a.tif" will result in a key "number" with value "1.a" and a key "extension" with value "tif".
+The template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is “test_1.tif” and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}. Remember that the template values are greedy; this means that they want to contain the largest possible value that will match the template. In the example above the value “test_1.a.tif” will result in a key “number” with value “1.a” and a key “extension” with value “tif”.
+Use the step “Add key with regular expression based value” if you need more control.
 
 ## Add key with counter value
 
-This step adds a new key-value to all existing items in the list. The key is given. The values for this key is a number that starts at the start value, increments with a value of step and includes leading zero’s if the given width is greater than the actual width of the number. Optionally, you can specify a key for each unique value the counting starts from the start value.
+This step adds a new key-value to all existing items in the list. The target key is given. The values for this key is a number that starts at the start value, increments with a value of step and includes leading zero’s if the given width is greater than the actual width of the number. Optionally, you can specify a key for each unique value the counting starts from the start value.
+
+## Change the value of a key
+
+This step changes the value of a specific source key in one of the following ways: to uppercase, to lowercase, remove -, remove - or _, remove spaces, remove spaces from front and end of string, replace - with space, replace - or _ with space, pad zeros to a number to get 5 numbers, strip tags, to SHA1 hash, XML encode or XML decode.
 
 ## Parse XML file
 
-This step adds a new key-value to all existing items in the list. The key is given. The value is the Document Object Model (DOM) of an existing XML file identified by a key in the existing items in the list. This step is used in combinations with one or more “add key from XML” or "add items by extracting XML parts from XML" steps.
+This step adds a new key-value to all existing items in the list. The target key is given. The value is the Document Object Model (DOM) of an existing XML file identified by a key in the existing items in the list. This step can be used in combination with one or more “add key from XML” or “add items by extracting XML parts from XML” steps.
 
 ## Add key from XML
 
-This step adds a new key-value to all existing items in the list. The key is given. The value is retrieved from a DOM identified by a key of the existing items in the list by using a given XPath and namespaces. This step should be used after the “parse XML file” step. 
+This step adds a new key-value to all existing items in the list. The target key is given. The value is retrieved from a DOM identified by a key of the existing items in the list by using a given XPath and namespaces. This step should be used after the “parse XML file” step. 
 
 ## Make directory
 
-This step creates a directory in the file system based on the values of one or more keys in all existing items in the list. The value should be an absolute path to a not yet existing directory. The parent directory of this directory should exist.
+This step creates a directory in the file system based on the values of one or more keys in all existing items in the list. The value should be an absolute path to a not yet existing directory, but if the directory exists already no action is taken. The parent directory of this directory should exist.
 
 ## Copy file
 
@@ -124,9 +131,9 @@ This step groups the existing items in the list, thus reducing the number of ite
 
 ## Filter items
 
-This step filters the items in the list, thus reducing the list to only the items that match the filter configuration. The filtering is done on the value of a filter key of all existing items in the list. If the filter type is 'key exists', only items that include that key will remain in the list. If the filter type is 'equals', only items whose value of the filter key is equal to the filter value remain in the list. If the filter type is 'matches', only items whose value of the filter key matches the regular expression of the filter value remain in the list. A regular expression should be enclosed by delimiters, often forward slashes (/), hash signs (#) or percentage (%), but also brackets are allowed ({}).
+This step filters the items in the list, thus reducing the list to only the items that match the filter configuration. The filtering is done on the value of a filter key of all existing items in the list. If the filter type is “key exists”, only items that include that key will remain in the list. If the filter type is “equals”, only items whose value of the filter key is equal to the filter value remain in the list. If the filter type is “matches”, only items whose value of the filter key matches the regular expression of the filter value remain in the list. A regular expression should be enclosed by delimiters, often forward slashes (/), hash signs (#) or percentage (%), but also brackets are allowed ({}).
 Negate true reverses the logic, so any items that do not match the filter type and value will remain in the list.
-Filtered items are not permanently gone; they can be recovered by a 'end filter' step.
+Filtered items are not permanently gone; they can be recovered by a “end filter” step.
 Filters can be nested.
 
 ## End filter
@@ -145,7 +152,7 @@ This step adds items for every extracted XML part from a key in existing items t
 
 ## Visual group start
 
-This step does not do anything but visually group other steps. This makes it easier to see in the workflow which steps belong together. Also possible to descibe the grouped steps.
+This step does not do anything but visually group other steps. This makes it easier to see in the workflow which steps belong together. Also possible to describe the grouped steps.
 
 ## Visual group end
 
@@ -154,6 +161,14 @@ This step ends the most recent visual group.
 ## Sort items
 
 This step sorts the items based on the values of one or two keys.
+
+## Transform XML
+
+This step transforms XML by using XSLT to a target filepath. The XML key can include a filepath to an XML file or XML data. The XSLT key can include a filepath to an XSLT file or XSLT data.
+
+## Validate XML
+
+This step validates XML, optionally using a DTD and/or a schema. The XML key can include a filepath to an XML file or XML data.
 
 ## Validate the basic images structure
 
