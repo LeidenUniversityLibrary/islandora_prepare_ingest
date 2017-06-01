@@ -1,6 +1,6 @@
 /**
  * @file
- * js/islandora_show_persistent_url.js
+ * js/islandora_prepare_ingest.js
  */
 
 var hasUnsavedChanges = false;
