@@ -411,7 +411,7 @@ function setUpButtonsAndFields($context) {
       var stepname = $whichStep.val();
       if (workflowid && stepname) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();
@@ -426,7 +426,7 @@ function setUpButtonsAndFields($context) {
       var whichWorkflowId = $whichWorkflow.val();
       if (workflowid && whichWorkflowId) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
         loadContent(loadUrl, $addStepDiv);
         hasUnsavedChanges = true;
         e.preventDefault();
@@ -533,7 +533,7 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
        'startitemnr'  : startitemnr,
        'enditemnr'    : enditemnr
     };
-    jQuery.getJSON('/admin/islandora/islandora_prepare_ingest/ajax/datacache', query, function(data) {
+    jQuery.getJSON('/admin/islandora/prepare_ingest/ajax/datacache', query, function(data) {
       filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, prevcount);
       if (endFunction) {
         endFunction();

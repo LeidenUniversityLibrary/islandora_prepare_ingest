@@ -16,7 +16,7 @@
  *   Any additional configuration, associated by step id..
  */
 
-function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, array $additionalconfig = NULL) {
+function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL, array $additionalconfig = NULL) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
@@ -24,6 +24,7 @@ function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, a
   $results = array();
   $data = array();
   $context = array();
+  $hasconfigerror = FALSE;
 
   # clear old cached data.
   islandora_prepare_ingest_data_cache_delete_old($otherid);
@@ -33,6 +34,8 @@ function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, a
   $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
+    $stepinfo = $stepsinfo[$stepname];
+    $stepclass = $stepinfo['class name'];
     $stepid = $workflowstep['id'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     if (isset($additionalconfig[$stepid])) {
@@ -41,74 +44,76 @@ function islandora_prepare_ingest_run_workflow($workflowid, $otherid, $extent, a
       }
     }
     $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
-    $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
-    $results[$stepid] = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
-    $jsonvalues = array();
-    foreach ($data as $current => $d) {
-      $d['item nr'] = $current + 1;
-      $jsonvalues[] = json_encode($d);
-    }
-    islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 1, $jsonvalues);
+    $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
 
-    if (array_key_exists('_PIFS', $context)) {
-      $files = array_keys($context['_PIFS']);
-      sort($files);
-      $jsonfiles = array();
-      foreach ($files as $current => $file) {
-        $d = array();
-        $d['item nr'] = $current + 1;
-        $d['path'] = $file;
-        $d['type'] = $context['_PIFS'][$file]['type'];
-        $jsonfiles[] = json_encode($d);
-      } 
-      islandora_prepare_ingest_data_cache_insert($workflowid, $stepid, $otherid, 2, $jsonfiles);
-    }
+    $results[$stepid]['label'] = $step->label();
+  
+    if ($otherid) {
+      $stepresult = $step->checkConfiguration();
+  //dpm($stepresult, "stepresult $stepname $stepclass");
+      if ($stepresult) {
+        $results[$stepid]['check'] = $stepresult;
+        $hasconfigerror = TRUE;
+      }
+      if (!$hasconfigerror) {
+        $step->dryRun();
+  //dpm(array(), "dry run $stepname $stepclass");
+        $stepresult = $step->verify();
+  //dpm($stepresult, "verify $stepname $stepclass");
+        if ($stepresult) {
+          $results[$stepid]['verify'] = $stepresult;
+        }
+      }
+    } 
+dpm($results[$stepid], "results for step $stepid");
   }
   return $results;
 }
 
-function islandora_prepare_ingest_full_run_workflow($workflowid) {
-  module_load_include('inc', 'islandora_prepare_ingest', 'workflow_step');
+function islandora_prepare_ingest_full_run_workflow($workflowid, $otherid = NULL) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-  $extent = WORK_EXTENT_DO_ALL;
-
-  $data = array();
-  $context = array();
-
-  $haserrors = FALSE;
-
+  if ($otherid === NULL) {
+    $otherid = islandora_prepare_ingest_random_string(10);
+    $results = islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid);
+    if ($results) {
+      // something went wrong...
+      return $results;
+    }
+  }
+  $count = islandora_prepare_ingest_data_cache_count($workflow_id, $other_id);
+  if ($count === 0) {
+    // no data for this workflow at all 
+    $results[] = array(
+      array(
+        'text' => t("Workflow @workflowid does not have any data for run '@otherid'",
+                     array('@workflowid' => $workflow_id, '@otherid' => $otherid)),
+        'type' => 'run_error'
+      ),
+    );
+  }
   # Workflow steps
   $stepsinfo = module_invoke_all('workflow_step_info');
   $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
+    $stepinfo = $stepsinfo[$stepname];
+    $stepclass = $workflowstep['class name'];
     $stepid = $workflowstep['id'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
-    $stepfunc = islandora_prepare_ingest_callback_for_step($stepname, 'work');
-    $results = $stepfunc($stepsinfo[$stepname], $stepconfig, $data, $context, $extent);
 
-    if (is_array($results) && count($results) > 0) {
-      foreach ($results as $result) {
-        if (strpos($result['type'], 'error') !== FALSE) {
-          drush_log($result['text'], 'error');
-          $haserrors = TRUE;
-        }
-        elseif (strpos($result['type'], 'warn') !== FALSE) {
-          drush_log($result['text'], 'warning');
-        }
-        else {
-          drush_log($result['text'], 'notice');
-        }
-      }
+    $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
+
+    $stepresult = $step->prepareIngest();
+    if ($stepresult) {
+      $results[$stepid] = $stepresult;
     }
   }
-  if (!$haserrors) {
-    drush_log(t('Prepare ingest completed successfully!'), 'success');
-  }
+  return $results;
 }
 
 function islandora_prepare_ingest_random_string($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') {

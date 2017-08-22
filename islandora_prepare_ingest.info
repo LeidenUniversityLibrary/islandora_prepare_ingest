@@ -2,6 +2,10 @@ name = Islandora Prepare Ingest
 description = Module for preparing data for ingest into Islandora
 package = Islandora Tools
 dependencies[] = islandora
-version = "7.x-3.x-dev"
+version = "7.x-4.x-dev"
 core = "7.x"
 
+files[] = steps/PrepareIngestStep.inc
+files[] = steps/AddKeyTemplate.inc
+files[] = steps/DefineConstantStep.inc
+files[] = steps/ReadFilenamesStep.inc

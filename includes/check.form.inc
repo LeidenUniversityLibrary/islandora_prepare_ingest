@@ -85,12 +85,12 @@ function islandora_prepare_ingest_check_workflow_form_submit(array $form, array 
     $_SESSION['workflowresults'] = $workflowresults;
     $_SESSION['otherid'] = $otherid;
 
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/test/' . $form_state['values']['workflowid'];
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/test/' . $form_state['values']['workflowid'];
   }
 }
 
 function islandora_prepare_ingest_check_workflow_form_back(array $form, array &$form_state) {
   unset($_SESSION['workflowresults']);
   unset($_SESSION['otherid']);
-  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $form_state['values']['workflowid'];
+  $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $form_state['values']['workflowid'];
 }

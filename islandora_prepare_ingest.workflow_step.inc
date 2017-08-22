@@ -49,6 +49,8 @@ function islandora_prepare_ingest_workflow_step_info() {
   $info = array();
 
   $info['define_constant'] = array(
+    'name' => t('Define constant'),
+    'class name' => 'DefineConstantStep',
     'arguments' => array(
       'name' => array(
         'label' => t('Name'),
@@ -69,6 +71,8 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => ' ' . t('Constants'),
   );
   $info['read_file_names'] = array(
+    'name' => t('Read filenames'),
+    'class name' => 'ReadFilenamesStep',
     'arguments' => array(
       'directory_path' => array(
         'label' => t('Directory path'),
@@ -97,6 +101,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'type group' => t('Add items from files'),
   );
+/*
   $info['add_key_regexp'] = array(
     'arguments' => array(
       'source_key_name' => array(
@@ -125,7 +130,10 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'type group' => t('Add key(s)'),
   );
+*/
   $info['add_key_template'] = array(
+    'name' => t('Add key with template based value'),
+    'class name' => 'AddKeyTemplate',
     'arguments' => array(
       'target_key_name' => array(
         'label' => t('Target key name'),
@@ -145,6 +153,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes files' => FALSE,
     'type group' => t('Add key(s)'),
   );
+/*
   $info['add_key_counter'] = array(
     'arguments' => array(
       'target_key_name' => array(
@@ -622,26 +631,10 @@ function islandora_prepare_ingest_workflow_step_info() {
   $info['validate_basic_image'] = $validateconfig;
   $info['validate_large_image'] = $validateconfig;
   $info['validate_book'] = $validateconfig;
+*/
   /*$info['validate_newspaper'] = $validateconfig;*/
 
   return $info;
-}
-
-/**
- * Helper functions.
- **/
-function islandora_prepare_ingest_label_for_step($stepname, $stepconfig = array()) {
-  $stepsinfo = module_invoke_all('workflow_step_info');
-  $stepinfo = $stepsinfo[$stepname];
-  $labelfunc = islandora_prepare_ingest_callback_for_step($stepname, 'label');
-  if ($labelfunc !== FALSE) {
-    $label = $labelfunc($stepinfo, $stepconfig);
-  }
-  if (!$label) {
-    $label = $stepname;
-  }
-
-  return $label;
 }
 
 function islandora_prepare_ingest_callback_for_step($stepname, $callbacktype) {
@@ -870,7 +863,8 @@ function check_arguments(array $info, array $config, $extent) {
   }
   return $results;
 }
-
+?>
+<!--
 function fill_out_template($template, $keyvalues) {
   if (strpos($template, '{') !== FALSE) {
     $keys = array();
@@ -3066,4 +3060,4 @@ function label_validate_newspaper(array $info, array $config) {
 function work_validate_newspaper(array $info, array $config, &$data, &$context, $extent) {
 
 }
-
+-->

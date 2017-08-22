@@ -131,7 +131,7 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $type) {
 
 function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, $workflowresult, $stepid, $stepname, $canmovesteps, $canchangeconfig, $istesting, $ischecking, $isactiveedit) {
   $newstep = array(
-    '#title' => islandora_prepare_ingest_label_for_step($stepname, $stepconfig),
+    '#title' => $workflowresult['label'],
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
@@ -139,22 +139,24 @@ function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, 
       'class' => array('workflow_step', $stepname),
     ),
   );
-  if (isset($workflowresult) && is_array($workflowresult) && count($workflowresult) > 0) {
-    $newstep['#collapsed'] = FALSE;
-    foreach ($workflowresult as $i => $result) {
-      if ($i >= 10) {
-        break;
+  foreach (array('check','verify') as $type) {
+    if (isset($workflowresult[$type]) && count($workflowresult[$type]) > 0) {
+      $newstep['#collapsed'] = FALSE;
+      foreach ($workflowresult[$type] as $i => $result) {
+        if ($i >= 10) {
+          break;
+        }
+        $newstep[$type . '_description' . '_' . $i] = array(
+          '#type' => 'item',
+          '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
+        );
       }
-      $newstep['check_description' . '_' . $i] = array(
-        '#type' => 'item',
-        '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
-      );
-    }
-    if (count($workflowresult) >= 10) {
-      $newstep['check_description' . '_' . count($workflowresult)] = array(
-        '#type' => 'item',
-        '#markup' => '<SPAN class="warning">Other ' . (count($workflowresult) - 10) . ' errors suppressed</SPAN>',
-      );
+      if (count($workflowresult[$type]) >= 10) {
+        $newstep[$type . '_description' . '_' . count($workflowresult[$type])] = array(
+          '#type' => 'item',
+          '#markup' => '<SPAN class="warning">Other ' . (count($workflowresult[$type]) - 10) . ' errors suppressed</SPAN>',
+        );
+      }
     }
   }
   if ($canmovesteps) {

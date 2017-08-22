@@ -8,12 +8,14 @@
 /**
  * Select all workflows in the database
  */
-function islandora_prepare_ingest_select_workflows($type, $negate = FALSE) {
+function islandora_prepare_ingest_select_workflows($type = NULL, $negate = FALSE) {
   $results = array();
-  $workflows = db_select('islandora_prepare_ingest_workflow', 'workflow')
-    ->fields('workflow')
-    ->condition('type', $type, $negate?'<>':'=')
-    ->execute();
+  $select = db_select('islandora_prepare_ingest_workflow', 'workflow')
+    ->fields('workflow');
+  if ($type) {
+    $select = $select->condition('type', $type, $negate?'<>':'=');
+  }
+  $workflows = $select->execute();
   while ($workflow = $workflows->fetchAssoc()) {
     $results[] = $workflow;
   }

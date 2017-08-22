@@ -1,4 +1,6 @@
 <?php
+ini_set('error_reporting', E_ALL);
+ini_set('display_errors', 'On');  //On or Off
 
 /**
  * @file
@@ -16,16 +18,16 @@
 function islandora_prepare_ingest_manage_form(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
-  $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
+  $workflows = islandora_prepare_ingest_select_workflows();
 
   $options = array();
   foreach ($workflows as $workflow) {
     $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
+      'name' => l($workflow['name'], 'admin/islandora/prepare_ingest/edit/' . $workflow['id']),
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/islandora_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/islandora_prepare_ingest/generic_workflow/export/' . $workflow['id']),
+      'copy' => l(t('copy'),'admin/islandora/prepare_ingest/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/prepare_ingest/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -87,7 +89,7 @@ function islandora_prepare_ingest_manage_delete_selected_workflows(array $form, 
 }
 
 function islandora_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
-  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/make';
+  $form_state['redirect'] = 'admin/islandora/prepare_ingest/make';
 }
 
 /**
@@ -136,6 +138,7 @@ function islandora_prepare_ingest_manage_upload_import($form, $form_state) {
  *   The Drupal form state.
  */
 function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_state, $workflowid = FALSE) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
 
   $form = array();
 
@@ -185,7 +188,12 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
   if ($workflowid) {
     # steps
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
+    if (isset($_SESSION['workflowresults'])) {
+      $workflowresults = $_SESSION['workflowresults'];
+    }
+    else {
+      $workflowresults = islandora_prepare_ingest_dry_run_workflow($workflowid);
+    }
     $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, 'edit');
 
     # Add another step
@@ -217,7 +225,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     );
     # Add steps from workflow
     $options = array();
-    $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
+    $workflows = islandora_prepare_ingest_select_workflows('partial');
     foreach ($workflows as $workflow) {
       $options[$workflow['id']] = $workflow['name'] . ' (' . $workflow['type'] . ')';
     }
@@ -238,17 +246,18 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     '#value' => t('Back'),
     '#submit' => array('islandora_prepare_ingest_edit_workflow_form_back'),
   );
-  # Check
-  $form['check'] = array(
+  # Test
+  $form['test'] = array(
     '#type' => 'submit',
-    '#value' => t('Check workflow'),
-    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_check'),
+    '#value' => t('Test workflow'),
+    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_test'),
     '#id' => 'check_workflow_button',
   );
   # Save
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save workflow'),
+    '#id' => 'save_workflow_button',
   );
   return $form;
 }
@@ -262,6 +271,7 @@ function islandora_prepare_ingest_edit_workflow_form_validate(array $form, array
 }
 
 function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_state) {
+  // save workflow.
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   unset($_SESSION['workflowresults']);
@@ -281,7 +291,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
   }
   else {
     $workflowid = islandora_prepare_ingest_insert_workflow($name, $description, $type);  
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $workflowid;
   }
   $updates = array();
   foreach ($form_state['values'] as $key => $value) {
@@ -348,21 +358,21 @@ function islandora_prepare_ingest_edit_workflow_form_back(array $form, array &$f
   unset($_SESSION['workflowresults']);
   unset($_SESSION['otherid']);
 
-  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflows';
+  $form_state['redirect'] = 'admin/islandora/prepare_ingest';
 }
 
-function islandora_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
+function islandora_prepare_ingest_edit_workflow_form_test(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
   $otherid = islandora_prepare_ingest_random_string(10);
-  $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
+  $workflowresults = islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
   $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['otherid'] = $otherid; 
   if (islandora_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
     islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/check/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/check/' . $workflowid;
   }
   else {
     islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
@@ -424,7 +434,7 @@ function islandora_prepare_ingest_edit_workflow_form_copy_workflow(array $form, 
 
     islandora_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
 
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $newworkflowid;
   }
 }
 
@@ -581,9 +591,9 @@ function islandora_prepare_ingest_ajax_datacache_handler() {
   if ($workflowid && $stepid && $otherid && $type) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-    $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
+    $count = islandora_prepare_ingest_data_cache_per_step_count($workflowid, $stepid, $otherid, $type);
     $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $startitemnr, $enditemnr);
-    return '{ "count" : ' . $count . ', "list" : [' . implode(",", $result) . '] }';
+    return '{ "count" : ' . $count . ', "list" : json_encode($result) }';
   }
   return "{ }";
 }
@@ -603,3 +613,14 @@ function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   print $content;
   drupal_page_footer(); 
 }
+
+/**
+ * Helper functions.
+ **/
+function islandora_prepare_ingest_label_for_step($stepname) {
+// niet verwijderen!
+  $stepsinfo = module_invoke_all('workflow_step_info');
+  $stepinfo = $stepsinfo[$stepname];
+  return $stepinfo['name'];
+}
+
