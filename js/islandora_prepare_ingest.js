@@ -50,7 +50,41 @@ jQuery(document).ready(function() {
       filloutDataCacheElement(element, true);
     }
   });
+  jQuery('.workflow_step .tabs').each(function() {
+    var $tabs = jQuery(this);
+    var $showDataButton = $tabs.find('.show_data_button');
+    var $editButton = $tabs.find('.edit_button');
+    if ($showDataButton.size() == 1 && $editButton.size() == 1) {
+      $showDataButton.click(function(e) {
+        var $thisstep = $tabs.parents('.workflow_step').first();
+        $thisstep.find('.datacache').show();
+        $thisstep.find('.fields').hide();
+        $thisstep.find('.buttons').hide();
+        $showDataButton.hide();
+        $editButton.show();
+        e.preventDefault();
+      });
+      $editButton.click(function(e) {
+        var $thisstep = $tabs.parents('.workflow_step').first();
+        $thisstep.find('.datacache').hide();
+        $thisstep.find('.fields').show();
+        $thisstep.find('.buttons').show();
+        $showDataButton.show();
+        $editButton.hide();
+        e.preventDefault();
+      }); 
+      $showDataButton.click();
+    }
+  });
 });
+
+function setUnsavedChanges() {
+  if (!hasUnsavedChanges) {
+    hasUnsavedChanges = true;
+    jQuery('#save_workflow_button').show();
+    jQuery('#dryrun_workflow_button').hide();
+  }
+}
 
 function setUpButtonsAndFields($context) {
   // remove button
@@ -66,13 +100,13 @@ function setUpButtonsAndFields($context) {
           var $nextstep = $thisstep.next();
           $nextstep.find('.remove_step').val('1');
           $nextstep.hide(500);
-          hasUnsavedChanges = true;
+          setUnsavedChanges();
         }
       }
       else {
         $thisstep.find('.remove_step').val('1');
         $thisstep.hide(500);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
       }
     }
   });
@@ -88,7 +122,7 @@ function setUpButtonsAndFields($context) {
       $nextstep.hide(500);
       var $groupitems = $thisstep.find('> div > div.grouped_steps > fieldset.workflow_step');
       swapElements($nextstep, $groupitems, function() { $nextstep.before($groupitems); $thisstep.hide(100); });
-      hasUnsavedChanges = true;
+      setUnsavedChanges();
     }
   });
 
@@ -175,7 +209,7 @@ function setUpButtonsAndFields($context) {
           $moveherestep.before($currentstep);
         }
         reassignStepWeights();
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
       });
       e.preventDefault();
     });
@@ -332,7 +366,7 @@ function setUpButtonsAndFields($context) {
         $textfield.val(jQuery(e.target).data('value'));
         $textfield.focus();
       }
-      hasUnsavedChanges = true;
+      setUnsavedChanges();
     });
     if ($menu.html().length > 0) {
       var offset = $textfield.offset();
@@ -394,7 +428,7 @@ function setUpButtonsAndFields($context) {
   $context.find('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
   $context.find(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
-     hasUnsavedChanges = true;
+     setUnsavedChanges();
   });
   $context.find('#check_workflow_button').click(function (e) {
     if (hasUnsavedChanges) {
@@ -413,7 +447,7 @@ function setUpButtonsAndFields($context) {
         var loc = window.location;
         var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
         loadContent(loadUrl, $addStepDiv);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
         e.preventDefault();
       }
     }
@@ -428,7 +462,7 @@ function setUpButtonsAndFields($context) {
         var loc = window.location;
         var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
         loadContent(loadUrl, $addStepDiv);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
         e.preventDefault();
       }
     }
@@ -488,8 +522,8 @@ function loadContent(loadUrl, $addStepDiv) {
 var batchsize = 10;
 
 function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
-  var workflowid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="workflowid"]').val();
-  var otherid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="otherid"]').val();
+  var workflowid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+  var otherid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="otherid"]').val();
   var stepid = jQuery(element).data('stepid');
   var type = jQuery(element).data('type');
   var startitemnr = jQuery(element).data('startitemnr');

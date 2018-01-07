@@ -47,26 +47,22 @@ function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL,
 
     $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
 
-    $results[$stepid]['label'] = $step->label();
+    //$results[$stepid]['label'] = $step->label();
   
     if ($otherid) {
       $stepresult = $step->checkConfiguration();
-  //dpm($stepresult, "stepresult $stepname $stepclass");
       if ($stepresult) {
         $results[$stepid]['check'] = $stepresult;
         $hasconfigerror = TRUE;
       }
       if (!$hasconfigerror) {
-        $step->dryRun();
-  //dpm(array(), "dry run $stepname $stepclass");
-        $stepresult = $step->verify();
-  //dpm($stepresult, "verify $stepname $stepclass");
+        $step->dryRun($context);
+        $stepresult = $step->verify($context);
         if ($stepresult) {
           $results[$stepid]['verify'] = $stepresult;
         }
       }
     } 
-dpm($results[$stepid], "results for step $stepid");
   }
   return $results;
 }
@@ -108,7 +104,7 @@ function islandora_prepare_ingest_full_run_workflow($workflowid, $otherid = NULL
 
     $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
 
-    $stepresult = $step->prepareIngest();
+    $stepresult = $step->prepareIngest($context);
     if ($stepresult) {
       $results[$stepid] = $stepresult;
     }

@@ -3,15 +3,16 @@
 class ReadFilenamesStep extends PrepareIngestStep {
   
   public function label() {
-    $title = t('Add items by reading file names');
+    $title = t('Add items');
+    if (array_key_exists('target_key_name', $this->config) && strlen($this->config['target_key_name']) > 0) {
+      $title .= ' ' . t('with key "@key"', array('@key' => $this->config['target_key_name']));
+    }
+    $title .= ' ' . t('by reading file names');
     if (array_key_exists('directory_path', $this->config) && strlen($this->config['directory_path']) > 0) {
       $title .= ' ' . t('from "@path"', array('@path' => $this->config['directory_path']));
     }
     if (array_key_exists('filter', $this->config) && strlen($this->config['filter']) > 0) {
       $title .= ' ' . t('filtered by "@filter"', array('@filter' => $this->config['filter']));
-    }
-    if (array_key_exists('target_key_name', $this->config) && strlen($this->config['target_key_name']) > 0) {
-      $title .= ' ' . t('and insert item with key "@key"', array('@key' => $this->config['target_key_name']));
     }
     $title .= '.';
 
@@ -41,7 +42,7 @@ class ReadFilenamesStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function dryRun() {
+  public function dryRun(&$context) {
     if ($this->hasConfigKey('directory_path')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
@@ -50,18 +51,19 @@ class ReadFilenamesStep extends PrepareIngestStep {
       $includedir = $this->config['include_subdirectory_files'];
       $filenames = pifs_full_filenames_from_directory($dirpath, $context, $filter, $includedir);
       $key = $this->config['target_key_name'];
+      $items = array();
       foreach ($filenames as $filename) {
         $items[] = array($key => $filename);
       }
-      islandora_prepare_ingest_data_cache_insert($workflow_id, $step_id, $other_id, 2, $items);
+      islandora_prepare_ingest_data_cache_insert($this->workflowid, $this->stepid, $this->otherid, 1, $items);
     }
   }
 
-  public function verify() {
-    return parent::verify();
+  public function verify($context) {
+    return parent::verify($context);
   }
 
-  public function prepareIngest() {
+  public function prepareIngest(&$context) {
     // no need to do anything
   }
 

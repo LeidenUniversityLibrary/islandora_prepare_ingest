@@ -5,17 +5,17 @@ class DefineConstantStep extends PrepareIngestStep {
   public function label() {
     $title = '';
     if ($this->hasConfigKey('name')) {
-      $title .= t('Defined constant with name "@name"', array('@name' => $this->config['name']));
+      $title .= t('Define constant "@name"', array('@name' => $this->config['name']));
       $value = '';
       if ($this->hasConfigKey('value')) {
         $value = $this->config['value'];
       }
-      $title .= ' ' . t('and value "@value"', array('@value' => $value));
+      $title .= ' ' . t('with value "@value"', array('@value' => $value));
     }
     else {
       $title .= t('Define constant');
     }
-    $title .= '. XXXX';
+    $title .= '.';
 
     return $title;
   }
@@ -24,7 +24,7 @@ class DefineConstantStep extends PrepareIngestStep {
     return parent::checkConfiguration();
   }
 
-  public function dryRun() {
+  public function dryRun(&$context) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
     if (isset($this->config['name'])) {
       $name = $this->config['name'];
@@ -37,12 +37,12 @@ class DefineConstantStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function verify() {
+  public function verify($context) {
     // no need to verify anything because there is nothing to verify.
     return array();
   }
 
-  public function prepareIngest() {
+  public function prepareIngest(&$context) {
     // no need to do anything
   }
 

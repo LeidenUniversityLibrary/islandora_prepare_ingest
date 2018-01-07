@@ -6,11 +6,11 @@ interface PrepareIngestStepInterface {
 
   public function checkConfiguration();
 
-  public function dryRun();
+  public function dryRun(&$context);
 
-  public function verify();
+  public function verify($context);
 
-  public function prepareIngest();
+  public function prepareIngest(&$context);
 
 }
 
@@ -42,8 +42,8 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   public function __construct(array $stepinfo, array $stepconfig, $workflowid, $stepid, $otherid) {
     $this->info = $stepinfo;
     $this->config = $stepconfig; 
-    $this->workflowid = $workflowid;
-    $this->stepid = $stepid;
+    $this->workflowid = (int)$workflowid;
+    $this->stepid = (int)$stepid;
     $this->otherid = $otherid;
   }
   
@@ -86,7 +86,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   *   The type key indicates the type of error and should be run_error.
   *   The optional key key holds the name of the key where the run went wrong.
   **/
-  public function dryRun() {
+  public function dryRun(&$context) {
     $classname = get_class($this);
     $methodname = __METHOD__;
     throw new BadMethodCallException("Method '$methodname' not implemented for class '$classname'.");
@@ -104,7 +104,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   *   The text key has a value (string) that explains what is wrong.
   *   The type key indicates the type of error and should be config_error or key_error.
   **/
-  public function verify() {
+  public function verify($context) {
     return $this->_checkInputKeysInData();
   }
 
@@ -116,7 +116,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   * another way, this is the place to do it.
   *
   **/
-  public function prepareIngest() {
+  public function prepareIngest(&$context) {
     $classname = get_class($this);
     $methodname = __METHOD__;
     throw new BadMethodCallException("Method '$methodname' not implemented for class '$classname'.");
@@ -161,9 +161,12 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function fillOutTemplate($template, $keyvalues) {
     if (strpos($template, '{') !== FALSE) {
       $keys = array();
-      $values = array_values($keyvalues);
+      $values = array();
       foreach ($keyvalues as $k => $v) {
-        $keys[] = '{' . $k . '}';
+        if (strlen($k) > 0 && isset($v)) {
+          $keys[] = '{' . $k . '}';
+          $values[] = $v;
+        }
       }
       $template = str_replace($keys, $values, $template);
     }

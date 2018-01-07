@@ -33,7 +33,7 @@ function islandora_prepare_ingest_menu() {
     'admin/islandora/prepare_ingest/edit/%' => array(
       'title' => 'Edit generic workflow',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('islandora_prepare_ingest_edit_workflow_form',4),
+      'page arguments' => array('islandora_prepare_ingest_edit_workflow_form', 4, 'edit'),
       'file' => 'includes/manage.form.inc',
       'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
       'type' => MENU_NORMAL_ITEM,
@@ -54,19 +54,11 @@ function islandora_prepare_ingest_menu() {
       'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
       'type' => MENU_NORMAL_ITEM,
     ),
-    'admin/islandora/prepare_ingest/check/%' => array(
+    'admin/islandora/prepare_ingest/dryrun/%' => array(
       'title' => 'Check generic workflow',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('islandora_prepare_ingest_check_workflow_form', 4, FALSE),
-      'file' => 'includes/check.form.inc',
-      'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
-      'type' => MENU_NORMAL_ITEM,
-    ),
-    'admin/islandora/prepare_ingest/test/%' => array(
-      'title' => 'Test generic workflow',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('islandora_prepare_ingest_check_workflow_form', 4, TRUE),
-      'file' => 'includes/check.form.inc',
+      'page arguments' => array('islandora_prepare_ingest_edit_workflow_form', 4, 'dryrun'),
+      'file' => 'includes/manage.form.inc',
       'access arguments' => array(ISLANDORA_PREPARE_INGEST_MANAGE),
       'type' => MENU_NORMAL_ITEM,
     ),

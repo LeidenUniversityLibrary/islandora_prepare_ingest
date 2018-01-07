@@ -27,8 +27,8 @@ class AddKeyTemplate extends PrepareIngestStep {
     return parent::checkConfiguration();
   }
 
-  public function dryRun() {
-    if ($this->hasConfigKey('target_key_name') && $this->hasConfigKey(['template')) {
+  public function dryRun(&$context) {
+    if ($this->hasConfigKey('target_key_name') && $this->hasConfigKey('template')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $targetkey = $this->config['target_key_name'];
       $template = $this->config['template'];
@@ -42,11 +42,11 @@ class AddKeyTemplate extends PrepareIngestStep {
     }
   }
 
-  public function verify() {
-    return parent::verify();
+  public function verify($context) {
+    return parent::verify($context);
   }
 
-  public function prepareIngest() {
+  public function prepareIngest(&$context) {
     // no need to do anything
   }
 
