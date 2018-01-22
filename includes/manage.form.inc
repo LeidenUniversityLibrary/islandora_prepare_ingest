@@ -216,7 +216,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     $stepsinfo = module_invoke_all('workflow_step_info');
     foreach ($stepsinfo as $stepname => $stepinfo) {
       $typegroup = isset($stepinfo['type group'])?$stepinfo['type group']:t('Other');
-      $options[$typegroup][$stepname] = islandora_prepare_ingest_label_for_step($stepinfo);
+      $options[$typegroup][$stepname] = $stepinfo['name'];
     }
     ksort($options);
     foreach ($options as $k => $v) {
@@ -532,16 +532,19 @@ function islandora_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $
         $workflowstep = $wfstep;
       }
     }
+
     $stepsinfo = module_invoke_all('workflow_step_info');
     $stepinfo = $stepsinfo[$stepname];
-    $stepconfig = array();
-    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstep_form', $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname);
+    $stepclass = $stepinfo['class name'];
+    $step = new $stepclass($workflowstep, array(), NULL);
+
+    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstep_form', $step);
     return $form;
   }
   return array();
 }
 
-function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname) {
+function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $step) {
   $form = array(
     '#title' => t('Steps'),
     '#type' => 'fieldset',
@@ -549,7 +552,8 @@ function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $workfl
     '#collapsed' => FALSE,
   );
 
-  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, NULL, $stepid, $stepname); 
+  $stepconfig = array();
+  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($step, array()); 
   $form['onestep']['#collapsed'] = FALSE;
 
   return $form;
@@ -634,22 +638,5 @@ function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   }
   print $content;
   drupal_page_footer(); 
-}
-
-/**
- * Helper functions.
- **/
-function islandora_prepare_ingest_label_for_step($stepinfo = NULL, $stepconfig = array(), $workflowresult = NULL) {
-// niet verwijderen!
-  if (isset($workflowresult['label'])) {
-    return $workflowresult['label'];
-  }
-  if (isset($stepinfo['class name'])) {
-    $stepclass = $stepinfo['class name'];
-    $step = new $stepclass($stepinfo, $stepconfig, NULL, NULL, NULL);
-
-    return $step->label();
-  }
-  return $stepinfo['name'];
 }
 

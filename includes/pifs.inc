@@ -5,97 +5,131 @@
  * Prepare Ingest File System.
  */
 
-function pifs_file_exists($filepath, $context) {
+function pifs_file_exists($filepath, $workflow_id, $other_id) {
   if (file_exists($filepath)) {
     return TRUE;
   }
-  if  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
-    return TRUE;
-  }
+  return pifs_entry_exists($filepath, $workflow_id, $other_id);
+}
+
+function pifs_entry_exists($filepath, $workflow_id, $other_id) {
   $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
-  if  (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
-    return TRUE;
+  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
+  return (count($files) > 0);
+}
+
+function pifs_entry_is_file($filepath, $workflow_id, $other_id) {
+  return pifs_entry_is_of_type($filepath, $workflow_id, $other_id, 'file');
+}
+
+function pifs_entry_is_directory($filepath, $workflow_id, $other_id) {
+  return pifs_entry_is_of_type($filepath, $workflow_id, $other_id, 'directory');
+}
+
+function pifs_entry_is_of_type($filepath, $workflow_id, $other_id, $type) {
+  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', db_like($filepath));
+  if (count($files) > 0) {
+    $lastfile = end($files);
+    $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
+    if (count($items) === 1) {
+      $item = end($items);
+      if ($item['type'] === $type) {
+        return TRUE;
+      }
+    }
   }
   return FALSE;
 }
 
-function pifs_entry_exists($filepath, $context) {
-  if (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
-    return TRUE;
-  }
-  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
-  if (array_key_exists('_PIFS', $context) && array_key_exists($filepath, $context['_PIFS'])) {
-    return TRUE;
-  }
-  return FALSE;
-}
-
-function pifs_entry_is_file($filepath, $context) {
-  return (pifs_entry_exists($filepath, $context)
-          && array_key_exists('type', $context['_PIFS'][$filepath]) && ($context['_PIFS'][$filepath]['type'] === 'file'));
-}
-
-function pifs_is_file($filepath, $context) {
+function pifs_is_file($filepath, $workflow_id, $other_id) {
   if (is_file($filepath)) {
     return TRUE;
   }
-  if (pifs_entry_is_file($filepath, $context)) {
-    return TRUE;
-  }
-  return FALSE;
+  return pifs_entry_is_file($filepath, $workflow_id, $other_id);
 }
 
-function pifs_is_dir($filepath, $context) {
+function pifs_is_dir($filepath, $workflow_id, $other_id) {
   $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
   if (is_dir($filepath)) {
     return TRUE;
   }
-  elseif (pifs_entry_exists($filepath, $context)) {
-    if ($context['_PIFS'][$filepath]['type'] === 'directory') {
-      return TRUE;
+  return pifs_entry_is_directory($filepath, $workflow_id, $other_id);
+}
+
+function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id, $item_nr) {
+  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
+  $item = array('filepath' => $filepath, 'type' => 'directory');
+  islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
+}
+
+function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id, $item_nr) {
+  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $sourcefile);
+  if (count($files) > 0) {
+    $lastfile = end($files);
+    $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
+    if (count($items) === 1) {
+      $item = array('filepath' => $targetfile, 'type' => $items[0]['type']);
+      if (isset($items[0]['content'])) {
+        $item['content'] = $items[0]['content'];
+      }
+      islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
     }
   }
-  return FALSE;
+  elseif (is_file($sourcefile)) {
+    $item = array('filepath' => $targetfile, 'type' => 'file', 'realfilepath' => $sourcefile);
+    islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
+  }
 }
 
-function pifs_mkdir($filepath, &$context) {
-  $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
-  $context['_PIFS'][$filepath] = array('type' => 'directory');
+function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $item_nr) {
+  $item = array('filepath' => $targetfile, 'type' => 'file', 'content' => $content);
+  islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
 }
 
-function pifs_copy($sourcefile, $targetfile, &$context) {
-  $context['_PIFS'][$targetfile] = array('type' => 'file', 'path' => $sourcefile);
+function pifs_entry_append_content($targetfile, $content, $workflow_id, $step_id, $other_id, $item_nr) {
+  $existitemnr = '';
+  $oldcontent = pifs_entry_read_content($targetfile, $workflow_id, $other_id, $existitemnr);
+  if (is_string($oldcontent) && strlen($oldcontent) > 0) {
+    $content = $oldcontent . $content;
+    $item = array('filepath' => $targetfile, 'type' => 'file', 'content' => $content);
+    islandora_prepare_ingest_data_cache_single_update($workflow_id, $step_id, $other_id, 2, $existitemnr, $item);
+  }
+  else {
+    $item = array('content' => $content);
+    islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
+  }
 }
 
-function pifs_write_content($targetfile, $content, &$context) {
-  $context['_PIFS'][$targetfile] = array('type' => 'file', 'content' => $content);
-}
-
-function pifs_append_content($targetfile, $content, &$context) {
-  $context['_PIFS'][$targetfile]['content'] .= $content;
-}
-
-function pifs_read_content($filepath, $context) {
-  if (pifs_entry_is_file($filepath, $context)) {
-    if (array_key_exists('content', $context['_PIFS'][$filepath])) {
-      return $context['_PIFS'][$filepath]['content'];
-    }
-    elseif (array_key_exists('path', $context['_PIFS'][$filepath])) {
-      $origfile = $context['_PIFS'][$filepath]['path'];
-      clearstatcache(TRUE, $filepath); // make sure we get the right size.
-      $fh = @fopen($filepath, 'r');
-      if ($fh !== FALSE) {
-        $content = fread($fh, filesize($filepath));
-        fclose($fh);
-
-        return $content;
+function pifs_entry_read_content($filepath, $workflow_id, $other_id, &$itemnr) {
+  $content = FALSE;
+  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
+  if (count($files) > 0) {
+    $lastfile = end($files);
+    $itemnr = $lastfile['item_nr'];
+    $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $itemnr, $itemnr);
+    if (count($items) === 1) {
+      $lastitem = end($items);
+      if (isset($lastitem['content'])) {
+        $content = $lastitem['content'];
+      }
+      elseif (isset($lastitem['realfilepath'])) { 
+        $origfile = $lastitem['realfilepath'];
+        clearstatcache(TRUE, $origfile); // make sure we get the right size.
+        $fh = @fopen($origfile, 'r');
+        if ($fh !== FALSE) {
+          $content = fread($fh, filesize($origfile));
+          fclose($fh);
+        }
       }
     }
+  }
+  if ($content !== FALSE) {
+    return $content;
   }
   return NULL;
 }
 
-function pifs_full_filenames_from_directory($directorypath, $context, $filter = '', $recursive = FALSE, $includedirectories = FALSE) {
+function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other_id, $filter = '', $recursive = FALSE, $includedirectories = FALSE) {
   $regexfilter = preg_replace('/\\*/', '[^\\/]*', str_replace('.', '\\.', $filter));
   $filenames = array();
   if ($dh = @opendir($directorypath)) {
@@ -104,38 +138,49 @@ function pifs_full_filenames_from_directory($directorypath, $context, $filter = 
         $filepath = $directorypath . DIRECTORY_SEPARATOR . $filename;
         if (is_file($filepath)) {
           if (strlen($filter) === 0) {
-            $filenames[] = $filepath;
+            $filenames[$filepath] = 1;
           }
           elseif (preg_match('/' . $regexfilter . '$/', $filepath)) {
-            $filenames[] = $filepath;
+            $filenames[$filepath] = 1;
           }
         }
         elseif (is_dir($filepath)) {
           if ($includedirectories) {
-            $filenames[] = $filepath;
+            $filenames[$filepath] = 1;
           }
           if ($recursive) {
             $dirfiles = pifs_full_filenames_from_directory($filepath, $context, $filter, $recursive, $includedirectories);
             foreach ($dirfiles as $dirfile) {
-              $filenames[] = $dirfile;
+              $filenames[$filepath] = 1;
             }
           }
         }
       }
     }
   }
-  if (array_key_exists('_PIFS', $context)) {
-    foreach ($context['_PIFS'] as $filepath => $finfo) {
-      if (substr($filepath, 0, strlen($directorypath)) === $directorypath) {
-        if (strlen($filter) === 0) {
-          $filenames[] = $filepath;
-        } 
-        elseif (preg_match('/' . $regexfilter . '/', $filepath)) {
-          $filenames[] = $filepath;
+  $directorypath = rtrim($directorypath, DIRECTORY_SEPARATOR);
+  $dcfilenames = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $directorypath . DIRECTORY_SEPARATOR, TRUE);
+  if (count($dcfilenames) > 0) {
+    $origlength = strlen($directorypath);
+    foreach ($dcfilenames as $dcfilename) {
+      $items = islandora_prepare_ingest_data_cache_select($workflow_id, $dcfilename['step_id'], $other_id, 2, $dcfilename['item_nr'], $dcfilename['item_nr']);
+      if (count($items) === 1) {
+        $newfilename = $items[0]['filepath'];
+        if ($recursive || (strpos($newfilename, DIRECTORY_SEPARATOR, $origlength + 1) === FALSE)) {
+          // either recursive, or should not have a directory separator after the length of the original directory path.
+          if ($items[0]['type'] === 'directory') {
+            if ($includedirectories) {
+              $filenames[$newfilename] = 1;
+            }
+          }
+          else {
+            $filenames[$newfilename] = 1;
+          }
         }
       }
     }
   }
+  $filenames = array_keys($filenames);
   sort($filenames, SORT_STRING);
   return $filenames;
 }

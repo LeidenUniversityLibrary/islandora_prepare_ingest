@@ -5,43 +5,6 @@
  * Step info.
  */
 
-// only checks if the proper keys are given by the previous step
-define('WORK_EXTENT_ONLY_CHECK_INPUT', 1);
-
-// only checks if the arguments are all filled out.
-define('WORK_EXTENT_ONLY_CHECK_FOR_EMPTY_ARGUMENTS', 2);
-
-// only checks if the filled arguments are filled out with the correct values.
-define('WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS', 4);
-
-// only checks if all arguments are filled out and have the correct values.
-define('WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS', WORK_EXTENT_ONLY_CHECK_FOR_EMPTY_ARGUMENTS | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS);
-
-// only does a dry run: this means that all steps are done but writing of data is done to a sandbox (internal memory).
-define('WORK_EXTENT_ONLY_DRY_RUN', 8);
-
-// only does the actual work
-define('WORK_EXTENT_ONLY_DO_ALL', 16);
-
-// only checks if the proper keys are given by the previous step
-define('WORK_EXTENT_CHECK_INPUT', WORK_EXTENT_ONLY_CHECK_INPUT);
-
-// checks if the proper keys are given and checks if the filled arguments are filled out with the correct values.
-define('WORK_EXTENT_CHECK_FILLED_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS);
-
-// checks if the proper keys are given and checks if the arguments are all filled out with the correct values.
-define('WORK_EXTENT_CHECK_ALL_ARGUMENTS', WORK_EXTENT_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_ALL_ARGUMENTS);
-
-// does the above two levels and does a dry run with testdata.
-define('WORK_EXTENT_DRY_RUN_WITH_TESTDATA', WORK_EXTENT_ONLY_CHECK_INPUT | WORK_EXTENT_ONLY_CHECK_FILLED_ARGUMENTS | WORK_EXTENT_ONLY_DRY_RUN);
-
-// does the above two levels and does a dry run.
-define('WORK_EXTENT_DRY_RUN', WORK_EXTENT_CHECK_ALL_ARGUMENTS | WORK_EXTENT_ONLY_DRY_RUN);
-
-// checks the proper keys and arguments, and does a full run if this checks out.
-define('WORK_EXTENT_DO_ALL', WORK_EXTENT_CHECK_ALL_ARGUMENTS | WORK_EXTENT_ONLY_DO_ALL);
-
-
 /**
  * Implements hook_workflow_step_info
  */
@@ -50,57 +13,25 @@ function islandora_prepare_ingest_workflow_step_info() {
 
   $info['define_constant'] = array(
     'name' => t('Define constant'),
-    'class name' => 'DefineConstantStep',
-    'arguments' => array(
-      'name' => array(
-        'label' => t('Name'),
-        'description' => t('The name of the constant.'),
-        'type' => 'constantkey',
-      ),
-      'value' => array(
-        'label' => t('Value'),
-        'description' => t('The value of the constant, can be empty.'),
-        'type' => 'string',
-      ),
-    ),
-    'input keys' => array(),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
     'type group' => ' ' . t('Constants'),
+    'class name' => 'DefineConstantStep',
   );
   $info['read_file_names'] = array(
     'name' => t('Read filenames'),
-    'class name' => 'ReadFilenamesStep',
-    'arguments' => array(
-      'directory_path' => array(
-        'label' => t('Directory path'),
-        'description' => t('Specify the absolute path to the directory where the input files are located.'),
-        'type' => 'filepath',
-        'allow_constants' => TRUE,
-      ),
-      'filter' => array(
-        'label' => t('Filter'),
-        'description' => t('For example: *.tif'),
-        'type' => 'string',
-      ),
-      'include_subdirectory_files' => array(
-        'label' => t('Include files in subdirectories'),
-        'type' => 'boolean',
-      ),
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'type' => 'key',
-      ),
-    ),
-    'input keys' => array(),
-    'output keys' => array('target_key_name'),
-    'changes count' => TRUE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
     'type group' => t('Add items from files'),
+    'class name' => 'ReadFilenamesStep',
   );
+  $info['add_key_template'] = array(
+    'name' => t('Add key with template based value'),
+    'type group' => t('Add key(s)'),
+    'class name' => 'AddKeyTemplateStep',
+  );
+  $info['write_file'] = array(
+    'name' => t('Write to file'),
+    'type group' => t('Files and directories'),
+    'class name' => 'WriteFileStep',
+  );
+
 /*
   $info['add_key_regexp'] = array(
     'arguments' => array(
@@ -131,28 +62,6 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Add key(s)'),
   );
 */
-  $info['add_key_template'] = array(
-    'name' => t('Add key with template based value'),
-    'class name' => 'AddKeyTemplate',
-    'arguments' => array(
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'type' => 'key',
-      ),
-      'template' => array(
-        'label' => t('Template'),
-        'description' => t('Text with keys that will be replaced between curly braces.'),
-        'type' => 'template',
-        'allow_constants' => TRUE,
-      ),
-    ),
-    'input keys callback' => 'get_input_keys_from_template',
-    'output keys' => array('target_key_name'),
-    'changes count' => FALSE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
-    'type group' => t('Add key(s)'),
-  );
 /*
   $info['add_key_counter'] = array(
     'arguments' => array(

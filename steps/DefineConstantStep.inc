@@ -20,8 +20,19 @@ class DefineConstantStep extends PrepareIngestStep {
     return $title;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
+  public function arguments() {
+    return array(
+      'name' => array(
+        'label' => t('Name'),
+        'description' => t('The name of the constant.'),
+        'type' => 'constantkey',
+      ),
+      'value' => array(
+        'label' => t('Value'),
+        'description' => t('The value of the constant, can be empty.'),
+        'type' => 'string',
+      ),
+    );
   }
 
   public function dryRun(&$context) {

@@ -616,7 +616,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
     showfromitemnr = 0;
   }
   if (type === 2) {
-    usedKeys.push('path', 'type');
+    usedKeys.push('filepath', 'type');
   }
   else if (type === 1) {
     if (show === 2) {
@@ -659,7 +659,33 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
         var key = usedKeys[k];
         var value = (d.hasOwnProperty(key)?d[key]:'-');
         var cellhtml = '';
-        if (value.length > maxLengthKeyValue) {
+        if (type === 2 && key === 'filepath') {
+          cellhtml += '<SPAN class="upi_fullvalue">';
+          cellhtml += value + '<BR/><BR/>';
+          if (d.hasOwnProperty('content')) {
+            cellhtml += 'Content (' + d['content'].length + ' bytes):' + '</BR>';
+            cellhtml += '<pre>';
+            if (d['content'].length > 1000) {
+              cellhtml += htmlEncode(d['content'].substr(0, 1000) + '...');
+            }
+            else {
+              cellhtml += htmlEncode(d['content']);
+            }
+            cellhtml += '</pre>';
+          }
+          else if (d.hasOwnProperty('realfilepath')) {
+            cellhtml += 'Data from file at ' + d['realfilepath'];
+          }
+          var shortvalue;
+          if (value.length > maxLengthKeyValue) {
+            shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
+          }
+          else {
+            shortvalue = value;
+          }
+          cellhtml += '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN>';
+        }
+        else if (value.length > maxLengthKeyValue) {
           var shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
           shortvalue = htmlEncode(shortvalue);
           value = htmlEncode(value);

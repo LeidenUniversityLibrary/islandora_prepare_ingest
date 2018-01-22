@@ -19,6 +19,46 @@ class ReadFilenamesStep extends PrepareIngestStep {
     return $title;
   }
 
+  public function arguments() {
+    return array(
+      'directory_path' => array(
+        'label' => t('Directory path'),
+        'description' => t('Specify the absolute path to the directory where the input files are located.'),
+        'type' => 'filepath',
+        'allow_constants' => TRUE,
+      ),
+      'filter' => array(
+        'label' => t('Filter'),
+        'description' => t('For example: *.tif'),
+        'type' => 'string',
+      ),
+      'include_subdirectory_files' => array(
+        'label' => t('Include files in subdirectories'),
+        'type' => 'boolean',
+      ),
+      'target_key_name' => array(
+        'label' => t('Target key name'),
+        'type' => 'key',
+      ),
+    );
+  }
+    
+  protected function _outputKeyKeys() {
+    return array('target_key_name');
+  } 
+  
+  public function changesCount() {
+    return TRUE;
+  }
+  
+  public function changesKeys() {
+    return TRUE;
+  }
+
+  public function changesFiles() {
+    return FALSE;
+  }
+
   public function checkConfiguration() {
     $results = parent::checkConfiguration();
     if ($results) {
@@ -49,7 +89,7 @@ class ReadFilenamesStep extends PrepareIngestStep {
       $dirpath = $this->config['directory_path'];
       $filter = $this->config['filter'];
       $includedir = $this->config['include_subdirectory_files'];
-      $filenames = pifs_full_filenames_from_directory($dirpath, $context, $filter, $includedir);
+      $filenames = pifs_full_filenames_from_directory($dirpath, $this->workflowid, $this->otherid, $filter, $includedir);
       $key = $this->config['target_key_name'];
       $items = array();
       foreach ($filenames as $filename) {
@@ -57,6 +97,7 @@ class ReadFilenamesStep extends PrepareIngestStep {
       }
       islandora_prepare_ingest_data_cache_insert($this->workflowid, $this->stepid, $this->otherid, 1, $items);
     }
+    return FALSE;
   }
 
   public function verify($context) {

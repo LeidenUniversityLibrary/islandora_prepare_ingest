@@ -8,15 +8,17 @@
 /**
  * Select query for data cache from a specific workflow, step, other id and of type.
  */
-function islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, $fields = NULL) {
+function islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, $fields = array()) {
   $select = db_select('islandora_prepare_ingest_data_cache', 'datacache');
   if ($fields !== NULL) {
     $select->fields('datacache', $fields);
   }
   $select->condition('workflow_id', $workflow_id)
-    ->condition('step_id', $step_id)
     ->condition('other_id', $other_id)
     ->condition('dctype', $type);
+  if ($step_id !== NULL) {
+    $select->condition('step_id', $step_id);
+  }
 
   return $select;
 }
@@ -53,8 +55,30 @@ function islandora_prepare_ingest_data_cache_select($workflow_id, $step_id, $oth
 }
 
 /**
+ * Select data cache from a specific workflow, other id, of type, and with a specific key and value.
+ **/
+function islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, $type, $key, $value, $startmatch = FALSE) {
+  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, NULL, $other_id, $type, array('item_nr', 'step_id', 'dckey', 'dcvalue'));
+  $select = $select->orderBy('item_nr');
+  $select = $select->condition('dckey', $key, 'LIKE');
+  $select = $select->condition('dcvalue', db_like(serialize($value)) . ($startmatch?'%':''), 'LIKE');
+  $dcs = $select->execute();
+  $results = array();
+  while ($dc = $dcs->fetchAssoc()) {
+    $results[] = array(
+      'step_id' => $dc['step_id'],
+      'item_nr' => $dc['item_nr'],
+      'key' => $dc['dckey'],
+      'value' => unserialize($dc['dcvalue']),
+    );
+  }
+  return $results;
+}
+
+/**
  * Count data cache items from a specific workflow, step, other id and of type.
  */
+/*
 function islandora_prepare_ingest_data_cache_count($workflow_id, $other_id) {
   $fields = array('item_nr');
   $select = db_select('islandora_prepare_ingest_data_cache', 'datacache')
@@ -66,12 +90,13 @@ function islandora_prepare_ingest_data_cache_count($workflow_id, $other_id) {
 
   return intval($countstr, 10);
 }
+*/
 
 /**
  * Count data cache items from a specific workflow, step, other id and of type.
  */
 function islandora_prepare_ingest_data_cache_per_step_count($workflow_id, $step_id, $other_id, $type) {
-  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type);
+  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, NULL);
   $r = $select->addExpression('COUNT(DISTINCT item_nr)');
   $countstr = $select->execute()->fetchField();
   return intval($countstr, 10);
@@ -81,10 +106,10 @@ function islandora_prepare_ingest_data_cache_per_step_count($workflow_id, $step_
  * Count data cache items from a specific workflow, step, other id, of type and key.
  */
 function islandora_prepare_ingest_data_cache_per_step_key_count($workflow_id, $step_id, $other_id, $type, $key) {
-  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, array('item_nr'));
+  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, NULL);
   $select = $select->condition('dckey', $key);
-  $countstr = $select->addExpression('COUNT(DISTINCT item_nr)')->execute()->fetchField();
-
+  $r = $select->addExpression('COUNT(DISTINCT item_nr)');
+  $countstr = $select->execute()->fetchField();
   return intval($countstr, 10);
 }
 
@@ -131,18 +156,19 @@ function islandora_prepare_ingest_data_cache_insert($workflow_id, $step_id, $oth
       );
       $insert->values($record);
     }
-    $record = array(
-      'workflow_id' => $workflow_id,
-      'step_id'     => $step_id,
-      'other_id'    => $other_id,
-      'item_nr'     => $item_nr,
-      'dctimestamp' => $timestamp,
-      'dctype'      => $type,
-      'dckey'       => 'item nr',
-      'dcvalue'     => serialize($item_nr),
-    );
-    $insert->values($record);
-
+    if (!isset($item['item nr'])) {
+      $record = array(
+        'workflow_id' => $workflow_id,
+        'step_id'     => $step_id,
+        'other_id'    => $other_id,
+        'item_nr'     => $item_nr,
+        'dctimestamp' => $timestamp,
+        'dctype'      => $type,
+        'dckey'       => 'item nr',
+        'dcvalue'     => serialize($item_nr),
+      );
+      $insert->values($record);
+    }
     $item_nr++;
   }
   $insert->execute();
@@ -168,7 +194,48 @@ function islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_i
     );
     $insert->values($record);
   }
+  if (!isset($item['item nr'])) {
+    $record = array(
+      'workflow_id' => $workflow_id,
+      'step_id'     => $step_id,
+      'other_id'    => $other_id,
+      'item_nr'     => $item_nr,
+      'dctimestamp' => $timestamp,
+      'dctype'      => $type,
+      'dckey'       => 'item nr',
+      'dcvalue'     => serialize($item_nr),
+    );
+    $insert->values($record);
+  }
   $insert->execute();
+}
+
+/**
+ * Update single data cache item.
+ */
+function islandora_prepare_ingest_data_cache_single_update($workflow_id, $step_id, $other_id, $type, $item_nr, $item) {
+  $fields = array('workflow_id', 'step_id', 'other_id', 'item_nr', 'dctimestamp', 'dctype', 'dckey', 'dcvalue');
+  $timestamp = REQUEST_TIME;
+  foreach ($item as $key => $value) {
+    $update = db_update('islandora_prepare_ingest_data_cache')
+     ->fields(array(
+        'workflow_id' => $workflow_id,
+        'step_id'     => $step_id,
+        'other_id'    => $other_id,
+        'item_nr'     => $item_nr,
+        'dctimestamp' => $timestamp,
+        'dctype'      => $type,
+        'dckey'       => $key,
+        'dcvalue'     => serialize($value),
+      ))
+     ->condition('workflow_id', $workflow_id)
+     ->condition('step_id', $step_id)
+     ->condition('other_id', $other_id)
+     ->condition('dctype', $type)
+     ->condition('item_nr', $item_nr)
+     ->condition('dckey', $key, 'LIKE');
+    $update->execute();
+  }
 }
 
 /**

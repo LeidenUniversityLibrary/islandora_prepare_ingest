@@ -2,7 +2,27 @@
 
 interface PrepareIngestStepInterface {
 
+  public function id();
+
   public function label();
+
+  public function name();
+
+  public function weight();
+
+  public function arguments();
+
+  public function inputKeys();
+ 
+  public function outputKeys();
+
+  public function changesCount();
+
+  public function changesKeys();
+
+  public function changesFiles();
+
+  public function visual();
 
   public function checkConfiguration();
 
@@ -16,19 +36,19 @@ interface PrepareIngestStepInterface {
 
 class PrepareIngestStep implements PrepareIngestStepInterface {
 
-  protected $info;
+  protected $name;
   protected $config;
   protected $workflowid;
   protected $stepid;
   protected $otherid;
+  protected $weight;
   private $dataiterator;
+  public $previousstep;
 
  /**
   * Initializes a PrepareIngestStep object with the appropriate values.
   * There should be no need to overwrite this function, it is automatically called when starting a step.
   *
-  * @param array $stepinfo
-  *   An associated array with the info from the step, as returned by hook_workflow_step_info.
   * @param array $stepconfig
   *   An associated array with keys the same as $stepinfo['arguments'] and values for those keys indicating
   *   the configuration of this specific step.
@@ -39,19 +59,131 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   * @param string $otherid
   *    The identifier of the current run of this workflow.
   */
-  public function __construct(array $stepinfo, array $stepconfig, $workflowid, $stepid, $otherid) {
-    $this->info = $stepinfo;
+  public function __construct(array $workflowstep, array $stepconfig, $otherid, $prevstep = NULL) {
     $this->config = $stepconfig; 
-    $this->workflowid = (int)$workflowid;
-    $this->stepid = (int)$stepid;
+    $this->workflowid = (int)$workflowstep['workflow_id'];
+    $this->stepid = (int)$workflowstep['id'];
     $this->otherid = $otherid;
+    $this->weight = $workflowstep['weight'];
+    $this->name = $workflowstep['step_name'];
+    $this->previousstep = $prevstep;
   }
   
  /**
-  * Returns the label of this step based on its current configuration.
+  * Returns the identifier of this step.
+  **/
+  public function id() {
+    return $this->stepid;
+  }
+
+ /**
+  * Returns the label of this step.
   **/
   public function label() {
-    return $this->info['name'];
+    $classname = get_class($this);
+    $methodname = __METHOD__;
+    throw new BadMethodCallException("Method '$methodname' not implemented for class '$classname'.");
+  }
+
+ /**
+  * Returns the name of this step.
+  **/
+  public function name() {
+    return $this->name;
+  }
+
+ /**
+  * Returns the weight of this step.
+  **/
+  public function weight() {
+    return $this->weight;
+  }
+
+ /**
+  * Returns the filled in value of the configuration, or the default value from the arguments.
+  &**/
+  public function valueForKey($key) {
+    if (isset($this->config[$key])) {
+      return $this->config[$key];
+    }
+    elseif (isset($this->arguments()[$key]['default_value'])) {
+      return $this->arguments()[$key]['default_value'];
+    }
+    return '';
+  }
+
+ /**
+  * Returns an array containing the arguments for this step. The keys are the argument names. The value is an array with the following keys:
+  * - 'label': A human readable label for this key
+  * - 'description': Optional, further description of the key or its contents
+  * - 'type': The type of the value of this argument. See 'Argument values' for more information.
+  * - 'default_value': a default value of type 'type'
+  * - 'allow_constants': this value allows constants
+  **/
+  public function arguments() {
+    return array();
+  }
+
+ /**
+  * Returns an array containing the keys whose values should be present as keys in the data for this step to work.
+  * The keys of this array indicate the argument name where the key(s) is coming from. The values are arrays with zero or more keys.
+  * E.g.: array('argument name' => array('key for data'))
+  **/
+  public function inputKeys() {
+    $inputKeys = array();
+    foreach ($this->_inputKeyKeys() as $keyKey) {
+      $inputKeys[$keyKey] = array($this->config[$keyKey]);
+    }
+    return $inputKeys;
+  }
+
+  protected function _inputKeyKeys() {
+    return array();
+  }
+
+ /**
+  * Returns an array containing the keys whose values are present as keys in the data after this step.
+  * The keys of this array indicate the argument name where the key(s) is coming from. The values are arrays with zero or more keys.
+  * E.g.: array('argument name' => array('key for data'))
+  **/
+  public function outputKeys() {
+    $outputKeys = array();
+    foreach ($this->_outputKeyKeys() as $keyKey) {
+      $outputKeys[$keyKey] = array($this->config[$keyKey]);
+    }
+    return $outputKeys;
+  }
+
+  protected function _outputKeyKeys() {
+    return array();
+  }
+
+ /**
+  * Returns a boolean indicating if the step changes the count of the data array. So if items are added or removed from the data array, this should be TRUE.
+  **/
+  public function changesCount() {
+    return FALSE;
+  }
+
+ /**
+  * Returns a boolean indicating if the step changes the keys of the items in the data array. So if the items get a new key, this shoud be TRUE.
+  **/
+  public function changesKeys() {
+    return FALSE;
+  }
+
+ /**
+  * Returns a boolean indication if the step adds and/or changes files on the file system.
+  **/
+  public function changesFiles() {
+    return FALSE;
+  }
+
+ /**
+  * Returns an array indication how this step should visually by represented.
+  **/
+  public function visual() {
+    return array();
   }
 
  /**
@@ -128,23 +260,27 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
   protected function resetDataIterator() {
     $this->dataiterator = array();
-    $this->dataiterator['selectquery'] = _islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, 1);
-    $this->dataiterator['lastdata'] = $this->dataiterator['selectquery']->fetchAssoc;
-    $this->dataiterator['currentitemnr'] = 1;
+    $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, 1, array());
+    $this->dataiterator['dbstatement'] = $selectquery->execute();
+    $this->dataiterator['lastdata'] = $this->dataiterator['dbstatement']->fetchAssoc();
+    $this->dataiterator['currentitemnr'] = $this->dataiterator['lastdata']['item_nr'];
   }
 
   protected function nextDataItem() {
-    $dataitem = array();
+    $dataitem = NULL;
     $currentitemnr = $this->dataiterator['currentitemnr'];
     $d = $this->dataiterator['lastdata'];
-    $sq = $this->dataiterator['selectquery'];
+    $dbs = $this->dataiterator['dbstatement'];
     while ($d !== FALSE) {
       if ($d['item_nr'] > $currentitemnr) {
         $this->dataiterator['currentitemnr'] = $d['item_nr'];
         break;
       }
-      $dataitem[$d['key']] = $d['value'];
-      $d = $sq->fetchAssoc();
+      if ($dataitem === NULL) {
+        $dataitem = array();
+      }
+      $dataitem[$d['dckey']] = unserialize($d['dcvalue']);
+      $d = $dbs->fetchAssoc();
       $this->dataiterator['lastdata'] = $d;
     }
     return $dataitem;
@@ -155,7 +291,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       throw new UnexpectedValueException("Data item is missing an item nr key.");
     }
     $itemnr = $dataitem['item nr'];
-    islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 1, $itemnr, $dataitem);
+    islandora_prepare_ingest_data_cache_single_insert($this->workflowid, $this->stepid, $this->otherid, 1, $itemnr, $dataitem);
   }
 
   protected function fillOutTemplate($template, $keyvalues) {
@@ -175,125 +311,108 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
   protected function _checkConfiguration() {
     $results = array();
-    $outputkeys = array();
-    if (isset($this->info['output keys callback'])) {
-      $outputkeyscallback = $this->info['output keys callback'];
-      if (method_exists($this, $outputkeyscallback) !== TRUE) {
-        $classname = get_class($this);
-        throw new BadMethodCallException("Method '$outputkeyscallback' not implemented for class '$classname'.");
-      }
-      $outputkeys = $this->$outputkeyscallback();
-    }
-    elseif (isset($this->info['output keys'])) {
-      $outputkeys = $this->info['output keys'];
-    }
-    if (isset($this->info['arguments'])) {
-      $args = $this->info['arguments'];
-      foreach ($args as $argkey => $argconfig) {
-        $argkeytext = $argconfig['label'];
-        if (isset($this->config[$argkey]) && strlen($this->config[$argkey]) > 0) {
-          $value = $this->config[$argkey];
-          switch($argconfig['type']) {
-            case "number":
-              if (!is_numeric($value)) {
-                $results[] = array('text' => t("Argument '@key' should be a numeric value, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "string":
-              // no need to check
-              break;
-            case "boolean":
-              if ($value !== "0" && $value !== "1") {
-                $results[] = array('text' => t("Argument '@key' should be a boolean value, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "template":
-              // no need to check
-              break;
-            case "key":
-            case "constantkey":
-              if (preg_match("/^[a-zA-Z0-9_-]+$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be a key value, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "keys":
-              if (preg_match("/^[a-zA-Z0-9_;-]+$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "filepath":
-              if (preg_match("/^(?:\/[a-zA-Z0-9_.-]+)+\/?$/", $value) === 0) {
-                $results[] = array('text' => t("Argument '@key' should be a filepath, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "regexp":
-              if (@preg_match($value, "XXX") === false) {
-                $results[] = array('text' => t("Argument '@key' should be a regular expression, but is '@value'",
-                  array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "xpath":
-              // is there a better way to validate xpath's, without removing the namespaces?
-              $doc = new DOMDocument;
-              $xpath = new DOMXPath($doc);
-              $valuewons = preg_replace('#[^/:\\]\\[]+:#', '', $value);
+    $outputkeys = $this->outputKeys();
+    foreach ($this->arguments() as $argkey => $argconfig) {
+      $argkeytext = $argconfig['label'];
+      if (isset($this->config[$argkey]) && strlen($this->config[$argkey]) > 0) {
+        $value = $this->config[$argkey];
+        switch($argconfig['type']) {
+          case "number":
+            if (!is_numeric($value)) {
+              $results[] = array('text' => t("Argument '@key' should be a numeric value, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "string":
+            // no need to check
+            break;
+          case "boolean":
+            if ($value !== "0" && $value !== "1") {
+              $results[] = array('text' => t("Argument '@key' should be a boolean value, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "template":
+            // no need to check
+            break;
+          case "key":
+          case "constantkey":
+            if (preg_match("/^[a-zA-Z0-9_-]+$/", $value) === 0) {
+              $results[] = array('text' => t("Argument '@key' should be a key value, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "keys":
+            if (preg_match("/^[a-zA-Z0-9_;-]+$/", $value) === 0) {
+              $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "filepath":
+            if (preg_match("/^(?:\/[a-zA-Z0-9_.-]+)+\/?$/", $value) === 0) {
+              $results[] = array('text' => t("Argument '@key' should be a filepath, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "regexp":
+            if (@preg_match($value, "XXX") === false) {
+              $results[] = array('text' => t("Argument '@key' should be a regular expression, but is '@value'",
+                array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "xpath":
+            // is there a better way to validate xpath's, without removing the namespaces?
+            $doc = new DOMDocument;
+            $xpath = new DOMXPath($doc);
+            $valuewons = preg_replace('#[^/:\\]\\[]+:#', '', $value);
 
-              if ($xpath->query($valuewons) === false) {
-                $results[] = array('text' => t("Argument '@key' should be a valid XPath, but is '@value'.",
-                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "collection":
-              module_load_include('inc', 'islandora', 'includes/utilities');
-              $is_collection = FALSE;
-              if (islandora_is_valid_pid($value)) {
-                $obj = islandora_object_load($value);
-                if ($obj && in_array('islandora:collectionCModel', $obj->models)) {
-                  $is_collection = TRUE;
-                }
-              }
-              if (!$is_collection) {
-                $results[] = array('text' => t("Argument '@key' should be a valid PID of a collection, but is '@value'.",
-                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-            case "namespace":
-              module_load_include('inc', 'islandora', 'includes/utilities');
-              if (preg_match('/^([A-Za-z0-9-\.]+)$/', $value) === 0 || !islandora_namespace_accessible($value)) {
-                $results[] = array('text' => t("Argument '@key' should be a valid namespace, but is '@value'.",
-                  array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
-              }
-              break;
-          }
-        }
-        else {
-          if (isset($argconfig['optional'])) {
-            if (is_array($argconfig['optional'])) {
-              foreach ($argconfig['optional'] as $optkey => $optvalues) {
-                if (in_array($this->config[$optkey], $optvalues)) {
-                  continue 2;
-                }
+            if ($xpath->query($valuewons) === false) {
+              $results[] = array('text' => t("Argument '@key' should be a valid XPath, but is '@value'.",
+                array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
+          case "collection":
+            module_load_include('inc', 'islandora', 'includes/utilities');
+            $is_collection = FALSE;
+            if (islandora_is_valid_pid($value)) {
+              $obj = islandora_object_load($value);
+              if ($obj && in_array('islandora:collectionCModel', $obj->models)) {
+                $is_collection = TRUE;
               }
             }
-            else {
-              if ($argconfig['optional']) {
-                continue;
-              }
+            if (!$is_collection) {
+              $results[] = array('text' => t("Argument '@key' should be a valid PID of a collection, but is '@value'.",
+                array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
             }
-          }
-          if (in_array($argkey, $outputkeys)) {
-            $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'key' => $argkey, 'type' => 'argument_error');
-          }
+            break;
+          case "namespace":
+            module_load_include('inc', 'islandora', 'includes/utilities');
+            if (preg_match('/^([A-Za-z0-9-\.]+)$/', $value) === 0 || !islandora_namespace_accessible($value)) {
+              $results[] = array('text' => t("Argument '@key' should be a valid namespace, but is '@value'.",
+                array('@key' => $argkeytext, '@value' => $value, '@type' => gettype($value))), 'key' => $argkey, 'type' => 'argument_error');
+            }
+            break;
         }
       }
-    }
-    else {
-      throw new InvalidArgumentException(t("Missing arguments in info for step class '@stepclass.", array('@stepclass' => get_class($this))));
+      else {
+        if (isset($argconfig['optional'])) {
+          if (is_array($argconfig['optional'])) {
+            foreach ($argconfig['optional'] as $optkey => $optvalues) {
+              if (in_array($this->config[$optkey], $optvalues)) {
+                continue 2;
+              }
+            }
+          }
+          else {
+            if ($argconfig['optional']) {
+              continue;
+            }
+          }
+        }
+        if (in_array($argkey, $outputkeys)) {
+          $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'key' => $argkey, 'type' => 'argument_error');
+        }
+      }
     }
     return $results;
   }
@@ -301,54 +420,61 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function _checkInputKeysInData() {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
     $results = array();
-    $inputkeys = array();
   
-    if (array_key_exists('input keys callback', $this->info)) {
-      $inputkeyscallback = $this->info['input keys callback'];
-      if (method_exists($this, $inputkeyscallback) !== TRUE) {
-        $classname = get_class($this);
-        throw new BadMethodCallException("Method '$inputkeyscallback' not implemented for class '$classname'.");
-      }
-      $inputkeys = $this->$inputkeyscallback();
-    }
-    elseif (array_key_exists('input keys', $this->info)) {
-      $inputkeys = $this->info['input keys'];
-      foreach ($inputkeys as $ikey) {
-        if (isset($this->info['arguments'][$ikey]['optional'])) {
-          if (is_array($this->info['arguments'][$ikey]['optional'])) {
-            foreach ($this->info['arguments'][$ikey]['optional'] as $optkey => $optvalues) {
-              if (in_array($this->config[$optkey], $optvalues)) {
-                continue 2;
-              }
-            }
-          }
-          else {
-            if ($this->info['arguments'][$ikey]['optional']) {
-              continue;
+    $inputkeys = array();
+    $arguments = $this->arguments();
+    foreach ($this->inputKeys() as $ikey => $keys) {
+      if (isset($arguments[$ikey]['optional'])) {
+        if (is_array($arguments[$ikey]['optional'])) {
+          foreach ($arguments[$ikey]['optional'] as $optkey => $optvalues) {
+            if (in_array($this->config[$optkey], $optvalues)) {
+              continue 2;
             }
           }
         }
-        if (!isset($this->config[$ikey]) || (strlen($this->config[$ikey]) == 0)) {
-          $results[] = array('text' => t("Missing argument '@key'.", array('@key' => $this->info['arguments'][$ikey]['label'])),
-                             'key' => $this->info['arguments'][$ikey]['label'], 'type' => 'config_error');
-          continue;
+        else {
+          if ($arguments[$ikey]['optional']) {
+            continue;
+          }
         }
-        $key = $this->config[$ikey];
-        $inputkeys[] = $key;
       }
+      if (!isset($this->config[$ikey]) || (strlen($this->config[$ikey]) == 0)) {
+        $results[] = array('text' => t("Missing argument '@key'.", array('@key' => $arguments[$ikey]['label'])),
+                           'key' => $arguments[$ikey]['label'], 'type' => 'config_error');
+        continue;
+      }
+      $inputkeys = array_merge($inputkeys, $keys);
     }
+
     $itemscount = islandora_prepare_ingest_data_cache_per_step_count($this->workflowid, $this->stepid, $this->otherid, 1);
     foreach ($inputkeys as $key) {
       $keycount = islandora_prepare_ingest_data_cache_per_step_key_count($this->workflowid, $this->stepid, $this->otherid, 1, $key);
-      if ($keycount === 0) {
+      if (($keycount === 0) && ($itemscount > 0)) { 
         $results[] = array('text' => t("Missing key '@key'. This key is not defined in any of the previous steps.", array('@key' => $key)),
                            'key' => $key, 'type' => 'key_error');
       }
-      else if ($itemscount > $keycount) {
+      else if (($itemscount > $keycount)  && ($keycount > 0)) {
         $results[] = array('text' => t("Missing key '@key'. This key is defined in a previous step but not available for all items. Use a filter before this step to keep the items with the right keys.", array('@key' => $key)),
                            'key' => $key, 'type' => 'key_error');
       }
     }
     return $results;
+  }
+
+  protected function _get_input_keys_from_templates($templatekeynames) {
+    $results = array();
+    foreach ($this->arguments() as $argkey => $argconfig) {
+      if (in_array($argconfig['type'], $templatekeynames)) {
+        $template = '';
+        if (array_key_exists($argkey, $this->config) && strlen($this->config[$argkey]) > 0) {
+          $template = $this->config[$argkey];
+        }
+        $inputkeys = array();
+        if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $inputkeys)) {
+          $results[$argkey] = $inputkeys[1];
+        }
+      }
+    }
+    return array_unique($results);
   }
 }

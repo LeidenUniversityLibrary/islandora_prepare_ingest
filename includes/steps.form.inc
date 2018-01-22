@@ -44,11 +44,14 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
     $j++;
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
-
+    $stepinfo = $stepsinfo[$stepname];
+    $stepclass = $stepinfo['class name'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
-    $showdata = ($stepsinfo[$stepname]['changes count'] || $stepsinfo[$stepname]['changes keys']);
-    $showfiles = ($stepsinfo[$stepname]['changes files']);
-    if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('groupend', $stepsinfo[$stepname]['visual'])) {
+    $step = new $stepclass($workflowstep, $stepconfig, $otherid);
+
+    $showdata = ($step->changesCount() || $step->changesKeys());
+    $showfiles = $step->changesFiles();
+    if (in_array('groupend', $step->visual())) {
       array_pop($groups);
       array_pop($groups);
     }
@@ -58,7 +61,7 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
     }
     $workflowresult = isset($workflowresults[$stepid])?$workflowresults[$stepid]:NULL;
 
-    $steps['step_' . $stepid] = islandora_prepare_ingest_make_base_step_form($workflowstep, $stepsinfo[$stepname], $stepconfig, $workflowresult, $stepid, $stepname);
+    $steps['step_' . $stepid] = islandora_prepare_ingest_make_base_step_form($step, $workflowresult);
     if (($hasdata && $showdata) || ($hasfiles && $showfiles)) {
       if ($j == count($workflowsteps)) {
         $steps['step_' . $stepid]['#collapsed'] = FALSE;
@@ -68,7 +71,7 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
         '#attributes' => array(
           'class' => array('tabs'),
         ),
-        '#weight' => -999,
+        '#weight' => -998,
       );
       $steps['step_' . $stepid]['tabs']['show_data'] = array(
         '#type' => 'button',
@@ -86,8 +89,16 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
       );
     }
 
-    $inputkeys = islandora_prepare_ingest_keys_for_step('input keys', $stepsinfo[$stepname], $stepconfig);
-    $outputkeys = islandora_prepare_ingest_keys_for_step('output keys', $stepsinfo[$stepname], $stepconfig);
+    $inputkeys = $step->inputKeys();
+    $flatinputkeys = array();
+    array_walk_recursive($inputkeys, function($value) use(&$flatinputkeys) {
+        $flatinputkeys[] = $value;
+    });
+    $outputkeys = $step->outputKeys();
+    $flatoutputkeys = array();
+    array_walk_recursive($outputkeys, function($value) use(&$flatoutputkeys) {
+        $flatoutputkeys[] = $value;
+    });
     if ($hasdata && $showdata) {
       $steps['step_' . $stepid]['datalisting'] = array(
         '#type' => 'fieldset',
@@ -98,8 +109,8 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
           'data-type' => 1,
           'data-startitemnr' => 1,
           'data-enditemnr' => 10,
-          'data-inputkeys' => implode(',', $inputkeys),
-          'data-outputkeys' => implode(',', $outputkeys),
+          'data-inputkeys' => implode(',', $flatinputkeys),
+          'data-outputkeys' => implode(',', $flatoutputkeys),
         ),
       );
     }
@@ -143,109 +154,85 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
 
 
 
-function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, $workflowresult, $stepid, $stepname) {
-  $newstep = array(
-    '#title' => islandora_prepare_ingest_label_for_step($stepinfo, $stepconfig, $workflowresult),
+function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
+  $stepid = $step->id();
+  $stepform = array(
+    '#title' => $step->label(),
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
     '#attributes' => array(
-      'class' => array('workflow_step', $stepname),
+      'class' => array('workflow_step', $step->name()),
     ),
   );
   foreach (array('check','verify') as $type) {
     if (isset($workflowresult[$type]) && count($workflowresult[$type]) > 0) {
-      $newstep['#collapsed'] = FALSE;
+      $stepform['#collapsed'] = FALSE;
       foreach ($workflowresult[$type] as $i => $result) {
         if ($i >= 10) {
           break;
         }
-        $newstep[$type . '_description' . '_' . $i] = array(
+        $stepform[$type . '_description' . '_' . $i] = array(
           '#type' => 'item',
           '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
+          '#weight' => -999,
         );
       }
       if (count($workflowresult[$type]) >= 10) {
-        $newstep[$type . '_description' . '_' . count($workflowresult[$type])] = array(
+        $stepform[$type . '_description' . '_' . count($workflowresult[$type])] = array(
           '#type' => 'item',
           '#markup' => '<SPAN class="warning">Other ' . (count($workflowresult[$type]) - 10) . ' errors suppressed</SPAN>',
+          '#weight' => -999,
         );
       }
     }
   }
-  $newstep['fields'] = array(
+  $stepform['fields'] = array(
     '#type' => 'container',
     '#attributes' => array(
       'class' => array('fields'),
     ),
     '#weight' => 1,
   );
-  $newstep['fields']['remove_step_' . $stepid] = array(
+  $stepform['fields']['remove_step_' . $stepid] = array(
     '#type' => 'hidden',
     '#default_value' => '0',
     '#attributes' => array(
       'class' => array('remove_step'),
     ),
   );
-  $newstep['fields']['weight_step_' . $stepid] = array(
+  $stepform['fields']['weight_step_' . $stepid] = array(
     '#type' => 'hidden',
-    '#default_value' => $workflowstep['weight'],
+    '#default_value' => $step->weight(),
     '#attributes' => array(
       'class' => array('weight_step'),
     ),
   );
-  $arguments = $stepinfo['arguments'];
+  $arguments = $step->arguments();
   foreach ($arguments as $argname => $argvalues) {
-    $value = '';
-    if (array_key_exists($argname, $stepconfig)) {
-      $value = $stepconfig[$argname];
-    }
-    elseif (array_key_exists('default_value', $argvalues)) {
-      $value = $argvalues['default_value'];
-    }
-    
-    if (FALSE) { // TODO: moet dit er nog in?
-    if (strlen($value) > 0) {
-      continue; // skip filled in arguments when testing or checking
-    }
-    if (array_key_exists('optional', $argvalues)) {
-      if (is_array($argvalues['optional'])) {
-        foreach ($argvalues['optional'] as $optkey => $optvalues) {
-          if (in_array($stepconfig[$optkey], $optvalues)) {
-            continue 2;
-          }
-        }
-      }
-      else {
-        if ($argvalues['optional']) {
-          continue;
-        }
-      }
-    }
-    }
-    
+    $value = $step->valueForKey($argname);
     $title = $argvalues['label'];
-    $newstep['fields']['step_' . $stepid . '_' . $argname] = array(
+    $stepform['fields']['step_' . $stepid . '_' . $argname] = array(
       '#title' => $title,
       '#description' => array_key_exists('description', $argvalues)?$argvalues['description']:'',
     );
     if ($argvalues['type'] === 'boolean') {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#options'] = array(
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#options'] = array(
         '' => t('Choose value'),
         '0' => t('False'),
         '1' => t('True'),
       );
     }
     elseif ($argvalues['type'] === 'select') {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#options'] = $argvalues['options'];
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#options'] = $argvalues['options'];
     }
     elseif ($argvalues['type'] === 'template' || $argvalues['type'] === 'keystemplate' || $argvalues['type'] === 'text') {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
         'autocomplete' => 'off',
         'autocorrect' => 'off',
         'autocapitalize' => 'off',
@@ -262,42 +249,42 @@ function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, 
         $options = array('' => t('Choose a collection'));
         $options = array_merge($options, array_map($map_options, islandora_basic_collection_get_collections()));
 
-        $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
-        $newstep['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
+        $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
+        $stepform['fields']['step_' . $stepid . '_' . $argname]['#options'] = $options;
       }
       else {
-        $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
-        $newstep['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+        $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
+        $stepform['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
       }
     }
     else {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
         'autocomplete' => 'off',
         'autocorrect' => 'off',
         'autocapitalize' => 'off',
         'spellcheck' => 'false',
       );
     }
-    $newstep['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
-    if (array_key_exists('input keys', $stepinfo) && in_array($argname, $stepinfo['input keys'])) {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'input_key'; 
+    $stepform['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
+    if (in_array($argname, array_keys($step->inputKeys()))) {
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'input_key'; 
     }
-    if (array_key_exists('output keys', $stepinfo) && in_array($argname, $stepinfo['output keys'])) {
-      $newstep['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'output_key'; 
+    if (in_array($argname, array_keys($step->outputKeys()))) {
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = 'output_key'; 
     }
-    $newstep['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = $argvalues['type'];
+    $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes']['class'][] = $argvalues['type'];
   }
-  $newstep['buttons'] = array(
+  $stepform['buttons'] = array(
     '#type' => 'actions',
     '#attributes' => array(
       'class' => array('buttons'),
     ),
     '#weight' => 2,
   );
-  if (!(array_key_exists('visual', $stepinfo) && in_array('nomove', $stepinfo['visual']))) {
-    $newstep['buttons']['moveto'] = array(
+  if (!in_array('nomove', $step->visual())) {
+    $stepform['buttons']['moveto'] = array(
       '#type' => 'button',
       '#value' => t('Move to'),
       '#attributes' => array(
@@ -305,8 +292,8 @@ function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, 
       ),
     );
   }
-  if (array_key_exists('visual', $stepinfo) && in_array('ungroup', $stepinfo['visual'])) {
-    $newstep['buttons']['ungroup'] = array(
+  if (in_array('ungroup', $step->visual())) {
+    $stepform['buttons']['ungroup'] = array(
       '#type' => 'button',
       '#value' => t('Ungroup'),
       '#attributes' => array(
@@ -314,20 +301,20 @@ function islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, 
       ),
     );
   }
-  if (!(array_key_exists('visual', $stepinfo) && in_array('noremove', $stepinfo['visual']))) {
-    $newstep['buttons']['remove'] = array(
+  if (!in_array('noremove', $step->visual())) {
+    $stepform['buttons']['remove'] = array(
       '#type' => 'button',
       '#value' => t('Remove'),
       '#attributes' => array(
         'class' => array('remove_step_button'),
       ),
     );
-    if (array_key_exists('visual', $stepinfo) && in_array('groupremove', $stepinfo['visual'])) {
-      $newstep['buttons']['remove']['#attributes']['class'][] = 'groupremove';
+    if (in_array('groupremove', $step->visual())) {
+      $stepform['buttons']['remove']['#attributes']['class'][] = 'groupremove';
     }
   }
 
-  return $newstep;
+  return $stepform;
 }
 
 function islandora_prepare_ingest_report_result_summary($workflowid, $reporttype, $workflowresults) {

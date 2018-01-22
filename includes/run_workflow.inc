@@ -30,6 +30,7 @@ function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL,
   islandora_prepare_ingest_data_cache_delete_old($otherid);
 
   # Workflow steps
+  $prevstep = NULL;
   $stepsinfo = module_invoke_all('workflow_step_info');
   $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
   foreach ($workflowsteps as $workflowstep) {
@@ -45,7 +46,8 @@ function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL,
     }
     $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
 
-    $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
+    $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
+    $prevstep = $step;
 
     //$results[$stepid]['label'] = $step->label();
   
@@ -97,7 +99,7 @@ function islandora_prepare_ingest_full_run_workflow($workflowid, $otherid = NULL
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
     $stepinfo = $stepsinfo[$stepname];
-    $stepclass = $workflowstep['class name'];
+    $stepclass = $stepinfo['class name'];
     $stepid = $workflowstep['id'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
     $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
