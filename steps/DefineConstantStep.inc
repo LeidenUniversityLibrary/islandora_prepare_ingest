@@ -35,6 +35,13 @@ class DefineConstantStep extends PrepareIngestStep {
     );
   }
 
+  public function promptValueOnPrepareIngest($key) {
+    if ($key === 'value') {
+       return t("Give value for constant '!name':", array('!name' => $this->valueForKey('name')));
+     }
+    return FALSE;
+  }
+
   public function dryRun(&$context) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
     if (isset($this->config['name'])) {

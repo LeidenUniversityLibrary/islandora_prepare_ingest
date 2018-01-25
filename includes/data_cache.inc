@@ -78,7 +78,6 @@ function islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $oth
 /**
  * Count data cache items from a specific workflow, step, other id and of type.
  */
-/*
 function islandora_prepare_ingest_data_cache_count($workflow_id, $other_id) {
   $fields = array('item_nr');
   $select = db_select('islandora_prepare_ingest_data_cache', 'datacache')
@@ -86,11 +85,11 @@ function islandora_prepare_ingest_data_cache_count($workflow_id, $other_id) {
     ->condition('workflow_id', $workflow_id)
     ->condition('other_id', $other_id);
 
-  $countstr = $select->addExpression('COUNT(DISTINCT item_nr)')->execute()->fetchField();
+  $select->addExpression('COUNT(DISTINCT item_nr)');
+  $countstr = $select->execute()->fetchField();
 
   return intval($countstr, 10);
 }
-*/
 
 /**
  * Count data cache items from a specific workflow, step, other id and of type.

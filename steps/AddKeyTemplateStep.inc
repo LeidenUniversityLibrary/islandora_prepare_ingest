@@ -76,6 +76,7 @@ class AddKeyTemplateStep extends PrepareIngestStep {
         $item = $this->previousstep->nextDataItem();
       }
     }
+    return FALSE;
   }
 
   public function verify($context) {

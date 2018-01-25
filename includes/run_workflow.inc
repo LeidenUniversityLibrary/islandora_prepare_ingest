@@ -16,15 +16,27 @@
  *   Any additional configuration, associated by step id..
  */
 
-function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL, array $additionalconfig = NULL) {
+function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid) {
+  return _islandora_prepare_ingest_run_workflow($workflowid, FALSE, $otherid);
+}
+
+function islandora_prepare_ingest_full_run_workflow($workflowid, array $additionalconfig = NULL) {
+  return _islandora_prepare_ingest_run_workflow($workflowid, TRUE, NULL, $additionalconfig);
+}
+
+function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE, $otherid = NULL, array $additionalconfig = NULL) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
+  $context = array();
   $results = array();
   $data = array();
-  $context = array();
   $hasconfigerror = FALSE;
+
+  if ($otherid === NULL) {
+    $otherid = islandora_prepare_ingest_random_string(10);
+  }
 
   # clear old cached data.
   islandora_prepare_ingest_data_cache_delete_old($otherid);
@@ -49,66 +61,30 @@ function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid = NULL,
     $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
     $prevstep = $step;
 
-    //$results[$stepid]['label'] = $step->label();
-  
-    if ($otherid) {
-      $stepresult = $step->checkConfiguration();
+    $stepresult = $step->checkConfiguration();
+    if ($stepresult) {
+      $results[$stepid]['check'] = $stepresult;
+      $hasconfigerror = TRUE;
+      break;
+    }
+    if (!$hasconfigerror) {
+      $stepresult = $step->dryRun($context);
       if ($stepresult) {
-        $results[$stepid]['check'] = $stepresult;
-        $hasconfigerror = TRUE;
+        $results[$stepid]['dryrun'] = $stepresult;
+        break;
       }
-      if (!$hasconfigerror) {
-        $step->dryRun($context);
-        $stepresult = $step->verify($context);
+      $stepresult = $step->verify($context);
+      if ($stepresult) {
+        $results[$stepid]['verify'] = $stepresult;
+        break;
+      }
+      if ($isfullrun) {
+        $stepresult = $step->prepareIngest($context);
         if ($stepresult) {
-          $results[$stepid]['verify'] = $stepresult;
+          $results[$stepid]['prepare'] = $stepresult;
+          break;
         }
       }
-    } 
-  }
-  return $results;
-}
-
-function islandora_prepare_ingest_full_run_workflow($workflowid, $otherid = NULL) {
-  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
-  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
-  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
-
-  if ($otherid === NULL) {
-    $otherid = islandora_prepare_ingest_random_string(10);
-    $results = islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid);
-    if ($results) {
-      // something went wrong...
-      return $results;
-    }
-  }
-  $count = islandora_prepare_ingest_data_cache_count($workflow_id, $other_id);
-  if ($count === 0) {
-    // no data for this workflow at all 
-    $results[] = array(
-      array(
-        'text' => t("Workflow @workflowid does not have any data for run '@otherid'",
-                     array('@workflowid' => $workflow_id, '@otherid' => $otherid)),
-        'type' => 'run_error'
-      ),
-    );
-  }
-  # Workflow steps
-  $stepsinfo = module_invoke_all('workflow_step_info');
-  $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
-  foreach ($workflowsteps as $workflowstep) {
-    $stepname = $workflowstep['step_name'];
-    $stepinfo = $stepsinfo[$stepname];
-    $stepclass = $stepinfo['class name'];
-    $stepid = $workflowstep['id'];
-    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
-    $stepconfig = islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
-
-    $step = new $stepclass($stepinfo, $stepconfig, $workflowid, $stepid, $otherid);
-
-    $stepresult = $step->prepareIngest($context);
-    if ($stepresult) {
-      $results[$stepid] = $stepresult;
     }
   }
   return $results;

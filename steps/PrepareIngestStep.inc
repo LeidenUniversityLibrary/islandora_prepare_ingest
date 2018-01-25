@@ -24,6 +24,8 @@ interface PrepareIngestStepInterface {
 
   public function visual();
 
+  public function promptValueOnPrepareIngest($key);
+
   public function checkConfiguration();
 
   public function dryRun(&$context);
@@ -187,6 +189,16 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
  /**
+  * Returns a string indicating the prompt for a specific key. Return FALSE when this is not needed.
+  */
+  public function promptValueOnPrepareIngest($key) {
+    // if ($key === 'somekey') {
+    //   return "Give the value for somekey?";
+    // }
+    return FALSE;
+  }
+
+ /**
   * Checks the configuration of this step.
   *
   * This method may be overwritten of you need to implement more checks of the configuration of this step, e.g.
@@ -258,9 +270,9 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return (isset($this->config[$keyname]) && (strlen($this->config[$keyname]) > 0));
   }
 
-  protected function resetDataIterator() {
+  protected function resetDataIterator($type = 1) {
     $this->dataiterator = array();
-    $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, 1, array());
+    $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $type, array());
     $this->dataiterator['dbstatement'] = $selectquery->execute();
     $this->dataiterator['lastdata'] = $this->dataiterator['dbstatement']->fetchAssoc();
     $this->dataiterator['currentitemnr'] = $this->dataiterator['lastdata']['item_nr'];

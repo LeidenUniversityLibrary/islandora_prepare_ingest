@@ -89,7 +89,6 @@ class WriteFileStep extends PrepareIngestStep {
       }
       $item = $this->previousstep->nextDataItem();
     }
-
     return FALSE;
   }
 
@@ -98,7 +97,11 @@ class WriteFileStep extends PrepareIngestStep {
   }
 
   public function prepareIngest(&$context) {
-    // no need to do anything
+    $this->resetDataIterator(2);
+    $item = $this->nextDataItem();
+    while ($item !== NULL) {
+      pifs_write_content_to_file($item);
+      $item = $this->nextDataItem();
+    }
   }
-
 }

@@ -86,6 +86,36 @@ function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id,
   islandora_prepare_ingest_data_cache_single_insert($workflow_id, $step_id, $other_id, 2, $item_nr, $item);
 }
 
+function pifs_write_content_to_file($data) {
+  if (isset($data['filepath'], $data['type']) && $data['type'] === 'file') {
+    if (isset($data['content'])) {
+      $fh = fopen($data['filepath'], "a"); // always append to file
+      if ($fh) {
+        $contentlen = mb_strlen($data['content'], '8bit');
+        $byteswritten = fwrite($fh, $data['content'], $contentlen);
+        if (fclose($fh) === TRUE) {
+          if ($contentlen === $byteswritten) {
+            return TRUE;
+          }
+        }
+      }
+    }
+    elseif (isset($data['realfilepath'])) {
+      $islinked = link($data['realfilepath'], $data['filepath']);
+      if ($islinked) {
+        return TRUE;
+      }
+      else {
+        $iscopied = copy($data['realfilepath'], $data['filepath']);
+        if ($iscopied) {
+          return TRUE;
+        }
+      }
+    }
+  }
+  return FALSE;
+}
+
 function pifs_entry_append_content($targetfile, $content, $workflow_id, $step_id, $other_id, $item_nr) {
   $existitemnr = '';
   $oldcontent = pifs_entry_read_content($targetfile, $workflow_id, $other_id, $existitemnr);
