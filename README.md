@@ -31,3 +31,8 @@ Current maintainers:
 ## Development
 
 If you would like to contribute to this module, please contact the current maintainer.
+
+## License
+
+[GPLv3](LICENSE.txt)
+Copyright 2017-2018 Leiden University Library
