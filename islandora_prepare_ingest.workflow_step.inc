@@ -26,10 +26,50 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Add key(s)'),
     'class name' => 'AddKeyTemplateStep',
   );
+  $info['add_key_regex'] = array(
+    'name' => t('Add key with regular expression based value'),
+    'type group' => t('Add key(s)'),
+    'class name' => 'AddKeyRegExStep',
+  );
+  $info['add_key_counter'] = array(
+    'name' => t('Add key with counter value'),
+    'type group' => t('Add key(s)'),
+    'class name' => 'AddKeyCounterStep',
+  );
+  $info['add_keys_extracting_values'] = array(
+    'name' => t('Add key(s) by extracting values'),
+    'type group' => t('Add key(s)'),
+    'class name' => 'AddKeysByExtractingStep',
+  );
+  $info['modify_key_value'] = array(
+    'name' => t('Modify key value'),
+    'type group' => t('Modify key(s)'),
+    'class name' => 'ModifyKeyValueStep',
+  );
+  $info['make_directory'] = array(
+    'name' => t('Make directory'),
+    'type group' => t('Files and directories'),
+    'class name' => 'MakeDirectoryStep',
+  );
   $info['write_file'] = array(
     'name' => t('Write to file'),
     'type group' => t('Files and directories'),
     'class name' => 'WriteFileStep',
+  );
+  $info['copy_file'] = array(
+    'name' => t('Copy file'),
+    'type group' => t('Files and directories'),
+    'class name' => 'CopyFileStep',
+  );
+  $info['group_items'] = array(
+    'name' => t('Group items'),
+    'type group' => t('Sorting, filtering and grouping'),
+    'class name' => 'GroupItemsStep',
+  );
+  $info['filter_items'] = array(
+    'name' => t('Filter items'),
+    'type group' => t('Sorting, filtering and grouping'),
+    'class name' => 'FilterItemsStep',
   );
 
 /*

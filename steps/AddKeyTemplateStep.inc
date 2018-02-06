@@ -39,7 +39,7 @@ class AddKeyTemplateStep extends PrepareIngestStep {
   }
 
   public function inputKeys() {
-    return $this->_get_input_keys_from_templates(array('template'));
+    return $this->_getInputKeysFromTemplates(array('template'));
   }
 
   public function _outputKeyKeys() {
@@ -63,17 +63,18 @@ class AddKeyTemplateStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
-    if ($this->hasConfigKey('target_key_name') && $this->hasConfigKey('template') && isset($this->previousstep)) {
+    $prevdatastep = $this->_previousDataChangingStep();
+    if ($this->hasConfigKey('target_key_name') && $this->hasConfigKey('template') && isset($prevdatastep)) {
       $targetkey = $this->config['target_key_name'];
       $template = $this->config['template'];
 
-      $this->previousstep->resetDataIterator();
-      $item = $this->previousstep->nextDataItem();
+      $prevdatastep->resetDataIterator();
+      $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
         $newvalue = $this->fillOutTemplate($template, $item);
         $item[$targetkey] = $newvalue;
         $this->saveDataItem($item);
-        $item = $this->previousstep->nextDataItem();
+        $item = $prevdatastep->nextDataItem();
       }
     }
     return FALSE;

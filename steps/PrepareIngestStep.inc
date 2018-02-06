@@ -134,7 +134,12 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   public function inputKeys() {
     $inputKeys = array();
     foreach ($this->_inputKeyKeys() as $keyKey) {
-      $inputKeys[$keyKey] = array($this->config[$keyKey]);
+      if ($this->hasConfigKey($keyKey)) {
+        $inputKeys[$keyKey] = array($this->config[$keyKey]);
+      }
+      else {
+        $inputKeys[$keyKey] = array();
+      }
     }
     return $inputKeys;
   }
@@ -151,7 +156,12 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   public function outputKeys() {
     $outputKeys = array();
     foreach ($this->_outputKeyKeys() as $keyKey) {
-      $outputKeys[$keyKey] = array($this->config[$keyKey]);
+      if ($this->hasConfigKey($keyKey)) {
+        $outputKeys[$keyKey] = array($this->config[$keyKey]);
+      }
+      else {
+        $outputKeys[$keyKey] = array();
+      }
     }
     return $outputKeys;
   }
@@ -473,20 +483,33 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return $results;
   }
 
-  protected function _get_input_keys_from_templates($templatekeynames) {
+  protected function _getInputKeysFromTemplates($templatekeynames) {
     $results = array();
-    foreach ($this->arguments() as $argkey => $argconfig) {
-      if (in_array($argconfig['type'], $templatekeynames)) {
-        $template = '';
-        if (array_key_exists($argkey, $this->config) && strlen($this->config[$argkey]) > 0) {
-          $template = $this->config[$argkey];
-        }
+    foreach ($templatekeynames as $templatekeyname) {
+      if ($this->hasConfigKey($templatekeyname)) {
+        $template = $this->config[$templatekeyname];
         $inputkeys = array();
         if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $inputkeys)) {
-          $results[$argkey] = $inputkeys[1];
+          $results[$templatekeyname] = $inputkeys[1];
         }
       }
     }
-    return array_unique($results);
+    return $results;
+  }
+
+  protected function _previousDataChangingStep() {
+    $prevstep = $this->previousstep;
+    while ($prevstep !== NULL && !($prevstep->changesCount() || $prevstep->changesKeys())) {
+      $prevstep = $prevstep->previousstep;
+    }
+    return $prevstep;
+  }
+
+  protected function _previousFilesChangingStep() {
+    $prevstep = $this->previousstep;
+    while ($prevstep !== NULL && !$prevstep->changesFiles()) {
+      $prevstep = $prevstep->previousstep;
+    }
+    return $prevstep;
   }
 }

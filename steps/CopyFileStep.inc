@@ -1,0 +1,111 @@
+<?php
+
+class CopyFileStep extends PrepareIngestFilesStep {
+  
+  public function label() {
+    $title = t('Copy file');
+    if ($this->hasConfigKey('source_filepath')) {
+      $title .= ' ' . t('from "@fp"', array('@fp' => $this->config['source_filepath']));
+    }
+    if ($this->hasConfigKey('target_filepath')) {
+      $title .= ' ' . t('to "@fp"', array('@fp' => $this->config['target_filepath']));
+    }
+    $title .= '.';
+
+    return $title;
+  }
+
+  public function arguments() {
+    return array(
+      'source_filepath' => array(
+        'label' => t('Source filepath'),
+        'description' => t('This should hold an absolute path to an existing file.'),
+        'type' => 'templatestring',
+      ),
+      'target_filepath' => array(
+        'label' => t('Target filepath'),
+        'description' => t('This should hold an absolute path to an existing directory or the absolute path including the new name of the file to copy.'),
+        'type' => 'templatestring',
+      ),
+    );
+  }
+ 
+  public function inputKeys() {
+    return $this->_getInputKeysFromTemplates(array('source_filepath', 'target_filepath'));
+  }
+
+  public function outputKeys() {
+    return array();
+  } 
+  
+  public function changesCount() {
+    return FALSE;
+  }
+  
+  public function changesKeys() {
+    return FALSE;
+  }
+
+  public function changesFiles() {
+    return TRUE;
+  }
+
+  public function checkConfiguration() {
+    return parent::checkConfiguration();
+  }
+
+  public function dryRun(&$context) {
+    $prevdatastep = $this->_previousDataChangingStep();
+    if ($this->hasConfigKey('source_filepath') && $this->hasConfigKey('target_filepath') && isset($prevdatastep)) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+      $sourcetemplate = $this->config['source_filepath'];
+      $targettemplate = $this->config['target_filepath'];
+
+      $fileentries = $this->_previousStepFileEntries();
+      $results = array();
+      $prevdatastep->resetDataIterator();
+      $item = $prevdatastep->nextDataItem();
+      while ($item !== NULL) {
+        $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
+        if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->otherid)) {
+          $results[] = array('text' => t("File '@file' does not exist.",
+                    array('@file' => $sourcefilepath)), 'type' => 'run_error');
+        }
+        $targetfilepath = $this->fillOutTemplate($targettemplate, $item);
+        if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $this->workflowid, $this->otherid)) {
+          $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
+        }
+        if (pifs_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
+          $results[] = array('text' => t("File '@file' already exists.",
+                    array('@file' => $targetfilepath)), 'type' => 'run_error');
+        }
+        $targetdirectory = dirname($targetfilepath);
+        if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->otherid)) {
+          $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+                    array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
+        }
+        if (count($results) > 0) {
+          return $results;
+        }
+        $entry = pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
+dpm($entry, 'entry copy');
+        $fileentries[$entry['filepath']] = $entry;
+
+        $this->saveDataItem($item);
+
+        $item = $prevdatastep->nextDataItem();
+      }
+dpm($fileentries, 'fileentries copy');
+      $this->_saveFileEntries($fileentries);
+    }
+    return FALSE;
+  }
+
+  public function verify($context) {
+    return parent::verify($context);
+  }
+
+  public function prepareIngest(&$context) {
+    $this->_prepareIngestFilesUsingFunction('pifs_copy');
+  }
+}

@@ -6,7 +6,16 @@ version = "7.x-4.x-dev"
 core = "7.x"
 
 files[] = steps/PrepareIngestStep.inc
-files[] = steps/AddKeyTemplateStep.inc
+files[] = steps/PrepareIngestFilesStep.inc
 files[] = steps/DefineConstantStep.inc
+files[] = steps/AddKeyTemplateStep.inc
+files[] = steps/AddKeyRegExStep.inc
+files[] = steps/AddKeyCounterStep.inc
+files[] = steps/AddKeysByExtractingStep.inc
+files[] = steps/ModifyKeyValueStep.inc
 files[] = steps/ReadFilenamesStep.inc
 files[] = steps/WriteFileStep.inc
+files[] = steps/MakeDirectoryStep.inc
+files[] = steps/CopyFileStep.inc
+files[] = steps/GroupItemsStep.inc
+files[] = steps/FilterItemsStep.inc

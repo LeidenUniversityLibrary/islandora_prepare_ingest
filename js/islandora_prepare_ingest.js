@@ -620,13 +620,17 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   }
   else if (type === 1) {
     if (show === 2) {
+      var alreadyUsed = [];
       var l = jQuery(element).data('inputkeys');
       for (var i=0; i<l.length; i++) {
         usedKeys.push(l[i]);
+        alreadyUsed[l[i]] = 1;
       }
       l = jQuery(element).data('outputkeys');
       for (var i=0; i<l.length; i++) {
-        usedKeys.push(l[i]);
+        if (!(l[i] in alreadyUsed)) {
+          usedKeys.push(l[i]);
+        }
       }
     }
     if (usedKeys.length === 0) {
