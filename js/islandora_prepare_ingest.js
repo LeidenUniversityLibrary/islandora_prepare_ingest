@@ -328,7 +328,7 @@ function setUpButtonsAndFields($context) {
               }
             }
             else if (jQuery(element).hasClass('keystemplate')) {
-              var re = /[^{]*{([^}]+)}/g;
+              var re = /[^{]*{([a-zA-Z0-9_-]+)(?:\[([^\[\]]+)\])?}/g;
               var match;
               while ((match = re.exec(outputvalue)) != null) {
                 if (match[1].length > 0) {

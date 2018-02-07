@@ -35,7 +35,7 @@ class FilterItemsStep extends PrepareIngestStep {
           $title .= ' ' . t('matches');
         }
         if ($this->hasConfigKey('filter_value')) {
-          $title .= ' ' . $config['filter_value'];
+          $title .= ' ' . $this->config['filter_value'];
         }
       }
     }
@@ -117,20 +117,21 @@ class FilterItemsStep extends PrepareIngestStep {
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('filter_key_name') && $this->hasConfigKey('filter_type') && isset($prevdatastep)) {
-      $filterkey = $config['filter_key_name'];
-      $type = $config['filter_type'];
-      $value = $config['filter_value'];
-      $negate = $config['negate'];
+      $filterkey = $this->config['filter_key_name'];
+      $type = $this->config['filter_type'];
+      $value = $this->config['filter_value'];
+      $negate = $this->config['negate'];
 
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
+      $currentitemnr = 1;
       while ($item !== NULL) {
         $shouldkeep = FALSE;
         if ($type === 'exists') {
           $shouldkeep = isset($item[$filterkey]);
         }
         elseif ($type === 'equals') {
-          $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value)));
+          $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
         }
         elseif ($type === 'matches') {
           $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
@@ -139,7 +140,9 @@ class FilterItemsStep extends PrepareIngestStep {
           $shouldkeep = !$shouldkeep;
         }
         if ($shouldkeep) {
+          $item['item nr'] = $currentitemnr;
           $this->saveDataItem($item);
+          $currentitemnr++;
         }
         $item = $prevdatastep->nextDataItem();
       }

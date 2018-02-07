@@ -19,3 +19,4 @@ files[] = steps/MakeDirectoryStep.inc
 files[] = steps/CopyFileStep.inc
 files[] = steps/GroupItemsStep.inc
 files[] = steps/FilterItemsStep.inc
+files[] = steps/EndFilterItemsStep.inc

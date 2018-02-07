@@ -4,7 +4,7 @@ class GroupItemsStep extends PrepareIngestStep {
   
   public function label() {
     $title = t('Group items');
-    if ($this->hasConfigKey('group_key_name']) {
+    if ($this->hasConfigKey('group_key_name')) {
       $title .= ' ' . t('by the value of key "@key"', array('@key' => $this->config['group_key_name']));
     }
     $title .= '.';
