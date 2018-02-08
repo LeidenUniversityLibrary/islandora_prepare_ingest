@@ -34,7 +34,7 @@ class AddKeyTemplateStep extends PrepareIngestStep {
     }
     if ($this->hasConfigKey('template')) {
       $template = $this->config['template'];
-      $title .= t('with value from template "@template"', array('@template' => $template));
+      $title .= ' ' . t('with value from template "@template"', array('@template' => $template));
     }
 
     if (strlen($title) == 0) {

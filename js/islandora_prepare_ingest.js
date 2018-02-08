@@ -685,7 +685,10 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
         if (type === 2 && key === 'filepath') {
           cellhtml += '<SPAN class="upi_fullvalue">';
           cellhtml += value + '<BR/><BR/>';
-          if (d.hasOwnProperty('content')) {
+          if (d.hasOwnProperty('type') && d['type'] === 'directory') {
+            cellhtml += 'Is a directory';
+          }
+          else if (d.hasOwnProperty('content')) {
             cellhtml += 'Content (' + d['content'].length + ' bytes):' + '</BR>';
             cellhtml += '<pre>';
             if (d['content'].length > 1000) {
@@ -697,7 +700,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
             cellhtml += '</pre>';
           }
           else if (d.hasOwnProperty('realfilepath')) {
-            cellhtml += 'Data from file at ' + d['realfilepath'];
+            cellhtml += 'Contains same data as file at ' + d['realfilepath'];
           }
           var shortvalue;
           if (value.length > maxLengthKeyValue) {

@@ -411,9 +411,8 @@ function islandora_prepare_ingest_edit_workflow_form_dryrun(array $form, array &
   $workflowresults = islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
   $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['otherid'] = $otherid; 
-  if (islandora_prepare_ingest_report_result_summary($workflowid, 'dryrun', $workflowresults)) {
+  if (islandora_prepare_ingest_report_result_summary($workflowid, $workflowresults)) {
     islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    // TODO: $form_state['redirect'] = 'admin/islandora/prepare_ingest/check/' . $workflowid;
   }
   else {
     islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));

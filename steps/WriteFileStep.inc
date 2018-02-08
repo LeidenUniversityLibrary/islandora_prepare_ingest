@@ -96,7 +96,7 @@ class WriteFileStep extends PrepareIngestFilesStep {
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
-        $content = $item[$contentkey];
+        $content = isset($item[$contentkey])?$item[$contentkey]:'';
         $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
         $targetdirectory = dirname($targetfilepath);
         if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->otherid)) {

@@ -88,14 +88,12 @@ class CopyFileStep extends PrepareIngestFilesStep {
           return $results;
         }
         $entry = pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
-dpm($entry, 'entry copy');
         $fileentries[$entry['filepath']] = $entry;
 
         $this->saveDataItem($item);
 
         $item = $prevdatastep->nextDataItem();
       }
-dpm($fileentries, 'fileentries copy');
       $this->_saveFileEntries($fileentries);
     }
     return FALSE;

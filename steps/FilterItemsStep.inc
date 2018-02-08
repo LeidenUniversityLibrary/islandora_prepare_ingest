@@ -151,7 +151,8 @@ class FilterItemsStep extends PrepareIngestStep {
   }
 
   public function verify($context) {
-    return parent::verify($context);
+    // don't verify input keys or output keys, because some might be missing but that is okay.
+    return array();
   }
 
   public function prepareIngest(&$context) {

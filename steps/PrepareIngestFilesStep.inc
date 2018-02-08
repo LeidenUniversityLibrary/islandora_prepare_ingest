@@ -12,7 +12,6 @@ class PrepareIngestFilesStep extends PrepareIngestStep {
   protected function _previousFilesChangingStep() {
     $prevstep = $this->previousstep;
     while ($prevstep !== NULL && !$prevstep->changesFiles()) {
-dpm($prevstep->name, "prevstep file of " . $this->name );
       $prevstep = $prevstep->previousstep;
     }
     return $prevstep;
@@ -37,7 +36,6 @@ dpm($prevstep->name, "prevstep file of " . $this->name );
     $currentitemnr = 1;
     foreach ($fileentries as $fileentry) {
       $fileentry['item nr'] = $currentitemnr;
-dpm($fileentry, 'saving fileentry');
       $this->saveFileEntry($fileentry);
       $currentitemnr++;
     }

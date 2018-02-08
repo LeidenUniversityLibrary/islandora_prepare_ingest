@@ -336,42 +336,33 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
   return $stepform;
 }
 
-function islandora_prepare_ingest_report_result_summary($workflowid, $reporttype, $workflowresults) {
+function islandora_prepare_ingest_report_result_summary($workflowid, $workflowresults) {
   // TODO: weghalen?
   $errorcount = 0;
   $warningcount = 0;
   if (is_array($workflowresults) && count($workflowresults) > 0) {
     foreach ($workflowresults as $stepid => $workflowres) {
       if (is_array($workflowres)) {
-        foreach ($workflowres as $wfres) {
-          $type = $wfres['type'];
-          if (strpos($type, 'error') !== FALSE) {
+        foreach ($workflowres as $type => $wfres) {
+          if ($type === 'error' || $type === 'check') {
             $errorcount++;
           }
-          elseif (strpos($type, 'warning') !== FALSE) {
+          elseif ($type === 'warning') {
             $warningcount++;
           }
         }
       }
     }
   }
-  $action = (($reporttype === 'check')?t('Checks'):(($reporttype === 'test')?t('Test'):t('Dry run')));
+  $haserrors = (($errorcount + $warningcount) > 0);
   if ($errorcount > 0) {
-    drupal_set_message(t('@action failed with !count errors. See below for details.', array('@action' => $action, '!count' => $errorcount)), 'error', FALSE);
+    drupal_set_message(t('Dryrun failed with !count errors. See below for details.', array('!count' => $errorcount)), 'error', FALSE);
   }
   if ($warningcount > 0) {
-    drupal_set_message(t('@action failed with !count warnings. See below for details.', array('@action' => $action, '!count' => $warningcount)), 'warning', FALSE);
+    drupal_set_message(t('Dryrun failed with !count warnings. See below for details.', array('!count' => $warningcount)), 'warning', FALSE);
   }
-  if (($errorcount + $warningcount) == 0) {
-    drupal_set_message(t('@action finished successful!', array('@action' => $action)));
-    if ($reporttype === 'check') {
-      drupal_set_message(t('You can test this workflow now. Fill out the missing values and press the test workflow button below.'), 'status', FALSE);
-    }
-    if ($reporttype === 'dryrun') {
-      global $user;
-      drupal_set_message(t('You can run this workflow now for real on the commandline:'), 'status', FALSE);
-      drupal_set_message(t('drush -v --user=!user prepare_ingest --workflow=!workflowid', array('!workflowid' => $workflowid, '!user' => $user->name)), 'status', FALSE);
-    }
+  if (!$haserrors) {
+    drupal_set_message(t('Dryrun finished successful!'));
   }
-  return (($errorcount + $warningcount) == 0);
+  return !$haserrors;
 }
