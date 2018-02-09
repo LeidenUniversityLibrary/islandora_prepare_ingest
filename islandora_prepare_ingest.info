@@ -20,3 +20,5 @@ files[] = steps/CopyFileStep.inc
 files[] = steps/GroupItemsStep.inc
 files[] = steps/FilterItemsStep.inc
 files[] = steps/EndFilterItemsStep.inc
+files[] = steps/ParseXmlStep.inc
+files[] = steps/ValueFromXmlStep.inc

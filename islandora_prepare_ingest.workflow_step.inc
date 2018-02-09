@@ -86,69 +86,27 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'GroupItemsStep',
   );
   $info['filter_items'] = array(
-    'name' => t('Filter items'),
+    'name' => t('Filter items  start'),
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'FilterItemsStep',
   );
   $info['end_filter'] = array(
-    'name' => t('End Filter items'),
+    'name' => t('Filter items end'),
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'EndFilterItemsStep',
   );
-
-/*
   $info['parse_xml'] = array(
-    'arguments' => array(
-      'filepath' => array(
-        'label' => t('Filepath'),
-        'description' => t('This should hold an absolute path to an existing XML file.'),
-        'type' => 'templatestring',
-      ),
-      'xml_key_name' => array(
-        'label' => t('XML key name'),
-        'description' => t('The key where the XML should be stored.'),
-        'type' => 'key',
-      ),
-    ),
-    'input keys callback' => 'get_input_keys_from_template',
-    'output keys' => array('xml_key_name'),
-    'changes count' => FALSE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
+    'name' => t('Parse XML'),
     'type group' => t('Handling XML'),
+    'class name' => 'ParseXmlStep',
   );
   $info['value_from_xml'] = array(
-    'arguments' => array(
-      'source_xml_key_name' => array(
-        'label' => t('XML key name'),
-        'description' => t('The key name where the XML is stored.'),
-        'type' => 'key',
-      ),
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'description' => t('The key that should be used to hold the value.'),
-        'type' => 'key',
-      ),
-      'xpath' => array(
-        'label' => t('XPath'),
-        'description' => t('An XPath to the needed value.'),
-        'type' => 'xpath',
-        'allow_constants' => TRUE,
-      ),
-      'namespaces' => array(
-        'label' => t('namespaces'),
-        'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
-        'type' => 'text',
-        'allow_constants' => TRUE,
-      ),
-    ),
-    'input keys' => array('source_xml_key_name'),
-    'output keys' => array('target_key_name'),
-    'changes count' => FALSE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
+    'name' => t('Add key from XML'),
     'type group' => t('Handling XML'),
+    'class name' => 'ValueFromXmlStep',
   );
+
+/*
   $info['xml_parts_from_xml'] = array(
     'arguments' => array(
       'source_xml_key_name' => array(
@@ -212,15 +170,6 @@ function islandora_prepare_ingest_workflow_step_info() {
     'changes keys' => TRUE,
     'changes files' => FALSE,
     'type group' => t('Add items from files'),
-  );
-  $info['end_filter'] = array(
-    'arguments' => array(),
-    'input keys' => array(),
-    'output keys' => array(),
-    'changes count' => TRUE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
-    'type group' => t('Sorting, filtering and grouping'),
   );
   $info['visual_group_start'] = array(
     'arguments' => array(

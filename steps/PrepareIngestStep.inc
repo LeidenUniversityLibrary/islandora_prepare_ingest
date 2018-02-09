@@ -358,7 +358,6 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
   protected function _checkConfiguration() {
     $results = array();
-    $outputkeys = $this->outputKeys();
     foreach ($this->arguments() as $argkey => $argconfig) {
       $argkeytext = $argconfig['label'];
       if (isset($this->config[$argkey]) && strlen($this->config[$argkey]) > 0) {
@@ -456,9 +455,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
             }
           }
         }
-        if (in_array($argkey, $outputkeys)) {
-          $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'key' => $argkey, 'type' => 'argument_error');
-        }
+        $results[$argkey] = array('text' => t('Missing argument \'@argname\'', array('@argname' => $argconfig['label'])), 'key' => $argkey, 'type' => 'argument_error');
       }
     }
     return $results;

@@ -109,6 +109,8 @@ class ReadFilenamesStep extends PrepareIngestStep {
 
   public function dryRun(&$context) {
     if ($this->hasConfigKey('directory_path')) {
+      $prevdatastep = $this->_previousDataChangingStep();
+
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $dirpath = $this->config['directory_path'];
@@ -116,11 +118,24 @@ class ReadFilenamesStep extends PrepareIngestStep {
       $includedir = $this->config['include_subdirectory_files'];
       $filenames = pifs_full_filenames_from_directory($dirpath, $this->workflowid, $this->otherid, $filter, $includedir);
       $key = $this->config['target_key_name'];
-      $items = array();
-      foreach ($filenames as $filename) {
-        $items[] = array($key => $filename);
+
+      // first add all existing items
+      $itemnr = 1;
+      if (isset($prevdatastep)) {
+        $prevdatastep->resetDataIterator();
+        $item = $prevdatastep->nextDataItem();
+        while ($item !== NULL) {
+          $this->saveDataItem($item);
+          $itemnr = $item['item nr'];
+          $item = $prevdatastep->nextDataItem();
+        }
       }
-      islandora_prepare_ingest_data_cache_insert($this->workflowid, $this->stepid, $this->otherid, 1, $items);
+
+      foreach ($filenames as $filename) {
+        $itemnr++;
+        $item = array($key => $filename, 'item nr' => $itemnr);
+        $this->saveDataItem($item);
+      }
     }
     return FALSE;
   }

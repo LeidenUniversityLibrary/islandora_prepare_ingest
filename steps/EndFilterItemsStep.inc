@@ -3,7 +3,7 @@
 class EndFilterItemsStep extends PrepareIngestStep {
   
   public function label() {
-    return t('Filter end');
+    return t('Filter items end');
   }
 
   public function arguments() {

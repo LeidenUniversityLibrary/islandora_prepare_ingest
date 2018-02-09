@@ -184,7 +184,7 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
       'class' => array('workflow_step', $step->name()),
     ),
   );
-  foreach (array('check','verify') as $type) {
+  foreach (array('check', 'dryrun', 'verify', 'prepare') as $type) {
     if (isset($workflowresult[$type]) && count($workflowresult[$type]) > 0) {
       $stepform['#collapsed'] = FALSE;
       foreach ($workflowresult[$type] as $i => $result) {
@@ -193,14 +193,14 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
         }
         $stepform[$type . '_description' . '_' . $i] = array(
           '#type' => 'item',
-          '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
+          '#markup' => '<DIV class="' . $result['type'] . '">' . $result['text'] . '</DIV>',
           '#weight' => -999,
         );
       }
       if (count($workflowresult[$type]) >= 10) {
         $stepform[$type . '_description' . '_' . count($workflowresult[$type])] = array(
           '#type' => 'item',
-          '#markup' => '<SPAN class="warning">Other ' . (count($workflowresult[$type]) - 10) . ' errors suppressed</SPAN>',
+          '#markup' => '<DIV class="warning">Other ' . (count($workflowresult[$type]) - 10) . ' errors suppressed</DIV>',
           '#weight' => -999,
         );
       }
@@ -343,12 +343,17 @@ function islandora_prepare_ingest_report_result_summary($workflowid, $workflowre
   if (is_array($workflowresults) && count($workflowresults) > 0) {
     foreach ($workflowresults as $stepid => $workflowres) {
       if (is_array($workflowres)) {
-        foreach ($workflowres as $type => $wfres) {
-          if ($type === 'error' || $type === 'check') {
-            $errorcount++;
-          }
-          elseif ($type === 'warning') {
-            $warningcount++;
+        foreach ($workflowres as $wftype => $wfres) {
+          if (count($wfres) > 0) {
+            foreach ($wfres as $res) {
+              $type = $res['type'];
+              if (strpos($type, 'error') !== FALSE || strpos($type, 'check') !== FALSE) {
+                $errorcount++;
+              }
+              elseif (strpos($type, 'warn') !== FALSE) {
+                $warningcount++;
+              }
+            }
           }
         }
       }

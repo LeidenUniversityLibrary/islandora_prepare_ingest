@@ -91,8 +91,13 @@ jQuery(document).ready(function() {
         $showDataButton.show();
         $editButton.hide();
         e.preventDefault();
-      }); 
-      $showDataButton.click();
+      });
+      if ($tabs.prev().size() == 0) {
+        $showDataButton.click();
+      }
+      else {
+        $editButton.click();
+      }
     }
   });
 });
