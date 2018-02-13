@@ -2,7 +2,7 @@
 
 /**
  * @file
- * steps/ValueFromXmlStep.inc
+ * steps/ExtractPartsFromXmlStep.inc
  *
  *
  *  Copyright 2017-2018 Leiden University Library
@@ -25,10 +25,10 @@
  */
 
 
-class ValueFromXmlStep extends PrepareIngestStep {
+class ExtractPartsFromXmlStep extends PrepareIngestStep {
   
   public function label() {
-    $title = t('Add key from XML');
+    $title = t('Add items by extracting XML parts from XML');
     if ($this->hasConfigKey('source_xml_key_name')) {
       $title .= ' ' . t('at key "@key"', array('@key' => $this->config['source_xml_key_name']));
     }
@@ -45,9 +45,14 @@ class ValueFromXmlStep extends PrepareIngestStep {
       }
     }
     if ($this->hasConfigKey('target_key_name')) {
-      $title .= ' ' . t('and store it in key "@key"', array('@key' => $this->config['target_key_name']));
+      $title .= ' ' . t('and insert item with key "@key"', array('@key' => $this->config['target_key_name']));
     }
+    if ($this->hasConfigKey('related_key_name')) {
+      $title .= ' ' . t('and related key "@key"', array('@key' => $this->config['related_key_name']));
+    }
+
     $title .= '.';
+  
     return $title;
   }
 
@@ -81,12 +86,12 @@ class ValueFromXmlStep extends PrepareIngestStep {
       ),
       'target_key_name' => array(
         'label' => t('Target key name'),
-        'description' => t('The key that should be used to hold the value.'),
+        'description' => t('The key that should be used to hold the new XML parts.'),
         'type' => 'key',
       ),
       'xpath' => array(
         'label' => t('XPath'),
-        'description' => t('An XPath to the needed value.'),
+        'description' => t('An XPath to a repeating element.'),
         'type' => 'xpath',
         'allow_constants' => TRUE,
       ),
@@ -94,22 +99,28 @@ class ValueFromXmlStep extends PrepareIngestStep {
         'label' => t('namespaces'),
         'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
         'type' => 'text',
+        'optional' => TRUE,
         'allow_constants' => TRUE,
+      ),
+      'related_key_name' => array(
+        'label' => t('Related key name'),
+        'description' => t('Optionally, a key that will be included in the new items so they are related.'),
+        'type' => 'key',
         'optional' => TRUE,
       ),
     );
   }
 
   public function _inputKeyKeys() {
-    return array('source_xml_key_name');
+    return array('source_xml_key_name', 'related_key_name');
   }
 
   public function _outputKeyKeys() {
-    return array('target_key_name');
+    return array('target_key_name', 'related_key_name');
   }
 
   public function changesCount() {
-    return FALSE;
+    return TRUE;
   }
 
   public function changesKeys() {
@@ -131,8 +142,10 @@ class ValueFromXmlStep extends PrepareIngestStep {
       $targetkey = $this->config['target_key_name'];
       $xpath = $this->config['xpath'];
       $namespaces = $this->_namespaces();
+      $relatedkey = $this->hasConfigKey('related_key_name')?$this->config['related_key_name']:'';
 
       $results = array();
+      $itemnr = 1;
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
@@ -153,16 +166,24 @@ class ValueFromXmlStep extends PrepareIngestStep {
                     array('@key' => $this->arguments()['xpath']['label'], '@value' => $this->config['xpath'])), 'type' => 'argument_error');
           return $results;
         }
+        $item['item nr'] = $itemnr++;
+        $this->saveDataItem($item);
         if ($domnodelist->length > 0) {
           foreach ($domnodelist as $domnode) {
-            $text = $domnode->textContent;
-            if (isset($text) && strlen($text) > 0) {
-              $item[$targetkey] = $text;
-              break;
+            $newdomdoc = new DOMDocument;
+            $newnode = $newdomdoc->importNode($domnode, true);
+            if ($newnode) {
+              $newdomdoc->appendChild($newnode);
+              $newditem= array();
+              $newitem[$targetkey] = $newdomdoc->saveXML();
+              if ($relatedkey) {
+                $newitem[$relatedkey] = $item[$relatedkey];
+              }
+              $newitem['item nr'] = $itemnr++;
+              $this->saveDataItem($newitem);
             }
           }
         }
-        $this->saveDataItem($item);
         $item = $prevdatastep->nextDataItem();
       }
     }

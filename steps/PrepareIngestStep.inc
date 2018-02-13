@@ -490,14 +490,15 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       $inputkeys = array_merge($inputkeys, $keys);
     }
 
-    $itemscount = islandora_prepare_ingest_data_cache_per_step_count($this->workflowid, $this->stepid, $this->otherid, 1);
+    $itemscount = islandora_prepare_ingest_data_cache_per_step_count($this->workflowid, $this->previousstep->stepid, $this->otherid, 1);
     foreach ($inputkeys as $key) {
-      $keycount = islandora_prepare_ingest_data_cache_per_step_key_count($this->workflowid, $this->stepid, $this->otherid, 1, $key);
+      $keycount = islandora_prepare_ingest_data_cache_per_step_key_count($this->workflowid, $this->previousstep->stepid, $this->otherid, 1, $key);
       if (($keycount === 0) && ($itemscount > 0)) { 
         $results[] = array('text' => t("Missing key '@key'. This key is not defined in any of the previous steps.", array('@key' => $key)),
                            'key' => $key, 'type' => 'key_error');
       }
       else if (($itemscount > $keycount)  && ($keycount > 0)) {
+dpm($inputkeys, "inputkeys items=$itemscount keys=$keycount");
         $results[] = array('text' => t("Missing key '@key'. This key is defined in a previous step but not available for all items. Use a filter before this step to keep the items with the right keys.", array('@key' => $key)),
                            'key' => $key, 'type' => 'key_error');
       }

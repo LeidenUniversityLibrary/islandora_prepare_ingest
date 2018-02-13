@@ -105,6 +105,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Handling XML'),
     'class name' => 'ValueFromXmlStep',
   );
+  $info['xml_parts_from_xml'] = array(
+    'name' => t('Add items by extracting XML parts from XML'),
+    'type group' => t('Handling XML'),
+    'class name' => 'ExtractPartsFromXmlStep',
+  );
 
 /*
   $info['xml_parts_from_xml'] = array(

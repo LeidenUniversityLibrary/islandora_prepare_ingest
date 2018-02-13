@@ -129,12 +129,13 @@ class ReadFilenamesStep extends PrepareIngestStep {
           $itemnr = $item['item nr'];
           $item = $prevdatastep->nextDataItem();
         }
+        $itemnr++;
       }
 
       foreach ($filenames as $filename) {
-        $itemnr++;
         $item = array($key => $filename, 'item nr' => $itemnr);
         $this->saveDataItem($item);
+        $itemnr++;
       }
     }
     return FALSE;
