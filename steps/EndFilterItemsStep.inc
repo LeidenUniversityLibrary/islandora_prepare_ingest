@@ -66,35 +66,62 @@ class EndFilterItemsStep extends PrepareIngestStep {
         $prevdatastep->resetDataIterator();
         $currentitemnr = 1;
         $item = $prevstartfilterdatastep->nextDataItem();
+        $newitem = $prevdatastep->nextDataItem();
         while ($item !== NULL) {
-          $shouldkeep = FALSE;
-          if ($type === 'exists') {
-            $shouldkeep = isset($item[$filterkey]);
-          }
-          elseif ($type === 'equals') {
-            $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
-          }
-          elseif ($type === 'matches') {
-            $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
-          }
-          if ($negate) {
-            $shouldkeep = !$shouldkeep;
-          }
+          $shouldkeep = $this->_shouldKeep($item, $type, $filterkey, $value, $negate);
           if ($shouldkeep) {
+            // this item was filtered, so replace these filtered items up to a non-filtered item.
+            // first find the last filtered item of this part
+            $lastfiltereditem = $item;
+            $item = $prevstartfilterdatastep->nextDataItem();
+            while ($item != NULL && $this->_shouldKeep($item, $type, $filterkey, $value, $negate)) {
+              $lastfiltereditem = $item;
+              $item = $prevstartfilterdatastep->nextDataItem();
+            }
             // replace the items that should be kept (when the filter started) with the items from the end of the filter.
-            $item = $prevdatastep->nextDataItem();
+            while ($newitem !== NULL) {
+              $newitem['item nr'] = $currentitemnr;
+              $this->saveDataItem($newitem);
+              $currentitemnr++;
+              $newitem = $prevdatastep->nextDataItem();
+              if ($newitem['_UID_'] === $lastfiltereditem['_UID_']) {
+                break;
+              }
+            }
           }
-          if ($item !== NULL) {
+          else {
             $item['item nr'] = $currentitemnr;
             $this->saveDataItem($item);
             $currentitemnr++;
+            $item = $prevstartfilterdatastep->nextDataItem();
           }
-
-          $item = $prevstartfilterdatastep->nextDataItem();
+        }
+        while ($newitem !== NULL) {
+          $newitem['item nr'] = $currentitemnr;
+          $this->saveDataItem($newitem);
+          $currentitemnr++;
+          $newitem = $prevdatastep->nextDataItem();
         }
       }
     }
     return FALSE;
+  }
+
+  private function _shouldKeep($item, $type, $filterkey, $value, $negate) {
+    $shouldkeep = FALSE;
+    if ($type === 'exists') {
+      $shouldkeep = isset($item[$filterkey]);
+    }
+    elseif ($type === 'equals') {
+      $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
+    }
+    elseif ($type === 'matches') {
+      $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
+    }
+    if ($negate) {
+      $shouldkeep = !$shouldkeep;
+    }
+    return $shouldkeep;
   }
 
   private function _startFilterDataChangingStep() {

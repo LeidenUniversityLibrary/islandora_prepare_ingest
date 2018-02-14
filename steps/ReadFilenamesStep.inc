@@ -93,11 +93,11 @@ class ReadFilenamesStep extends PrepareIngestStep {
       $dirpath = $this->config['directory_path'];
       if (substr($dirpath, 0, 1) !== DIRECTORY_SEPARATOR) {
         $results[] = array('text' => t("Argument '@key' should be an absolute filepath, but is '@value'.",
-                  array('@key' => $this->info['arguments']['directory_path']['label'], '@value' => $dirpath)), 'type' => 'argument_error');
+                  array('@key' => $this->arguments()['directory_path']['label'], '@value' => $dirpath)), 'type' => 'argument_error');
       }
       if (!is_dir($dirpath)) {
         $results[] = array('text' => t("Argument '@key' should be an existing filepath, but is '@value'",
-                  array('@key' => $this->info['arguments']['directory_path']['label'], '@value' => $dirpath)), 'type' => 'argument_error');
+                  array('@key' => $this->arguments()['directory_path']['label'], '@value' => $dirpath)), 'type' => 'argument_error');
       }
     }
     if ($results) {

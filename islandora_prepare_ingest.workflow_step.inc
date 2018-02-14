@@ -36,33 +36,33 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'DefineConstantStep',
   );
   $info['read_file_names'] = array(
-    'name' => t('Read filenames'),
-    'type group' => t('Add items from files'),
+    'name' => t('Add items by reading filenames'),
+    'type group' => t('Add items'),
     'class name' => 'ReadFilenamesStep',
   );
   $info['add_key_template'] = array(
     'name' => t('Add key with template based value'),
-    'type group' => t('Add key(s)'),
+    'type group' => t('Add key'),
     'class name' => 'AddKeyTemplateStep',
   );
   $info['add_key_regex'] = array(
     'name' => t('Add key with regular expression based value'),
-    'type group' => t('Add key(s)'),
+    'type group' => t('Add key'),
     'class name' => 'AddKeyRegExStep',
   );
   $info['add_key_counter'] = array(
     'name' => t('Add key with counter value'),
-    'type group' => t('Add key(s)'),
+    'type group' => t('Add key'),
     'class name' => 'AddKeyCounterStep',
   );
   $info['add_keys_extracting_values'] = array(
     'name' => t('Add key(s) by extracting values'),
-    'type group' => t('Add key(s)'),
+    'type group' => t('Add key'),
     'class name' => 'AddKeysByExtractingStep',
   );
   $info['modify_key_value'] = array(
     'name' => t('Modify key value'),
-    'type group' => t('Modify key(s)'),
+    'type group' => t('Modify key'),
     'class name' => 'ModifyKeyValueStep',
   );
   $info['make_directory'] = array(
@@ -96,86 +96,37 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'EndFilterItemsStep',
   );
   $info['parse_xml'] = array(
-    'name' => t('Parse XML'),
+    'name' => t('Add key with parsed XML'),
     'type group' => t('Handling XML'),
     'class name' => 'ParseXmlStep',
   );
   $info['value_from_xml'] = array(
     'name' => t('Add key from XML'),
-    'type group' => t('Handling XML'),
+    'type group' => array(t('Handling XML'), t('Add key')),
     'class name' => 'ValueFromXmlStep',
   );
   $info['xml_parts_from_xml'] = array(
     'name' => t('Add items by extracting XML parts from XML'),
-    'type group' => t('Handling XML'),
+    'type group' => array(t('Handling XML'), t('Add items')),
     'class name' => 'ExtractPartsFromXmlStep',
+  );
+  $info['read_csv_file'] = array(
+    'name' => t('Add items by reading CSV file'),
+    'type group' => t('Add items'),
+    'class name' => 'ReadCsvFileStep',
+  );
+  $info['visual_group_start'] = array(
+    'name' => t('Visual group  start'), // 2 spaces for sorting.
+    'type group' => t('Visual'),
+    'class name' => 'VisualGroupStartStep',
+  );
+  $info['visual_group_end'] = array(
+    'name' => t('Visual group end'),
+    'type group' => t('Visual'),
+    'class name' => 'VisualGroupEndStep',
   );
 
 /*
-  $info['xml_parts_from_xml'] = array(
-    'arguments' => array(
-      'source_xml_key_name' => array(
-        'label' => t('XML key name'),
-        'description' => t('The key name where the XML is stored.'),
-        'type' => 'key',
-      ),
-      'target_key_name' => array(
-        'label' => t('Target key name'),
-        'description' => t('The key that should be used to hold the new XML parts.'),
-        'type' => 'key',
-      ),
-      'xpath' => array(
-        'label' => t('XPath'),
-        'description' => t('An XPath to a repeating element.'),
-        'type' => 'xpath',
-        'allow_constants' => TRUE,
-      ),
-      'namespaces' => array(
-        'label' => t('namespaces'),
-        'description' => t('The namespaces; one namespace per line in the following format: prefix=namespace URI'),
-        'type' => 'text',
-        'allow_constants' => TRUE,
-      ),
-      'related_key_name' => array(
-        'label' => t('Related key name'),
-        'description' => t('Optionally, a key that will be included in the new items so they are related.'),
-        'type' => 'key',
-        'optional' => TRUE,
-      ),
-    ),
-    'input keys' => array('source_xml_key_name','related_key_name'),
-    'output keys' => array('target_key_name','related_key_name'),
-    'changes count' => TRUE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
-    'type group' => t('Handling XML'),
-  );
-  $info['read_csv_file'] = array(
-    'arguments' => array(
-      'csv_filepath' => array(
-        'label' => t('CSV filepath'),
-        'description' => t('Specify the absolute path to the CSV file.'),
-        'type' => 'filepath',
-        'allow_constants' => TRUE,
-      ),
-      'column_keys' => array(
-        'label' => t('Column keys'),
-        'description' => t('Define the output keys of the CSV file, separated by semicolons.'),
-        'type' => 'keys',
-      ),
-      'has_header' => array(
-        'label' => t('Has header'),
-        'description' => t('Does the CSV file have a header.'),
-        'type' => 'boolean',
-      ),
-    ),
-    'input keys' => array(),
-    'output keys callback' => 'get_output_keys_read_csv_file',
-    'changes count' => TRUE,
-    'changes keys' => TRUE,
-    'changes files' => FALSE,
-    'type group' => t('Add items from files'),
-  );
   $info['visual_group_start'] = array(
     'arguments' => array(
       'description' => array(

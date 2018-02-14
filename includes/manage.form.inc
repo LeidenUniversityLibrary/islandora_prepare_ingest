@@ -235,7 +235,14 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     $stepsinfo = module_invoke_all('workflow_step_info');
     foreach ($stepsinfo as $stepname => $stepinfo) {
       $typegroup = isset($stepinfo['type group'])?$stepinfo['type group']:t('Other');
-      $options[$typegroup][$stepname] = $stepinfo['name'];
+      if (is_array($typegroup)) {
+        foreach ($typegroup as $tg) {
+          $options[$tg][$stepname] = $stepinfo['name'];
+        }
+      }
+      else {
+        $options[$typegroup][$stepname] = $stepinfo['name'];
+      }
     }
     ksort($options);
     foreach ($options as $k => $v) {

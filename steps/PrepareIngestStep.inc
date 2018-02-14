@@ -337,6 +337,9 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     if (!isset($dataitem['item nr'])) {
       throw new UnexpectedValueException("Data item is missing an item nr key.");
     }
+    if (!isset($dataitem['_UID_'])) {
+      $dataitem['_UID_'] = uniqid($dataitem['item nr'] . '_');
+    }
     $itemnr = $dataitem['item nr'];
     islandora_prepare_ingest_data_cache_single_insert($this->workflowid, $this->stepid, $this->otherid, 1, $itemnr, $dataitem);
   }
@@ -507,13 +510,17 @@ dpm($inputkeys, "inputkeys items=$itemscount keys=$keycount");
   }
 
   protected function _getInputKeysFromTemplates($templatekeynames) {
+    return $this->_getKeysFromTemplates($templatekeynames);
+  }
+
+  protected function _getKeysFromTemplates($templatekeynames) {
     $results = array();
     foreach ($templatekeynames as $templatekeyname) {
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
-        $inputkeys = array();
-        if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $inputkeys)) {
-          $results[$templatekeyname] = $inputkeys[1];
+        $keys = array();
+        if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $keys)) {
+          $results[$templatekeyname] = $keys[1];
         }
       }
     }

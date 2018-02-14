@@ -156,7 +156,7 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
         $scsteps =& $scsteps['grouped'];
       }
     }
-    if (array_key_exists('visual', $stepsinfo[$stepname]) && in_array('groupstart', $stepsinfo[$stepname]['visual'])) {
+    if (in_array('groupstart', $step->visual())) {
       $groups[] = 'step_' . $stepid;
       $groups[] = 'grouped';
       $steps['step_' . $stepid]['grouped'] = array(
