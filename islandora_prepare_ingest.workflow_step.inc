@@ -125,83 +125,18 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Visual'),
     'class name' => 'VisualGroupEndStep',
   );
+  $info['sort_items'] = array(
+    'name' => t('Sort items'),
+    'type group' => t('Sorting, filtering and grouping'),
+    'class name' => 'SortItemsStep',
+  );
+  $info['transform_xml'] = array(
+    'name' => t('Transform XML'),
+    'type group' => t('Handling XML'),
+    'class name' => 'TransformXmlStep',
+  );
 
 /*
-  $info['visual_group_start'] = array(
-    'arguments' => array(
-      'description' => array(
-        'label' => t('Description'),
-        'description' => t('A description of this visual grouping.'),
-        'type' => 'template',
-        'allow_constants' => TRUE,
-      ),
-    ),
-    'input keys' => array(),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
-    'visual' => array('groupstart','groupremove','ungroup'),
-    'type group' => ' ' . t('Visual'),
-  );
-  $info['visual_group_end'] = array(
-    'arguments' => array(),
-    'input keys' => array(),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
-    'visual' => array('groupend','nomove','noremove'),
-    'type group' => ' ' . t('Visual'),
-  );
-  $info['sort_items'] = array(
-    'arguments' => array(
-      'order_key_1' => array(
-        'label' => t('Order key 1'),
-        'description' => t('Order by the value of this key.'),
-        'type' => 'key',
-      ),
-      'order_type_1' => array(
-        'label' => t('Order type 1'),
-        'description' => t('How to order the value of this key.'),
-        'type' => 'select',
-        'options' => array(
-          'strcmp' => t('string compare'),
-          'strcasecmp' => t('string compare case-insensitive'),
-          'intcmp' => t('integer compare'),
-          'strcmprev' => t('string compare reverse'),
-          'strcasecmprev' => t('string compare case-insensitive reverse'),
-          'intcmprev' => t('integer compare reverse'),
-        ),
-      ),
-      'order_key_2' => array(
-        'label' => t('Order key 2'),
-        'description' => t('Optional, order by the value of this key.'),
-        'type' => 'key',
-        'optional' => TRUE,
-      ),
-      'order_type_2' => array(
-        'label' => t('Order type 2'),
-        'description' => t('Optional, how to order the value of this key.'),
-        'type' => 'select',
-        'options' => array(
-          'strcmp' => t('string compare'),
-          'strcasecmp' => t('string compare case-insensitive'),
-          'intcmp' => t('integer compare'),
-          'strcmprev' => t('string compare reverse'),
-          'strcasecmprev' => t('string compare case-insensitive reverse'),
-          'intcmprev' => t('integer compare reverse'),
-        ),
-        'optional' => TRUE,
-      ),
-    ),
-    'input keys' => array('order_key_1','order_key_2'),
-    'output keys' => array(),
-    'changes count' => TRUE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
-    'type group' => t('Sorting, filtering and grouping'),
-  );
   $info['transform_xml'] = array(
     'arguments' => array(
       'xml_key_name' => array(

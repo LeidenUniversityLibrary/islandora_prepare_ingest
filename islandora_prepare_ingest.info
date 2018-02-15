@@ -26,3 +26,5 @@ files[] = steps/ExtractPartsFromXmlStep.inc
 files[] = steps/ReadCsvFileStep.inc
 files[] = steps/VisualGroupStartStep.inc
 files[] = steps/VisualGroupEndStep.inc
+files[] = steps/SortItemsStep.inc
+files[] = steps/TransformXmlStep.inc

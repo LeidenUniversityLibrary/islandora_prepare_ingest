@@ -54,7 +54,7 @@ class ModifyKeyValueStep extends PrepareIngestStep {
       $title = t('Modify');
     }
     if ($this->hasConfigKey('source_key_name')) {
-      $title .= ' ' . t('the value of key @key', array('@key' => $this->config['source_key_name']));
+      $title .= ' ' . t('the value of key "@key"', array('@key' => $this->config['source_key_name']));
     }
     else {
       $title .= ' ' . t('the value of a key');
@@ -129,7 +129,7 @@ class ModifyKeyValueStep extends PrepareIngestStep {
           $newvalue = $this->$methodname($item[$sourcekey]);
           $item[$sourcekey] = $newvalue;
           $this->saveDataItem($item);
-          $item = $prevdatAstep->nextDataItem();
+          $item = $prevdatastep->nextDataItem();
         }
       }
     }
