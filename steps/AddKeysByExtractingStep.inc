@@ -66,14 +66,16 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
   }
 
   private function _formatRegex($outputkeys) {
-    $format = str_replace('/', '\\/', $this->config['target_keys_format']);
+    $format = preg_quote($this->config['target_keys_format'], '/');
     foreach ($outputkeys as $keyname => $range) {
       if (isset($range)) {
-        $rangeregex = str_replace('HHyPHeNN', '-', preg_quote(str_replace('-', 'HHyPHeNN', $range)));
-        $format = str_replace('{' . $keyname . '[' . $range . ']}', "([$rangeregex]+)", $format);
+        $norm = array('-', '^');
+        $trans = array('HHyPHeNN', 'CiRCuMFLeX');
+        $rangeregex = str_replace($trans, $norm, preg_quote(str_replace($norm, $trans, $range), '/'));
+        $format = str_replace('\\{' . $keyname . '\\[' . preg_quote($range, '/') . '\\]\\}', "([$rangeregex]+)", $format);
       }
       else {
-        $format = str_replace('{' . $keyname . '}', "(.+)", $format);
+        $format = str_replace('\\{' . $keyname . '\\}', "(.+)", $format);
       }
     }
     return $format;

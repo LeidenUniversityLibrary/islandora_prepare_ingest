@@ -48,6 +48,7 @@ class GroupItemsStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
+    // TODO: do grouping in the sql query
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('group_key_name') && isset($prevdatastep)) {
       $groupkey = $this->config['group_key_name'];

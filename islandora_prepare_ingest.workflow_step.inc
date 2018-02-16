@@ -135,33 +135,13 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Handling XML'),
     'class name' => 'TransformXmlStep',
   );
+  $info['validate_xml'] = array(
+    'name' => t('Validate XML'),
+    'type group' => t('Handling XML'),
+    'class name' => 'ValidateXmlStep',
+  );
 
 /*
-  $info['transform_xml'] = array(
-    'arguments' => array(
-      'xml_key_name' => array(
-        'label' => t('XML key'),
-        'description' => t('The input XML. The value of this key is either an absolute filepath to an XML file or contains XML itself.'),
-        'type' => 'key',
-      ),
-      'xsl_key_name' => array(
-        'label' => t('XSLT key'),
-        'description' => t('The input XSLT. The value of this key is either an absolute filepath to an XSLT file or contains XSLT itself.'),
-        'type' => 'key',
-      ),
-      'target_filepath' => array(
-        'label' => t('Target filepath'),
-        'description' => t('This should hold an absolute path to a not existing file where the output XML file will be written.'),
-        'type' => 'templatestring',
-      ),
-    ),
-    'input keys' => array('xml_key_name', 'xsl_key_name'),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => TRUE,
-    'type group' => t('Handling XML'),
-  );
   $info['validate_xml'] = array(
     'arguments' => array(
       'xml_key_name' => array(

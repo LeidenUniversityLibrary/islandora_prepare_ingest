@@ -25,7 +25,7 @@
  */
 
 
-class TransformXmlStep extends PrepareIngestStep {
+class TransformXmlStep extends PrepareIngestXmlStep {
   
   public function label() {
     $title = t('Transform XML');
@@ -88,7 +88,7 @@ class TransformXmlStep extends PrepareIngestStep {
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $xmlkey = $this->config['xml_key_name'];
       $xslkey = $this->config['xsl_key_name'];
@@ -96,30 +96,35 @@ class TransformXmlStep extends PrepareIngestStep {
       $results = array();
       $prevuseerr = libxml_use_internal_errors(true);
 
+      $fileentries = $this->_previousStepFileEntries();
+
       $results = array();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       $itemnr = 1;
+dpm($prevdatastep, 'prevdatastep');
       while ($item !== NULL) {
         $isValidXml = TRUE; // be positive about it!
         $xmlvalue = $item[$xmlkey];
         $xslvalue = $item[$xslkey];
         $xml = new DOMDocument();
-        $result = _load_xml_from_value($xmlvalue, $xml, $item['item nr']);
+        $result = $this->_loadXmlFromValue($xmlvalue, $xml, $item['item nr']);
         if ($result !== FALSE) {
           $results[] = $result;
           $isValidXml = FALSE;
         }
         $xsl = new DOMDocument();
-        $result = _load_xml_from_value($xslvalue, $xsl, $item['item nr']);
+        $result = $this->_loadXmlFromValue($xslvalue, $xsl, $item['item nr']);
         if ($result !== FALSE) {
           $results[] = $result;
           $isValidXml = FALSE;
         }
+dpm(array('xsl' => $xsl, 'xml' => $xml, 'results' => $results), 'xsl xml');
         if ($isValidXml) {
           $xsltproc = new XSLTProcessor;
           if ($xsltproc->importStyleSheet($xsl)) { // attach the xsl rules
             $content = $xsltproc->transformToXML($xml);
+dpm($content, 'content');
             if ($content !== FALSE) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
               $targetdirectory = dirname($targetfilepath);
@@ -127,12 +132,11 @@ class TransformXmlStep extends PrepareIngestStep {
                 $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
                           array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
               }
-              if (count($results) > 0) {
-                return $results;
-              }
+              $isappended = FALSE;
               if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->otherid)) {
                 if (pifs_entry_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
-                  pifs_entry_append_content($targetfilepath, $content, $this->workflowid, $this->otherid);
+                  $entry = pifs_entry_append_content($targetfilepath, $content, $this->workflowid, $this->otherid);
+dpm($targetfilepath, 'appended');
                 }
                 else {
                   $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
@@ -140,8 +144,15 @@ class TransformXmlStep extends PrepareIngestStep {
                 }
               }
               else {
-                pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $itemnr);
+                $entry = pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $itemnr);
+dpm($targetfilepath, 'written');
                 $itemnr++;
+              }
+              if (isset($fileentries[$entry['filepath']]) && !$isappended) {
+                $fileentries[$entry['filepath']]['content'] .= $entry['content'];
+              }
+              else {
+                $fileentries[$entry['filepath']] = $entry;
               }
             }
           }
@@ -149,43 +160,16 @@ class TransformXmlStep extends PrepareIngestStep {
             $results[] =  array('text' => t("Transform failed for item at @nr", array('@nr' => $current)), 'type' => 'run_error');
           }
         }
-      }
-      libxml_clear_errors();
-
-
+dpm($results, 'results');
+        if (count($results) > 0) {
+          libxml_clear_errors();
+          return $results;
+        }
         $item = $prevdatastep->nextDataItem();
       }
-    }
-    return FALSE;
-  }
+      $this->_saveFileEntries($fileentries);
 
-  private function _load_xml_from_value($xmlvalue, $xmldom, $itemnr) {
-    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->otherid));
-    if ($isFilePath) {
-      if (is_file($xmlvalue)) {
-        $isValidXml = @$xmldom->load($xmlvalue);
-      }
-      else {
-        $content = pifs_read_content($xmlvalue, $this->workflowid, $this->otherid);
-        $isValidXml = @$xmldom->loadXml($content);
-        $xmldom->documentURI = $xmlvalue;
-      }
-    }
-    else {
-      $isValidXml = @$xmldom->loadXml($xmlvalue);
-    }
-    if (!$isValidXml) {
-      $error = libxml_get_last_error();
-      $message = $error?$error->message:t("Unknown error");
-      $line = $error?$error->line:t("unknown");
-      if ($isFilePath) {
-        return array('text' => t("File @file does not contain valid XML: @error at line @line",
-          array('@file' => $xmlvalue, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
-      }
-      else {
-        return array('text' => t("Item @nr does not contain valid XML: @error at line @line",
-          array('@nr' => $itemnr, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
-      }
+      libxml_clear_errors();
     }
     return FALSE;
   }
@@ -196,6 +180,12 @@ class TransformXmlStep extends PrepareIngestStep {
 
   public function prepareIngest(&$context) {
     // no need to do anything
+    $this->resetDataIterator(2);
+    $item = $this->nextDataItem();
+    while ($item !== NULL) {
+      pifs_write_content_to_file($item);
+      $item = $this->nextDataItem();
+    }
   }
 
 }

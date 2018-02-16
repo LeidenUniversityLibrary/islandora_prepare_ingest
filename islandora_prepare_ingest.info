@@ -7,6 +7,7 @@ core = "7.x"
 
 files[] = steps/PrepareIngestStep.inc
 files[] = steps/PrepareIngestFilesStep.inc
+files[] = steps/PrepareIngestXmlStep.inc
 files[] = steps/DefineConstantStep.inc
 files[] = steps/AddKeyTemplateStep.inc
 files[] = steps/AddKeyRegExStep.inc
@@ -28,3 +29,4 @@ files[] = steps/VisualGroupStartStep.inc
 files[] = steps/VisualGroupEndStep.inc
 files[] = steps/SortItemsStep.inc
 files[] = steps/TransformXmlStep.inc
+files[] = steps/ValidateXmlStep.inc

@@ -113,6 +113,7 @@ class SortItemsStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
+    // TODO: do sorting in the sql query
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('order_key_1') && isset($prevdatastep)) {
       // First get all items.
