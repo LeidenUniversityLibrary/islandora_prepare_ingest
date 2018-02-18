@@ -137,37 +137,21 @@ function islandora_prepare_ingest_workflow_step_info() {
   );
   $info['validate_xml'] = array(
     'name' => t('Validate XML'),
-    'type group' => t('Handling XML'),
+    'type group' => array(t('Validation'), t('Handling XML')),
     'class name' => 'ValidateXmlStep',
+  );
+  $info['validate_basic_image'] = array(
+    'name' => t('Validate Basic Image'),
+    'type group' => t('Validation'),
+    'class name' => 'ValidateBasicImageStep',
+  );
+  $info['validate_large_image'] = array(
+    'name' => t('Validate Large Image'),
+    'type group' => t('Validation'),
+    'class name' => 'ValidateLargeImageStep',
   );
 
 /*
-  $info['validate_xml'] = array(
-    'arguments' => array(
-      'xml_key_name' => array(
-        'label' => t('XML key'),
-        'description' => t('Validate the XML. The value of this key is either an absolute filepath to an XML file or contains XML itself.'),
-        'type' => 'key',
-      ),
-      'validate_dtd' => array(
-        'label' => t('Validate based on DTD'),
-        'description' => t('The XML should contain a DTD for this to work.'),
-        'type' => 'boolean',
-      ),
-      'schema_key_name' => array(
-        'label' => t('Schema key'),
-        'description' => t('Optionally, validate against a schema. The value of this key is either an absolute filepath to a schema file or contains a schema itself.'),
-        'type' => 'key',
-        'optional' => TRUE,
-      ),
-    ),
-    'input keys' => array('xml_key_name', 'schema_key_name'),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
-    'type group' => t('Handling XML'),
-   );
    $validateconfig = array(
     'arguments' => array(
       'filepath' => array(

@@ -30,3 +30,7 @@ files[] = steps/VisualGroupEndStep.inc
 files[] = steps/SortItemsStep.inc
 files[] = steps/TransformXmlStep.inc
 files[] = steps/ValidateXmlStep.inc
+files[] = steps/ValidateFlatStructureStep.inc
+files[] = steps/ValidateBasicImageStep.inc
+files[] = steps/ValidateLargeImageStep.inc
+

@@ -103,11 +103,11 @@ fieldset .grouped_steps {
 .check_error {
   border-style: solid;
 }
-.check_info {
-  color: blue;
+.check_info, .validate_info {
+  color: green;
   border-width: 1px;
   border-style: dotted;
-  border-color: blue;
+  border-color: green;
   padding: 3px 10px;
   margin-bottom: 1em;
 }

@@ -83,6 +83,8 @@ function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE,
     $stepresult = $step->checkConfiguration();
     if ($stepresult) {
       $results[$stepid]['check'] = $stepresult;
+    }
+    if (islandora_prepare_ingest_has_error($stepresult)) {
       $hasconfigerror = TRUE;
       break;
     }
@@ -90,23 +92,40 @@ function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE,
       $stepresult = $step->dryRun($context);
       if ($stepresult) {
         $results[$stepid]['dryrun'] = $stepresult;
+      }
+      if (islandora_prepare_ingest_has_error($stepresult)) {
         break;
       }
       $stepresult = $step->verify($context);
       if ($stepresult) {
         $results[$stepid]['verify'] = $stepresult;
+      }
+      if (islandora_prepare_ingest_has_error($stepresult)) {
         break;
       }
       if ($isfullrun) {
         $stepresult = $step->prepareIngest($context);
         if ($stepresult) {
           $results[$stepid]['prepare'] = $stepresult;
+        }
+        if (islandora_prepare_ingest_has_error($stepresult)) {
           break;
         }
       }
     }
   }
   return $results;
+}
+
+function islandora_prepare_ingest_has_error($stepresult) {
+  if ($stepresult) {
+    foreach ($stepresult as $sr) {
+      if (strpos($sr['type'], 'error') !== FALSE) {
+        return TRUE;
+      }
+    }
+  }
+  return FALSE;
 }
 
 function islandora_prepare_ingest_random_string($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') {
