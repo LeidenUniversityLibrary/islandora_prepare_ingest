@@ -101,8 +101,8 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
       while ($item !== NULL) {
         $isValidXml = FALSE;
         $xmlvalue = $item[$xmlkey];
-        $xml = new DOMDocument();
-        $result = $this->_loadXmlFromValue($xmlvalue, $xml, $item['item nr']);
+        $xmldoc = new DOMDocument();
+        $result = $this->_loadXmlFromValue($xmlvalue, $xmldoc, $item['item nr']);
         if ($result !== FALSE) {
           $results[] = $result;
         }
@@ -110,17 +110,17 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
           $isValidXml = TRUE;
         }
         if ($isValidXml && $this->config['validate_dtd']) {
-          $isValidXml = $xml->validate();
+          $isValidXml = $xmldoc->validate();
         }
         if ($isValidXml && $this->hasConfigKey('schema_key_name')) {
           $schemakey = $this->config['schema_key_name'];
           if (isset($item[$schemakey]) && strlen($item[$schemakey]) > 0) {
             $schemavalue = $item[$schemakey];
             if ((substr($schemavalue, 0, 1) === '/') && pifs_is_file($schemavalue, $this->workflowid, $this->otherid)) {
-              $isValidXml = $xml->schemaValidate($schemavalue);
+              $isValidXml = $xmldoc->schemaValidate($schemavalue);
             }
             else {
-              $isValidXml = $xml->schemaValidateSource($schemavalue);
+              $isValidXml = $xmldoc->schemaValidateSource($schemavalue);
             }
           }
         }

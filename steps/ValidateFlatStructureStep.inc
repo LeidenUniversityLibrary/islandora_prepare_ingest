@@ -116,7 +116,7 @@ class ValidateFlatStructureStep extends PrepareIngestStep {
         $groupedfilenames[$info['filename']][$mime] = $filename;
         if ($mime === 'application/xml') {
            $isValidXml = FALSE;
-           $xml = new DOMDocument();
+           $xmldom = new DOMDocument();
            if (is_file($filename)) {
              $isValidXml = @$xmldom->load($filename);
            }
@@ -126,7 +126,7 @@ class ValidateFlatStructureStep extends PrepareIngestStep {
              $xmldom->documentURI = $filename;
            }
            if (!$isValidXml) {
-             $results[] = array('text' => t("File '@file' is not a valid XML file", array('@type' => $type, '@file' => $filename)), 'type' => 'run_error');
+             $results[] = array('text' => t("File '@file' is not a valid XML file", array('@file' => $filename)), 'type' => 'run_error');
            }
         }
       }

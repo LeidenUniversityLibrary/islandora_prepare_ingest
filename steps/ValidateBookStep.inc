@@ -213,7 +213,7 @@ class ValidateBookStep extends PrepareIngestStep {
           }
           if ($mime === 'application/xml') {
             $isValidXml = FALSE;
-            $xml = new DOMDocument();
+            $xmldom = new DOMDocument();
             if (is_file($filename)) {
               $isValidXml = @$xmldom->load($filename);
             }

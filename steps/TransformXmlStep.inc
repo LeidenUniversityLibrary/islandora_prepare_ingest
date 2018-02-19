@@ -107,23 +107,23 @@ dpm($prevdatastep, 'prevdatastep');
         $isValidXml = TRUE; // be positive about it!
         $xmlvalue = $item[$xmlkey];
         $xslvalue = $item[$xslkey];
-        $xml = new DOMDocument();
-        $result = $this->_loadXmlFromValue($xmlvalue, $xml, $item['item nr']);
+        $xmldoc = new DOMDocument();
+        $result = $this->_loadXmlFromValue($xmlvalue, $xmldoc, $item['item nr']);
         if ($result !== FALSE) {
           $results[] = $result;
           $isValidXml = FALSE;
         }
-        $xsl = new DOMDocument();
-        $result = $this->_loadXmlFromValue($xslvalue, $xsl, $item['item nr']);
+        $xsldoc = new DOMDocument();
+        $result = $this->_loadXmlFromValue($xslvalue, $xsldoc, $item['item nr']);
         if ($result !== FALSE) {
           $results[] = $result;
           $isValidXml = FALSE;
         }
-dpm(array('xsl' => $xsl, 'xml' => $xml, 'results' => $results), 'xsl xml');
+dpm(array('xsl' => $xsldoc, 'xml' => $xmldoc, 'results' => $results), 'xsl xml');
         if ($isValidXml) {
           $xsltproc = new XSLTProcessor;
-          if ($xsltproc->importStyleSheet($xsl)) { // attach the xsl rules
-            $content = $xsltproc->transformToXML($xml);
+          if ($xsltproc->importStyleSheet($xsldoc)) { // attach the xsl rules
+            $content = $xsltproc->transformToXML($xmldoc);
 dpm($content, 'content');
             if ($content !== FALSE) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);

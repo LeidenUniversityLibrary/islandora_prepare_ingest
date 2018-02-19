@@ -242,7 +242,7 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other
             $filenames[$filepath] = 1;
           }
           if ($recursive) {
-            $dirfiles = pifs_full_filenames_from_directory($filepath, $context, $filter, $recursive, $includedirectories);
+            $dirfiles = pifs_full_filenames_from_directory($filepath, $workflow_id, $other_id, $filter, $recursive, $includedirectories);
             foreach ($dirfiles as $dirfile) {
               $filenames[$filepath] = 1;
             }
