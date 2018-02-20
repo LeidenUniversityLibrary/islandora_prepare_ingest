@@ -194,14 +194,14 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
         $stepform[$type . '_description' . '_' . $i] = array(
           '#type' => 'item',
           '#markup' => '<SPAN class="' . $result['type'] . '">' . $result['text'] . '</SPAN>',
-          '#weight' => -999,
+          '#weight' => -999 + $i,
         );
       }
       if (count($workflowresult[$type]) >= 10) {
         $stepform[$type . '_description' . '_' . count($workflowresult[$type])] = array(
           '#type' => 'item',
           '#markup' => '<SPAN class="warning">Other ' . (count($workflowresult[$type]) - 10) . ' errors suppressed</SPAN>',
-          '#weight' => -999,
+          '#weight' => -999 + 11,
         );
       }
     }

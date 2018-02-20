@@ -24,60 +24,10 @@
  *
  */
 
-
-class ValidateFlatStructureStep extends PrepareIngestStep {
+class ValidateFlatStructureStep extends PrepareIngestValidateStep {
   
-  protected function _flatStructureLabel($type) {
-    $title = t('Validate the @type structure', array('@type' => $type));
-    if ($this->hasConfigKey('filepath')) {
-      $title .= ' ' . t('at "@value"', array('@value' => $this->config['filepath']));
-    }
-    $title .= '.';
-  
-    return $title;
-  }
-
-  public function arguments() {
-    return array(
-      'filepath' => array(
-        'label' => t('Filepath'),
-        'description' => t('The absolute path to the directory where the import files are placed.'),
-        'type' => 'filepath',
-        'allow_constants' => TRUE,
-      ),
-    );
-  }
-
-  protected function _inputKeyKeys() {
-    return array();
-  }
-
-  public function _outputKeyKeys() {
-    return array();
-  }
-
-  public function changesCount() {
-    return FALSE;
-  }
-
-  public function changesKeys() {
-    return FALSE;
-  }
-
-  public function changesFiles() {
-    return FALSE;
-  }
-
-  public function checkConfiguration() {
-    $results = parent::checkConfiguration();
-    if (!pifs_is_dir($this->config['filepath'], $this->workflowid, $this->otherid)) {
-      $results[] = array('text' => t("Argument '@key' should be a valid directory.",
-                    array('@key' => $this->arguments()['filepath']['label'])), 'type' => 'argument_error');
-    }
-    return $results;
-  }
-
-  protected function _flatStructureDryRun(array $models, &$context) {
+  public function dryRun(&$context) {
+    $models = $this->models();
     if ($this->hasConfigKey('filepath')) {
       module_load_include('inc', 'islandora', 'includes/utilities');
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
@@ -180,11 +130,8 @@ class ValidateFlatStructureStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function verify($context) {
-    return parent::verify($context);
+  public function preprocessDrushCommand() {
+    return 'islandora_batch_scan_preprocess';
   }
 
-  public function prepareIngest(&$context) {
-    // no need to do anything
-  }
 }

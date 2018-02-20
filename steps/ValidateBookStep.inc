@@ -25,56 +25,14 @@
  */
 
 
-class ValidateBookStep extends PrepareIngestStep {
+class ValidateBookStep extends PrepareIngestValidateStep {
   
-  public function label() {
-    $title = t('Validate the book structure');
-    if ($this->hasConfigKey('filepath')) {
-      $title .= ' ' . t('at "@value"', array('@value' => $this->config['filepath']));
-    }
-    $title .= '.';
-
-    return $title;
+  public function typeString() {
+    return t('Book');
   }
 
-  public function arguments() {
-    return array(
-      'filepath' => array(
-        'label' => t('Filepath'),
-        'description' => t('The absolute path to the directory where the import files are placed.'),
-        'type' => 'filepath',
-        'allow_constants' => TRUE,
-      ),
-    );
-  }
-
-  protected function _inputKeyKeys() {
-    return array();
-  }
-
-  public function _outputKeyKeys() {
-    return array();
-  }
-
-  public function changesCount() {
-    return FALSE;
-  }
-
-  public function changesKeys() {
-    return FALSE;
-  }
-
-  public function changesFiles() {
-    return FALSE;
-  }
-
-  public function checkConfiguration() {
-    $results = parent::checkConfiguration();
-    if (!pifs_is_dir($this->config['filepath'], $this->workflowid, $this->otherid)) {
-      $results[] = array('text' => t("Argument '@key' should be a valid directory.",
-                    array('@key' => $this->arguments()['filepath']['label'])), 'type' => 'argument_error');
-    }
-    return $results;
+  public function models() {
+    return array('islandora:bookCModel');
   }
 
   public function dryRun(&$context) {
@@ -273,12 +231,7 @@ class ValidateBookStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function verify($context) {
-    return parent::verify($context);
+  public function preprocessDrushCommand() {
+    return 'islandora_book_batch_preprocess'; 
   }
-
-  public function prepareIngest(&$context) {
-    // no need to do anything
-  }
-
 }

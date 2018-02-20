@@ -27,17 +27,12 @@
 
 class ValidateLargeImageStep extends ValidateFlatStructureStep {
   
-  public function label() {
-    return $this->_flatStructureLabel(t('Large Image'));
+  public function typeString() {
+    return t('Large Image');
   }
 
-  public function dryRun(&$context) {
-    $models = array('islandora:sp_large_image_cmodel');
-    return $this->_flatStructureDryRun($models, $context);
-  }
-
-  public function prepareIngest(&$context) {
-    // no need to do anything
+  public function models() {
+    return array('islandora:sp_large_image_cmodel');
   }
 
 }

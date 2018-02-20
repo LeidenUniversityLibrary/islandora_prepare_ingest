@@ -27,17 +27,12 @@
 
 class ValidateBasicImageStep extends ValidateFlatStructureStep {
   
-  public function label() {
-    return $this->_flatStructureLabel(t('Basic Image'));
+  public function typeString() {
+    return t('Basic Image');
   }
 
-  public function dryRun(&$context) {
-    $models = array('islandora:sp_basic_image');
-    return $this->_flatStructureDryRun($models, $context);
-  }
-
-  public function prepareIngest(&$context) {
-    // no need to do anything
+  public function models() {
+    return array('islandora:sp_basic_image');
   }
 
 }
