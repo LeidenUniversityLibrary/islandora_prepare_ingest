@@ -45,7 +45,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Add key'),
     'class name' => 'AddKeyTemplateStep',
   );
-  $info['add_key_regex'] = array(
+  $info['add_key_regexp'] = array(
     'name' => t('Add key with regular expression based value'),
     'type group' => t('Add key'),
     'class name' => 'AddKeyRegExStep',
@@ -150,40 +150,6 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Validation'),
     'class name' => 'ValidateLargeImageStep',
   );
-
-/*
-   $validateconfig = array(
-    'arguments' => array(
-      'filepath' => array(
-        'label' => t('Filepath'),
-        'description' => t('The absolute path to the directory where the import files are placed.'),
-        'type' => 'filepath',
-        'allow_constants' => TRUE,
-      ),
-      'namespace' => array(
-        'label' => t('Namespace'),
-        'description' => t('The namespace of objects to create.'),
-        'type' => 'namespace',
-        'allow_constants' => TRUE,
-      ),
-      'collection' => array(
-        'label' => t('Collection'),
-        'description' => t('The collection to which the generated items should be added.'),
-        'type' => 'collection',
-      ),
-    ),
-    'input keys' => array(),
-    'output keys' => array(),
-    'changes count' => FALSE,
-    'changes keys' => FALSE,
-    'changes files' => FALSE,
-    'type group' => t('Validation'),
-  );
-  $info['validate_basic_image'] = $validateconfig;
-  $info['validate_large_image'] = $validateconfig;
-  $info['validate_book'] = $validateconfig;
-*/
-  /*$info['validate_newspaper'] = $validateconfig;*/
 
   return $info;
 }
