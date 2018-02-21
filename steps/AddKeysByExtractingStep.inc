@@ -31,8 +31,8 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
     if ($this->hasConfigKey('source_key_name')) {
       $title .= ' ' . t('from value of key "@key"', array('@key' => $this->config['source_key_name']));
     }
-    if ($this->hasConfigKey('target_keys_format')) {
-      $title .= ' ' . t('with format "@format"', array('@format' => $this->config['target_keys_format']));
+    if ($this->hasConfigKey('extract_keys_template')) {
+      $title .= ' ' . t('with format "@format"', array('@format' => $this->config['extract_keys_template']));
     }
     return $title;
   }
@@ -43,7 +43,7 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
         'label' => t('Source key name'),
         'type' => 'key',
       ),
-      'target_keys_format' => array(
+      'extract_keys_template' => array(
         'label' => t('Format'),
         'description' => t('The format should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is "test_1.tif" and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}. If you know that a value only contains specific characters, you can supply this by using a range between brackets. For example for the number you can use {number[0-9]}.'),
         'type' => 'keystemplate',
@@ -58,13 +58,13 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
 
   public function outputKeys() {
     $extrKeys = $this->_extractKeysFromFormat();
-    return array('target_keys_format' => array_keys($extrKeys));
+    return array('extract_keys_template' => array_keys($extrKeys));
   }
 
   private function _extractKeysFromFormat() {
     $outputkeys = array();
-    if ($this->hasConfigKey('target_keys_format')) {
-      $format = $this->config['target_keys_format'];
+    if ($this->hasConfigKey('extract_keys_template')) {
+      $format = $this->config['extract_keys_template'];
       $matches = array();
       if (preg_match_all('/{([a-zA-Z0-9_-]+)(\\[([^\\[\\]]+)\\])?}/', $format, $matches, PREG_SET_ORDER)) {
         foreach ($matches as $match) {
@@ -90,7 +90,7 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
   }
 
   private function _formatRegex($outputkeys) {
-    $format = preg_quote($this->config['target_keys_format'], '/');
+    $format = preg_quote($this->config['extract_keys_template'], '/');
     foreach ($outputkeys as $keyname => $range) {
       if (isset($range)) {
         $norm = array('-', '^');
@@ -111,14 +111,14 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
     $format = $this->_formatRegex($outputkeys);
     if (@preg_match('/' . $format . '/', 'test string') === FALSE) {
       $result[] = array('text' => t("Format '@value' is not correct, use for example [a-z] for a range.",
-                   array('@value' => $this->config['target_keys_format'])), 'type' => 'argument_error');
+                   array('@value' => $this->config['extract_keys_template'])), 'type' => 'argument_error');
     }
     return $result;
   }
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('source_key_name') && $this->hasConfigKey('target_keys_format') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('source_key_name') && $this->hasConfigKey('extract_keys_template') && isset($prevdatastep)) {
       $sourcekey = $this->config['source_key_name'];
       $outputkeys = $this->_extractKeysFromFormat();
       $format = $this->_formatRegex($outputkeys);
