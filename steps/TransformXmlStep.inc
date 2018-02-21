@@ -82,10 +82,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
     return TRUE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
@@ -102,7 +98,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       $itemnr = 1;
-dpm($prevdatastep, 'prevdatastep');
       while ($item !== NULL) {
         $isValidXml = TRUE; // be positive about it!
         $xmlvalue = $item[$xmlkey];
@@ -119,12 +114,10 @@ dpm($prevdatastep, 'prevdatastep');
           $results[] = $result;
           $isValidXml = FALSE;
         }
-dpm(array('xsl' => $xsldoc, 'xml' => $xmldoc, 'results' => $results), 'xsl xml');
         if ($isValidXml) {
           $xsltproc = new XSLTProcessor;
           if ($xsltproc->importStyleSheet($xsldoc)) { // attach the xsl rules
             $content = $xsltproc->transformToXML($xmldoc);
-dpm($content, 'content');
             if ($content !== FALSE) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
               $targetdirectory = dirname($targetfilepath);
@@ -136,7 +129,6 @@ dpm($content, 'content');
               if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->otherid)) {
                 if (pifs_entry_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
                   $entry = pifs_entry_append_content($targetfilepath, $content, $this->workflowid, $this->otherid);
-dpm($targetfilepath, 'appended');
                 }
                 else {
                   $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
@@ -145,7 +137,6 @@ dpm($targetfilepath, 'appended');
               }
               else {
                 $entry = pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $itemnr);
-dpm($targetfilepath, 'written');
                 $itemnr++;
               }
               if (isset($fileentries[$entry['filepath']]) && !$isappended) {
@@ -160,7 +151,6 @@ dpm($targetfilepath, 'written');
             $results[] =  array('text' => t("Transform failed for item at @nr", array('@nr' => $current)), 'type' => 'run_error');
           }
         }
-dpm($results, 'results');
         if (count($results) > 0) {
           libxml_clear_errors();
           return $results;

@@ -96,8 +96,9 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    $results = parent::checkConfiguration();
+  public function checkConfiguration($context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+    $results = parent::checkConfiguration($context);
     if (!pifs_is_dir($this->config['filepath'], $this->workflowid, $this->otherid)) {
       $results[] = array('text' => t("Argument '@key' should be a valid directory.",
                     array('@key' => $this->arguments()['filepath']['label'])), 'type' => 'argument_error');
@@ -125,6 +126,8 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
 
   public function prepareIngest(&$context) {
     if (isset($context['drush']) && $context['drush']) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
       $filepath = $this->config['filepath'];
       $type = $this->typeString();
 
@@ -132,7 +135,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
       if (module_load_include('inc', 'islandora', 'includes/utilities')) {
         $namespaces = islandora_get_allowed_namespaces();
         $options = array_combine($namespaces, $namespaces);
-        $namespace = drush_choice($options, dt('Choose namespace'));
+        $namespace = drush_choice($options, dt('Choose a namespace to use for ingest:'));
       }
       if (!isset($namespace)) {
         $namespace = drush_prompt(dt('Give namespace'));
@@ -142,12 +145,14 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
         }
       }
       if ($namespace) {
-        $collection = drush_prompt(dt('Give collection'));
+        $collection = drush_prompt(dt('Give a collection to ingest into'));
+        $obj = NULL;
         if (islandora_is_valid_pid($collection)) {
           $obj = islandora_object_load($collection);
-          if (!($obj && in_array('islandora:collectionCModel', $obj->models))) {
-             $collection = FALSE;
-          }
+        }
+        if (!($obj && in_array('islandora:collectionCModel', $obj->models))) {
+           drush_log(dt('Invalid collection given.'), 'warning');
+           $collection = FALSE;
         }
       }
       global $base_url;
@@ -181,10 +186,10 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
         if (drush_confirm(dt('Preprocess the files at "@filepath" as @type?', array('@filepath' => $filepath, '@type' => $type)))) {
           drush_log(dt('Starting preprocessing...'), 'ok');
           $results = drush_invoke_process('@self', $preprocesscommand, $args, $preprocessoptions);
-          if ($results !== FALSE) {
+          if (($results !== FALSE) && ($results['error_status'] == 0)) {
             $didpreprocess = TRUE;
             drush_log(dt('Preprocessing successful!'), 'ok');
-            if (drush_confirm(dt('Start ingest of the preprocessed items of @type?', array('@type' => $type)))) {
+            if (drush_confirm(dt('Start ingest of all preprocessed items (could be more than the just preprocessed items)?'))) {
               drush_log(dt('Starting ingest...'), 'ok');   
               $results = drush_invoke_process('@self', $ingestcommand, $args, $ingestoptions);
               if ($results !== FALSE) {

@@ -83,10 +83,6 @@ class AddKeyTemplateStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_key_name') && $this->hasConfigKey('template') && isset($prevdatastep)) {

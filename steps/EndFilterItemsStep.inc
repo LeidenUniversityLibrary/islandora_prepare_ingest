@@ -1,5 +1,29 @@
 <?php
 
+/**
+ * @file
+ * steps/EndFilterItemsStep.inc
+ *  
+ *  
+ *  Copyright 2017-2018 Leiden University Library
+ *  
+ *  This file is part of islandora_prepare_ingest. 
+ *    
+ *  islandora_prepare_ingest is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *    
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *      
+ */
+
 class EndFilterItemsStep extends PrepareIngestStep {
   
   public function label() {
@@ -31,8 +55,8 @@ class EndFilterItemsStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    $results = parent::checkConfiguration();
+  public function checkConfiguration($context) {
+    $results = parent::checkConfiguration($context);
     $startfilterdatastep = $this->_startFilterDataChangingStep();
     if ($startfilterdatastep === NULL) {
       $results[] = array('text' => t("Did not find an accompanying filter step for this end filter"), 'type' => 'check_error');

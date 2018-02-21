@@ -84,11 +84,8 @@ class ReadFilenamesStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    $results = parent::checkConfiguration();
-    if ($results) {
-      return $results;
-    }
+  public function checkConfiguration($context) {
+    $results = parent::checkConfiguration($context);
     if ($this->hasConfigKey('directory_path')) {
       $dirpath = $this->config['directory_path'];
       if (substr($dirpath, 0, 1) !== DIRECTORY_SEPARATOR) {

@@ -87,8 +87,8 @@ class ReadCsvFileStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    $result = parent::checkConfiguration();
+  public function checkConfiguration($context) {
+    $result = parent::checkConfiguration($context);
 
     $csvfilepath = $this->config['csv_filepath'];
     $columnkeys = $this->config['column_keys'];

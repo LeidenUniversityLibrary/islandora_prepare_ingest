@@ -51,7 +51,7 @@ interface PrepareIngestStepInterface {
 
   public function promptValueOnPrepareIngest($key);
 
-  public function checkConfiguration();
+  public function checkConfiguration($context);
 
   public function dryRun(&$context);
 
@@ -246,7 +246,11 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   *   The text key has a value (string) that explains what is wrong in the configuration.
   *   The type key indicates the type of error and should be argument_error.
   **/
-  public function checkConfiguration() {
+  public function checkConfiguration($context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
+
+    islandora_prepare_ingest_constants_add_to_stepconfig($this->config, $context);
+
     return $this->_checkConfiguration();
   }
 
@@ -306,6 +310,8 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function resetDataIterator($type = 1) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $this->dataiterator = array();
     $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $type, array());
     $this->dataiterator['dbstatement'] = $selectquery->execute();
@@ -334,6 +340,8 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function saveDataItem($dataitem) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     if (!isset($dataitem['item nr'])) {
       throw new UnexpectedValueException("Data item is missing an item nr key.");
     }
@@ -466,6 +474,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
   protected function _checkInputKeysInData() {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $prevdatastep = $this->_previousDataChangingStep();
 
     $results = array();

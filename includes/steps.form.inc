@@ -90,7 +90,7 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
         '#attributes' => array(
           'class' => array('tabs'),
         ),
-        '#weight' => -998,
+        '#weight' => -950,
       );
       $steps['step_' . $stepid]['tabs']['show_data'] = array(
         '#type' => 'button',
@@ -334,40 +334,4 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
   }
 
   return $stepform;
-}
-
-function islandora_prepare_ingest_report_result_summary($workflowid, $workflowresults) {
-  // TODO: weghalen?
-  $errorcount = 0;
-  $warningcount = 0;
-  if (is_array($workflowresults) && count($workflowresults) > 0) {
-    foreach ($workflowresults as $stepid => $workflowres) {
-      if (is_array($workflowres)) {
-        foreach ($workflowres as $wftype => $wfres) {
-          if (count($wfres) > 0) {
-            foreach ($wfres as $res) {
-              $type = $res['type'];
-              if (strpos($type, 'error') !== FALSE || strpos($type, 'check') !== FALSE) {
-                $errorcount++;
-              }
-              elseif (strpos($type, 'warn') !== FALSE) {
-                $warningcount++;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  $haserrors = (($errorcount + $warningcount) > 0);
-  if ($errorcount > 0) {
-    drupal_set_message(t('Dryrun failed with !count errors. See below for details.', array('!count' => $errorcount)), 'error', FALSE);
-  }
-  if ($warningcount > 0) {
-    drupal_set_message(t('Dryrun failed with !count warnings. See below for details.', array('!count' => $warningcount)), 'warning', FALSE);
-  }
-  if (!$haserrors) {
-    drupal_set_message(t('Dryrun finished successful!'));
-  }
-  return !$haserrors;
 }

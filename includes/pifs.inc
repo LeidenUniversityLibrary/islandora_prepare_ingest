@@ -39,6 +39,8 @@ function pifs_file_exists($filepath, $workflow_id, $other_id) {
 }
 
 function pifs_entry_exists($filepath, $workflow_id, $other_id) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
   $filepath = pifs_cleanup_filepath($filepath);
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
   return (count($files) > 0);
@@ -55,6 +57,8 @@ function pifs_entry_is_dir($filepath, $workflow_id, $other_id) {
 }
 
 function pifs_entry_is_of_type($filepath, $workflow_id, $other_id, $type) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', db_like($filepath));
   if (count($files) > 0) {
     $lastfile = end($files);
@@ -97,6 +101,8 @@ function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id, $item_nr
 }
 
 function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id, $item_nr) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
   $sourcefile = pifs_cleanup_filepath($sourcefile);
   $targetfile = pifs_cleanup_filepath($targetfile);
   $entry = NULL;
@@ -171,6 +177,8 @@ function pifs_entry_append_content($targetfile, $content, $workflow_id, $step_id
 }
 
 function pifs_entry_read_content($filepath, $workflow_id, $other_id, &$itemnr) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
   $filepath = pifs_cleanup_filepath($filepath);
   $content = FALSE;
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
@@ -223,6 +231,8 @@ function pifs_copy($entry) {
 }
 
 function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other_id, $filter = '', $recursive = FALSE, $includedirectories = FALSE) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
   $regexfilter = preg_replace('/\\*/', '[^\\/]*', str_replace('.', '\\.', $filter));
   $filenames = array();
   if ($dh = @opendir($directorypath)) {

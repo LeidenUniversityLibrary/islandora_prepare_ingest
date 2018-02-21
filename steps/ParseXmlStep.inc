@@ -74,10 +74,6 @@ class ParseXmlStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {

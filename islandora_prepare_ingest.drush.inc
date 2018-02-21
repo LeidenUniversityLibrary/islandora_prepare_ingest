@@ -45,6 +45,11 @@ function drush_islandora_prepare_ingest_prepare_ingest_validate() {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   $workflowid = drush_get_option('workflow');
 
+  global $user;
+  if ($user->name === '') {
+    return drush_set_error(dt("Use this command as a valid user: use --user=YOURUSERNAME"));
+  }
+
   if (isset($workflowid)) {
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
     if ($workflow === NULL || !$workflow['checked']) {
@@ -67,6 +72,9 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
       }
     }
     $workflowid = drush_choice($checkedworkflows, dt("Choose a workflow to run:"));
+    if (!$workflowid) {
+      return;
+    }
   }
 
   $additionalconfig = NULL;
@@ -75,37 +83,59 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
     $stepsinfo =  module_invoke_all('workflow_step_info');
     $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
 
+    $additionalconfig = array();
     foreach ($workflowsteps as $workflowstep) {
       $stepname = $workflowstep['step_name'];
       $stepid = $workflowstep['id'];
       $stepinfo = $stepsinfo[$stepname];
       $stepclass = $stepinfo['class name'];
       $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
-      $step = new $stepclass($workflowstep, $stepconfig, $otherid);
+      $step = new $stepclass($workflowstep, $stepconfig, NULL);
       $stepargs = $step->arguments();
       foreach ($stepargs as $argname => $arginfo) {
         $prompt = $step->promptValueOnPrepareIngest($argname);
         if ($prompt !== FALSE) {
           $newvalue = drush_prompt($prompt, $step->valueForKey($argname));
-          if (!is_array($additionalconfig)) {
-            $additionalconfig = array();
-          }
           $additionalconfig[$stepid][$argname] = $newvalue;
         }
       }
     }
    
     drush_log(dt("Starting full run..."));
-    $results = islandora_prepare_ingest_full_run_workflow($workflowid, $additionalconfig);
-    if (is_array($results) && count($results) > 0) {
-      foreach ($results as $stepid => $res) {
-        foreach ($res as $type => $error) {
-          drupal_log($error['text'], 'error');
+    $otherid = islandora_prepare_ingest_random_string(10);
+    $steps = array();
+    $context = array('drush' => TRUE);
+    $results = islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, $additionalconfig, $context, $steps);
+    $haserror = _islandora_prepare_ingest_drush_show_results($results);
+    if (!$haserror) {
+      $results = islandora_prepare_ingest_drush_prepare_workflow($steps, $context);
+      $haserror = _islandora_prepare_ingest_drush_show_results($results);
+      if (!$haserror) {
+        drush_log(dt("Run finished succesfully"), 'success');
+      }
+    }
+  }
+}
+
+function _islandora_prepare_ingest_drush_show_results($results) {
+  $haserror = FALSE;
+  if (is_array($results) && count($results) > 0) {
+    foreach ($results as $stepid => $res) {
+      foreach ($res as $type => $infos) {
+        foreach ($infos as $info) {
+          if (strpos($info['type'], 'error') !== FALSE || strpos($info['type'], 'check') !== FALSE) {
+            drush_log($info['text'], 'error');
+            $haserror = TRUE;
+          }
+          elseif (strpos($info['type'], 'warn') !== FALSE) {
+            drush_log($info['text'], 'warning');
+          }
+          else {
+           drush_log($info['text'], 'ok');
+          }
         }
       }
     }
-    else {
-      drush_log(dt("Run finished succesfully"), 'success');
-    }
   }
+  return $haserror;
 }

@@ -36,22 +36,75 @@
  */
 
 function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid) {
-  return _islandora_prepare_ingest_run_workflow($workflowid, FALSE, $otherid);
-}
-
-function islandora_prepare_ingest_full_run_workflow($workflowid, array $additionalconfig = NULL) {
-  return _islandora_prepare_ingest_run_workflow($workflowid, TRUE, NULL, $additionalconfig);
-}
-
-function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE, $otherid = NULL, array $additionalconfig = NULL) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
   $context = array();
   $results = array();
-  $data = array();
-  $hasconfigerror = FALSE;
+
+  # clear old cached data.
+  islandora_prepare_ingest_data_cache_delete_old($otherid);
+
+  # Workflow steps
+  $prevstep = NULL;
+  $stepsinfo = module_invoke_all('workflow_step_info');
+  $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
+
+  $operations = array();
+  foreach ($workflowsteps as $workflowstep) {
+    $stepname = $workflowstep['step_name'];
+    $stepinfo = $stepsinfo[$stepname];
+    $stepclass = $stepinfo['class name'];
+    $stepid = $workflowstep['id'];
+    $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+
+    $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
+    $prevstep = $step;
+
+    $operations[] = array(
+      'islandora_prepare_ingest_dry_run_step_batch_operation',
+      array(
+        $step,
+      ),
+    );
+  }
+  $batch = array(
+    'title' => t('Dry run'),
+    'operations' => $operations,
+    'finished' => 'islandora_prepare_ingest_dry_run_step_batch_finished',
+    'file' => drupal_get_path('module', 'islandora_prepare_ingest') . '/includes/run_workflow.inc',
+  );
+  batch_set($batch);
+}
+
+function islandora_prepare_ingest_dry_run_step_batch_operation($step, &$context) {
+  if (isset($context['results']['_context'])) {
+    $ipicontext = $context['results']['_context'];
+  }
+  else {
+    $ipicontext = array();
+  }
+  $results = array();
+  _islandora_prepare_ingest_run_workflow_step($step, $ipicontext, $results);
+  $context['results']['_context'] = $ipicontext;
+  if (count($results) > 0) {
+    $context['results'][$step->id()] = $results;
+  }
+}
+
+function islandora_prepare_ingest_dry_run_step_batch_finished($success, $results, $operations) {
+  unset($results['_context']);
+  $_SESSION['workflowresults'] = $results;
+}
+
+function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, array $additionalconfig, &$context, array &$dryrunsteps) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
+  $context = array('drush' => TRUE);
+  $results = array();
 
   if ($otherid === NULL) {
     $otherid = islandora_prepare_ingest_random_string(10);
@@ -64,6 +117,7 @@ function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE,
   $prevstep = NULL;
   $stepsinfo = module_invoke_all('workflow_step_info');
   $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
+
   foreach ($workflowsteps as $workflowstep) {
     $stepname = $workflowstep['step_name'];
     $stepinfo = $stepsinfo[$stepname];
@@ -80,41 +134,54 @@ function _islandora_prepare_ingest_run_workflow($workflowid, $isfullrun = FALSE,
     $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
     $prevstep = $step;
 
-    $stepresult = $step->checkConfiguration();
-    if ($stepresult) {
-      $results[$stepid]['check'] = $stepresult;
+    $results[$stepid] = array();
+    if (_islandora_prepare_ingest_run_workflow_step($step, $context, $results[$stepid])) {
+      $dryrunsteps[] = $step;
     }
-    if (islandora_prepare_ingest_has_error($stepresult)) {
-      $hasconfigerror = TRUE;
+    else {
       break;
-    }
-    if (!$hasconfigerror) {
-      $stepresult = $step->dryRun($context);
-      if ($stepresult) {
-        $results[$stepid]['dryrun'] = $stepresult;
-      }
-      if (islandora_prepare_ingest_has_error($stepresult)) {
-        break;
-      }
-      $stepresult = $step->verify($context);
-      if ($stepresult) {
-        $results[$stepid]['verify'] = $stepresult;
-      }
-      if (islandora_prepare_ingest_has_error($stepresult)) {
-        break;
-      }
-      if ($isfullrun) {
-        $stepresult = $step->prepareIngest($context);
-        if ($stepresult) {
-          $results[$stepid]['prepare'] = $stepresult;
-        }
-        if (islandora_prepare_ingest_has_error($stepresult)) {
-          break;
-        }
-      }
     }
   }
   return $results;
+}
+
+function islandora_prepare_ingest_drush_prepare_workflow($steps, &$context) {
+  $results = array();
+  foreach ($steps as $step) {
+    $stepresult = $step->prepareIngest($context);
+    if ($stepresult) {
+      $results[$stepid]['prepare'] = $stepresult;
+    }
+    if (islandora_prepare_ingest_has_error($stepresult)) {
+      break;
+    }
+  }
+  return $results;
+}
+
+function _islandora_prepare_ingest_run_workflow_step($step, &$context, &$results) {
+  $stepresult = $step->checkConfiguration($context);
+  if ($stepresult) {
+    $results['check'] = $stepresult;
+  }
+  if (islandora_prepare_ingest_has_error($stepresult)) {
+    return FALSE;
+  }
+  $stepresult = $step->dryRun($context);
+  if ($stepresult) {
+    $results['dryrun'] = $stepresult;
+  }
+  if (islandora_prepare_ingest_has_error($stepresult)) {
+    return FALSE;
+  }
+  $stepresult = $step->verify($context);
+  if ($stepresult) {
+    $results['verify'] = $stepresult;
+  }
+  if (islandora_prepare_ingest_has_error($stepresult)) {
+    return FALSE;
+  }
+  return TRUE; 
 }
 
 function islandora_prepare_ingest_has_error($stepresult) {

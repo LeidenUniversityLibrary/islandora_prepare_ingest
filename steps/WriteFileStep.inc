@@ -79,10 +79,6 @@ class WriteFileStep extends PrepareIngestFilesStep {
     return TRUE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('content_key_name') && $this->hasConfigKey('target_filepath') && isset($prevdatastep)) {

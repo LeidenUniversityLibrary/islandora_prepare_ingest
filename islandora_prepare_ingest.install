@@ -250,17 +250,19 @@ function islandora_prepare_ingest_schema() {
   return $schema;
 }
 
-function XXXislandora_prepare_ingest_update_7400() {
-  $spec = array(
-    'description' => 'The key of the value of the item nr of the step of type.',
-    'type' => 'varchar',
-    'not null' => TRUE,
-    'length' => 100,
-  );
-  db_add_field('islandora_prepare_ingest_data_cache', 'key', $spec);
+function islandora_prepare_ingest_update_7400() {
+  if (!db_field_exists('islandora_prepare_ingest_data_cache', 'key') && !db_field_exists('islandora_prepare_ingest_data_cache', 'dckey')) {
+    $spec = array(
+      'description' => 'The key of the value of the item nr of the step of type.',
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => 100,
+    );
+    db_add_field('islandora_prepare_ingest_data_cache', 'key', $spec);
+  }
 }
 
-function XXXislandora_prepare_ingest_update_7401() {
+function islandora_prepare_ingest_update_7401() {
   if (db_field_exists('islandora_prepare_ingest_data_cache', 'timestamp')) {
     $spec = array(
       'description' => 'The timestamp for this cache entry.',

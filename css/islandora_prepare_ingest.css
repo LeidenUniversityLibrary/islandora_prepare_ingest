@@ -93,7 +93,7 @@ fieldset .grouped_steps {
 }
 
 /* errors */
-.key_error, .config_error, .argument_error, .run_error, .check_error {
+.key_error, .config_error, .argument_error, .run_error, .check_error, .validate_error {
   color: red;
   border-width: 1px;
   border-style: dotted;

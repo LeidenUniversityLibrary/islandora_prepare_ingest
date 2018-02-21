@@ -167,6 +167,12 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
     $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
 
+    if (isset($_SESSION['workflowresults'])) {
+      islandora_prepare_ingest_report_result_summary($workflowresults);
+      // there should be a better way to prevent this from displaying twice...
+      unset($_SESSION['workflowresults']);
+    }
+
     $form['workflowid'] = array(
       '#type' => 'hidden',
       '#value' => $workflowid,
@@ -218,14 +224,6 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
   if ($workflowid) {
     # steps
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-    if (isset($_SESSION['workflowresults'])) {
-      $workflowresults = $_SESSION['workflowresults'];
-    }
-// TODO:    else {
-// TODO:      if ($type === 'dryrun') {
-// TODO:        $workflowresults = islandora_prepare_ingest_dry_run_workflow($workflowid);
-// TODO:      }
-// TODO:    }
     $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid);
 
     # Add another step
@@ -413,15 +411,9 @@ function islandora_prepare_ingest_edit_workflow_form_dryrun(array $form, array &
 
   $workflowid = $form_state['values']['workflowid'];
   $otherid = islandora_prepare_ingest_random_string(10);
-  $workflowresults = islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
-  $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['otherid'] = $otherid; 
-  if (islandora_prepare_ingest_report_result_summary($workflowid, $workflowresults)) {
-    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-  }
-  else {
-    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
-  }
+  unset($_SESSION['workflowresults']);
+  islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
 }
 
 function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_state, $workflowid) {
@@ -661,5 +653,40 @@ function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   }
   print $content;
   drupal_page_footer(); 
+}
+
+function islandora_prepare_ingest_report_result_summary($workflowresults) {
+  $errorcount = 0;
+  $warningcount = 0;
+  if (is_array($workflowresults) && count($workflowresults) > 0) {
+    foreach ($workflowresults as $stepid => $workflowres) {
+      if (is_array($workflowres)) {
+        foreach ($workflowres as $wftype => $wfres) {
+          if (count($wfres) > 0) {
+            foreach ($wfres as $res) {
+              $type = $res['type'];
+              if (strpos($type, 'error') !== FALSE || strpos($type, 'check') !== FALSE) {
+                $errorcount++;
+              }
+              elseif (strpos($type, 'warn') !== FALSE) {
+                $warningcount++;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  $haserrors = (($errorcount + $warningcount) > 0);
+  if ($errorcount > 0) {
+    drupal_set_message(t('Dryrun failed with !count errors. See below for details.', array('!count' => $errorcount)), 'error', FALSE);
+  }
+  if ($warningcount > 0) {
+    drupal_set_message(t('Dryrun failed with !count warnings. See below for details.', array('!count' => $warningcount)), 'warning', FALSE);
+  }
+  if (!$haserrors) {
+    drupal_set_message(t('Dryrun finished successful!'));
+  }
+  return !$haserrors;
 }
 

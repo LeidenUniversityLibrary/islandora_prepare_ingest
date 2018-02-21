@@ -131,10 +131,6 @@ class ExtractPartsFromXmlStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('source_xml_key_name') && $this->hasConfigKey('target_key_name') && $this->hasConfigKey('xpath') && isset($prevdatastep)) {

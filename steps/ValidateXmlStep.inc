@@ -83,10 +83,6 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
     return FALSE;
   }
 
-  public function checkConfiguration() {
-    return parent::checkConfiguration();
-  }
-
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
