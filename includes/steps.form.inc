@@ -63,6 +63,10 @@ function islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid)
     $j++;
     $stepname = $workflowstep['step_name'];
     $stepid = $workflowstep['id'];
+    if (!isset($stepsinfo[$stepname])) {
+      $form['steps'] = array('step_' . $stepid => array('#type' => 'fieldset', '#title' => "Missing step info for $stepname"));
+      continue;
+    }
     $stepinfo = $stepsinfo[$stepname];
     $stepclass = $stepinfo['class name'];
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);

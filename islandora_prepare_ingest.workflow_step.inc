@@ -55,7 +55,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Add key'),
     'class name' => 'AddKeyCounterStep',
   );
-  $info['add_keys_extracting_values'] = array(
+  $info['extract_keys_template'] = array(
     'name' => t('Add key(s) by extracting values'),
     'type group' => t('Add key'),
     'class name' => 'AddKeysByExtractingStep',
