@@ -71,7 +71,7 @@ function islandora_prepare_ingest_schema() {
         'length' => 4000,
       ),
       'type' => array(
-        'description' => 'The type of the workflow, active or full or partial.',
+        'description' => 'The type of the workflow, full or partial.',
         'type' => 'varchar',
         'not null' => TRUE,
         'length' => 10,

@@ -173,12 +173,6 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
 
   public function prepareIngest(&$context) {
     // no need to do anything
-    $this->resetDataIterator(2);
-    $item = $this->nextDataItem();
-    while ($item !== NULL) {
-      pifs_write_content_to_file($item);
-      $item = $this->nextDataItem();
-    }
   }
 
 }

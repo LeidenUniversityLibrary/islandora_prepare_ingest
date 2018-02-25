@@ -85,6 +85,9 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($step, &$context)
   else {
     $ipicontext = array();
   }
+  if (!isset($context['results']['_workflowid'])) {
+    $context['results']['_workflowid'] = $step->workflowId();
+  }
   $results = array();
   _islandora_prepare_ingest_run_workflow_step($step, $ipicontext, $results);
   $context['results']['_context'] = $ipicontext;
@@ -96,6 +99,26 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($step, &$context)
 function islandora_prepare_ingest_dry_run_step_batch_finished($success, $results, $operations) {
   unset($results['_context']);
   $_SESSION['workflowresults'] = $results;
+
+  $haserrors = FALSE;
+  foreach ($results as $stepid => $result) {
+    if (is_array($result)) {
+      foreach ($result as $type => $stepresult) {
+        if (islandora_prepare_ingest_has_error($stepresult)) {
+          $haserrors = TRUE;
+        }
+      }
+    }
+  }
+
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  $workflowid = $results['_workflowid']; 
+  if ($haserrors) {
+    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
+  }
+  else {
+    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
+  }
 }
 
 function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, array $additionalconfig, &$context, array &$dryrunsteps) {

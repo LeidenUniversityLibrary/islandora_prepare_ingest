@@ -19,14 +19,12 @@ For a complete list of available steps, see the documentation below named “The
 
 ## Making a workflow
 
-When this module is installed, under Admin > Islandora there is an entry “Prepare Ingest”. Here you find two tabs: 
-* “Generic workflows”: here you can define new (parts of) workflows, that can later be used as the base of an active workflow. These workflows are more general and can be reused for multiple data conversions and ingests.
-* “Active workflows”: this contains the workflows you can actually use to prepare an ingest for Islandora. The workflows listed here are specific for one data conversion and ingest.
+When this module is installed, under Admin > Islandora there is an entry “Prepare Ingest”. Here you will find a list of all workflows, a way to add a new workflow or import an existing, and delete, copy or export existing workflows.
 
-To make a new workflow, first go to the “Generic workflows” tab and click “Add New workflow”. A screen is presented with fields for the name and description of the workflow. Because we are going to make a general workflow that can be reused and is not specific for a single data set, let the name and description reflect this.
-After saving this workflow, you can add steps to the workflow by choosing the step from the popup menu and clicking on “Add Step”.
+To make a new workflow click “Add New workflow”. A screen is presented with fields for the name and description of the workflow. Because workflows can be reused and are not specific for a single data set, let the name and description reflect this.
+After saving the workflow, you can add steps to the workflow by choosing the step from the popup menu and clicking on “Add Step”.
 After adding a step to the workflow, the step must be configured.  This can be done by filling out the fields.
-Use the “define constant” step for values that are not general in the workflow, so these values can be easily replaced. It is recommended (but not necessary) to define all constants at the beginning of your workflow.
+Use the “define constant” step for values that are not general in the workflow, so these values can be easily replaced. It is recommended (but not necessary) to define all constants at the beginning of your workflow. When the workflow is run for real output, the values of the constants can be changed.
 Make sure that for every key in every step all input items have a value for that key, otherwise use the filter items step (combined with the end filter step) to filter the items that do not have the key before the items in the list are given to the step that requires the key.
 Add additional steps until the workflow will manipulate the input data in such a way that it is suitable for ingest into Islandora.
 As the last step you should add a “validate” step to make sure your workflow generates a valid ingest directory.
@@ -37,37 +35,25 @@ Save your workflow after any changes you make.
 
 ## Using constants
 
-Th define constant step lets you define a constant. Because when you make a generic workflow some steps will have specific values, you can use constants instead of these specific values. Define all the constants you make at the top of your workflow, so it is easier to spot them.
+The define constant step lets you define a constant. Because when you make a workflow some steps will have specific values, you can use constants instead of these specific values. Define all the constants you make at the top of your workflow, so it is easier to spot them.
 
-## Checking a workflow
+## Dryrun a workflow
 
-After you have completed your workflow and saved it, you can check it to make sure it is correct. Press the “check workflow” button to check if the workflow configuration is correct. If there is something wrong, you will be notified of what is wrong. Any steps you need to correct, will be opened. If the configuration of the workflow steps is correct, you see a message that the checks finished successful.
+After you have completed your workflow and saved it, you can dryrun it to make sure it is correct. Press the “Dryrun workflow” button to check if the workflow configuration is correct. If there is something wrong, you will be notified of what is wrong. 
+While dryrunning the files will only be read. Any manipulation of files will only be done in memory, so no files will be changes, removed or added for real.
+If the dryrun completes successfully, make sure to check the output of every step. If a step manipulates the key-value pairs of items, the items are shown. If a step alters the file system, the files are listed.
+Errors in the steps will be shown with the step. You can see the data the step generated. You can edit the step configuration by pressing the "edit" button.
 
-## Testing a workflow
+## Run a workflow
 
-After successfully checking a workflow, the workflow can be tested. If you did not fill out al the fields in the step configurations (which is good when you make a general workflow), you can fill in some test values in those fields. Preferably, these values are all constants that you should fill out with a specific value.
-Remember that although it is a test, the values should be correct. For example if you have to fill out a directory path, you should provide a valid path that exists on the server and that contains files of the type the workflow step expects.
-While testing the files will only be read. Any manipulation of files will only be done in memory, so no files will be changes, removed or added for real.
-After filling out the missing values, you can test the workflow. If the test completes successfully, make sure to check the output of every step. If a step manipulates the key-value pairs of items, the items are shown. If a step alters the file system, the files are listed.
-
-## Making an active workflow
-
-When you have made a full workflow and checked and tested it, you can make an active workflow based on this full workflow. Go to the active workflows tab, choose the workflow that will be the base of the active workflow in the popup menu in the “add workflow” section and click on “add new workflow”. Fill out a descriptive name and description for your new active workflow.
-After this fill out the missing values in the step configuration with specific values. Again this should all be constants at the top of the workflow. Save the workflow when you are done.
-
-## Dry run an active workflow
-
-When you have made an active workflow and filled out all the missing step configuration, you can dry run the workflow. This means that you run the entire workflow with all the data, but only in memory, so without making any changes to the file system. This way you can check the workflow with the real data without polluting your file system.
-If the workflow runs successfully, you will see how you can run the active workflow for real.
-
-## Run an active workflow
-
-When the dry run has finished, on the top of the page the drush command is shown that will run the active workflow for real.
-The command looks like this: 	drush -v --user=user_name prepare_ingest --workflow=workflowid
+To run a workflow, you must run it via drush in the following way:
+```drush -v --user=user_name prepare_ingest```
 
 This command should be run on the command line inside the drupal root directory as a user with adequate rights.
 
-If you have included validate steps, these steps will output the drush command to do the actual ingest.
+You can choose from all checked workflows (the workflows that have been dryrun successfully).
+
+Depending on the workflow, you must answer some questions before the workflow is run. For example, if the workflow contains constants you get the possibility to change the value of that constant. Also, validation steps let you preprocess and/or ingest the data, but will ask before proceeding.
 
 
 # The steps
@@ -95,6 +81,7 @@ This step adds a new key-value to all existing items in the list. The target key
 ## Add key(s) using template
 
 The template should reflect the value of the source key. The keys are in the place of the extracted value and between curly braces. Example: if the value is “test_1.tif” and you want to extract both the number and the extension, then you can use the following: test_{number}.{extension}. Remember that the template values are greedy; this means that they want to contain the largest possible value that will match the template. In the example above the value “test_1.a.tif” will result in a key “number” with value “1.a” and a key “extension” with value “tif”.
+In this situation, you can use a range to specify what type of characters the value of that key can contain. In the above example, if you use test_{number[0-9]}.{extension} the key "number" will contain "1" (but the key "extension" contains "a.tif" which might not be what you expect).
 Use the step “Add key with regular expression based value” if you need more control.
 
 ## Add key with counter value
@@ -172,13 +159,16 @@ This step validates XML, optionally using a DTD and/or a schema. The XML key can
 
 ## Validate the basic images structure
 
-This step validates a structure of files/directories identified by a path and checks that it is a valid basic images structure. The namespace and collection values are used to give a full drush command on how to ingest the data when the workflow is run.
+This step validates a structure of files/directories identified by a path and checks that it is a valid basic images structure.
+When the workflow is run, the namespace and collection are asked, so the data can be ingested immediatedly.
 
 ## Validate the large images structure
 
-This step validates a structure of files/directories identified by a path and checks that it is a valid large images structure. The namespace and collection values are used to give a full drush command on how to ingest the data when the workflow is run.
+This step validates a structure of files/directories identified by a path and checks that it is a valid large images structure.
+When the workflow is run, the namespace and collection are asked, so the data can be ingested immediatedly.
 
 ## Validate the books structure
 
-This step validates a structure of files/directories identified by a path and checks that it is a valid books structure. The namespace and collection values are used to give a full drush command on how to ingest the data when the workflow is run.
+This step validates a structure of files/directories identified by a path and checks that it is a valid books structure.
+When the workflow is run, the namespace and collection are asked, so the data can be ingested immediatedly.
 

@@ -1,11 +1,40 @@
-islandora_prepare_ingest
+Islandora prepare ingest: technical
 
 This module provides a way to make workflows that help with preparing data for ingest into an Islandora repository.
 In this TECHNICAL file the technical details of the working of this module are described. Read the README for general information about this module or the HOWTO file to learn how to make a new workflow and use it to prepare data for ingest.
 
 This module defines a new hook named hook_workflow_step_info. This new hook defines the steps a workflow can contain. The module itself defines about 22 different steps that can be used to change input data into output data that is suitable for ingest into an Islandora repository. Also there are steps defined to check the output of a workflow.
 
-hook_workflow_step_info returns an array where the keys are the names of possible steps. The name of a step is used as the bases of the 2 functions that every step must implement: label_<stepname> and work_<stepname>. The label function gets called with the steps info (described later) array and a configuration array as the second argument. The configuration array can contain the (zero or more) keys of the arguments array of the steps info array. The value associated with the key is the value the end user has configured. The label function should return a string that is used as the step title in the user interface. It is recommended to contain the values of the configuration (if any) in the returned string. When no configuration is present, it should be a short description of the function of the step, where a step that adds items should start with 'Add items', a step that adds key-values to existing items should start with 'Add key' and a step that validates should start with 'Validate'.
+hook_workflow_step_info returns an array where the keys are the identifiers (textual) of possible steps, and the value is an array with 3 key-values:
+ - name: a human readable name for the step;
+ - type group: a human readable name for the group of the step, can be an array with multiple names. Current groups are: 'Constants', 'Add items', 'Add key', 'Modify key', 'Files and directories', 'Sorting, filtering and grouping', 'Handling XML', 'Visual' and 'Validation';
+ - class name: the name of the class that implements this step.
+
+The class that implements a step must implement the PrepareIngestStepInterface interface and should extend the PrepareIngestStep class.
+The following 4 methods must be implemented by the class, the other methods are optional and have default values:
+
+## label()
+This method must return a string that is simular to the name of the step, but include the configuration if this is defined.
+
+## arguments()
+This method must return an array containing the arguments for this step. The keys are the argument names. The values are an array with the following keys:
+  * - 'label': a human readable label for this key;
+  * - 'description': optional, further description of the key or its contents;
+  * - 'type': the type of the value of this argument. See 'Argument values' for more information;
+  * - 'default_value': optional, a default value of type 'type';
+  * - 'allow_constants': optional, this value allows constants.
+If the step does not need arguments, return an empty array.
+
+## dryRun()
+This method must do a dryrun of the actions the step does. This method should manipulate the data, but only in memory, so don't make/change any files/directories (use pifs instead) or do any other "real" things.
+The data_cache functions should be used to read the items of the previous step and store the manipulated items (in case the step only changes keys), or the old and new items (in case the step adds new items), or no items at all (e.g. step does validation only).
+This method should return FALSE if the dryrun finished successfully, or an array containing one or more entries (something wrong with the run). Each entry is an associated array with keys: text and type, and optionally key. The text key has a value (string) that explains what is wrong with the run. The type key indicates the type of error and can be run_error or validate_error. The optional key key holds the name of the key where the run went wrong.
+The prepareIngest method will do the actual writing of files/directories and other "real" things based on the output of this step.
+
+## prepareIngest()
+
+
+The name of a step is used as the bases of the 2 functions that every step must implement: label_<stepname> and work_<stepname>. The label function gets called with the steps info (described later) array and a configuration array as the second argument. The configuration array can contain the (zero or more) keys of the arguments array of the steps info array. The value associated with the key is the value the end user has configured. The label function should return a string that is used as the step title in the user interface. It is recommended to contain the values of the configuration (if any) in the returned string. When no configuration is present, it should be a short description of the function of the step, where a step that adds items should start with 'Add items', a step that adds key-values to existing items should start with 'Add key' and a step that validates should start with 'Validate'.
 The work function also gets called with the steps info array and a configuration array. Also a data array and a context array are passed by reference, so the workfunction can do the work and alter the data array. The context array can be used to keep a context between steps. For example, it is used with the included filter_items and end_filter steps.
 The work function of the step should alter the data array in such a way as described by the step info array. The context array can be used and/or altered if needed by the step.
 The last argument of the workfunction is the extent. This lets the work function know to what extent the work should be done. The following values of the extent should be handled by the work function:

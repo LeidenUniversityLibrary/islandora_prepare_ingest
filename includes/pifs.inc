@@ -62,7 +62,6 @@ function pifs_entry_is_of_type($filepath, $workflow_id, $other_id, $type) {
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', db_like($filepath));
   if (count($files) > 0) {
     $lastfile = end($files);
-dpm($lastfile, 'should this be item_nr?');
     $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
     if (count($items) === 1) {
       $item = end($items);
@@ -112,7 +111,6 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $sourcefile);
   if (count($files) > 0) {
     $lastfile = end($files);
-dpm($lastfile, 'should this be item_nr?');
     $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
     if (count($items) === 1) {
       $entry = array('filepath' => $targetfile, 'type' => $items[0]['type']);
@@ -184,7 +182,6 @@ function pifs_entry_read_content($filepath, $workflow_id, $other_id, &$itemnr) {
   $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
   if (count($files) > 0) {
     $lastfile = end($files);
-dpm($lastfile, 'should this be item_nr?');
     $itemnr = $lastfile['item_nr'];
     $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $itemnr, $itemnr);
     if (count($items) === 1) {
@@ -266,7 +263,6 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other
   if (count($dcfilenames) > 0) {
     $origlength = strlen($directorypath);
     foreach ($dcfilenames as $dcfilename) {
-dpm($lastfile, 'should this be item_nr?');
       $items = islandora_prepare_ingest_data_cache_select($workflow_id, $dcfilename['step_id'], $other_id, 2, $dcfilename['item_nr'], $dcfilename['item_nr']);
       if (count($items) === 1) {
         $newfilename = $items[0]['filepath'];

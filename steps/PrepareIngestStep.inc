@@ -27,36 +27,46 @@
 
 interface PrepareIngestStepInterface {
 
-  public function id();
-
+ /**
+  * Returns the label of this step.
+  **/
   public function label();
 
-  public function name();
-
-  public function weight();
-
+ /**
+  * Returns an array containing the arguments for this step. The keys are the argument names. The value is an array with the following keys:
+  * - 'label': a human readable label for this key;
+  * - 'description': optional, further description of the key or its contents;
+  * - 'type': the type of the value of this argument. See 'Argument values' for more information;
+  * - 'default_value': optional, a default value of type 'type';
+  * - 'allow_constants': optional, this value allows constants.
+  **/
   public function arguments();
 
-  public function inputKeys();
- 
-  public function outputKeys();
-
-  public function changesCount();
-
-  public function changesKeys();
-
-  public function changesFiles();
-
-  public function visual();
-
-  public function promptValueOnPrepareIngest($key);
-
-  public function checkConfiguration($context);
-
+ /**
+  * Dry runs this step of the workflow.
+  *
+  * This method must be overwritten with your own step logic. This method should manipulate the data, but only
+  * in memory, so don't make/change any files/directories (use pifs instead) or do any other "real" things.
+  * The prepareIngest method will do the actual writing of files/directories and other "real" things based on the output
+  * of this step.
+  *
+  * @return FALSE or array
+  *   Returns FALSE (run successful) or an array with one or more entries (something wrong with the run). Each entry is an associated
+  *   array with keys: text and type, and optionally key.
+  *   The text key has a value (string) that explains what is wrong with the run.
+  *   The type key indicates the type of error and should be run_error.
+  *   The optional key key holds the name of the key where the run went wrong.
+  **/
   public function dryRun(&$context);
 
-  public function verify($context);
-
+ /**
+  * Prepares the actual data for ingest.
+  *
+  * This method must be overwritten with your own step logic. This method should prepare the actual data for ingest
+  * based on the data provided by the run method. If you want to create directories/files or prepare the ingest in
+  * another way, this is the place to do it.
+  *
+  **/
   public function prepareIngest(&$context);
 
 }
@@ -104,6 +114,13 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
  /**
+  * Returns the identifier of the workflow this step belongs to.
+  **/
+  public function workflowId() {
+    return $this->workflowid;
+  }
+
+ /**
   * Returns the label of this step.
   **/
   public function label() {
@@ -128,7 +145,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
  /**
   * Returns the filled in value of the configuration, or the default value from the arguments.
-  &**/
+  **/
   public function valueForKey($key) {
     if (isset($this->config[$key])) {
       return $this->config[$key];

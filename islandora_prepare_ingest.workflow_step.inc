@@ -97,7 +97,7 @@ function islandora_prepare_ingest_workflow_step_info() {
   );
   $info['parse_xml'] = array(
     'name' => t('Add key with parsed XML'),
-    'type group' => t('Handling XML'),
+    'type group' => array(t('Handling XML'), t('Add key')),
     'class name' => 'ParseXmlStep',
   );
   $info['value_from_xml'] = array(
