@@ -1,6 +1,6 @@
 # Islandora prepare ingest: technical
 
-## Introdcution 
+## Introduction 
 
 This module provides a way to make workflows that help with preparing data for ingest into an Islandora repository.
 In this TECHNICAL file the technical details of the working of this module are described. Read the README for general information about this module or the HOWTO file to learn how to make a new workflow and use it to prepare data for ingest.
@@ -20,11 +20,11 @@ This method must return a string that is simular to the name of the step, but in
 
 ## arguments()
 This method must return an array containing the arguments for this step. The keys are the argument names. The values are an array with the following keys:
-  * - 'label': a human readable label for this key;
-  * - 'description': optional, further description of the key or its contents;
-  * - 'type': the type of the value of this argument. See 'Argument values' for more information;
-  * - 'default_value': optional, a default value of type 'type';
-  * - 'allow_constants': optional, this value allows constants.
+  * 'label': a human readable label for this key;
+  * 'description': optional, further description of the key or its contents;
+  * 'type': the type of the value of this argument. See 'Argument values' for more information;
+  * 'default_value': optional, a default value of type 'type';
+  * 'allow_constants': optional, this value allows constants.
 If the step does not need arguments, return an empty array.
 
 ## dryRun()
