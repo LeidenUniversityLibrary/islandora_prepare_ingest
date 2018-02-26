@@ -1,4 +1,6 @@
-Islandora prepare ingest: technical
+# Islandora prepare ingest: technical
+
+## Introdcution 
 
 This module provides a way to make workflows that help with preparing data for ingest into an Islandora repository.
 In this TECHNICAL file the technical details of the working of this module are described. Read the README for general information about this module or the HOWTO file to learn how to make a new workflow and use it to prepare data for ingest.
