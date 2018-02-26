@@ -253,7 +253,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
  /**
   * Checks the configuration of this step.
   *
-  * This method may be overwritten of you need to implement more checks of the configuration of this step, e.g.
+  * This method may be overwritten if you need to implement more checks of the configuration of this step, e.g.
   * if the step does something with files you should check if directories and/or files exists if read from.
   *
   * @return array
