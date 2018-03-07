@@ -52,14 +52,15 @@ class ValidateFlatStructureStep extends PrepareIngestValidateStep {
       $importpathdepth = count(explode(DIRECTORY_SEPARATOR, $importdirectory));
       $rightdepth = $importpathdepth + 1;
       $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->otherid, '', TRUE, TRUE);
-      $isgood = (count($filenames) > 0);
+      if (count($filenames) == 0) {
+        $results[] = array('text' => t("Filepath '@directory' contains no files.", array('@directory' => $importdirectory)), 'type' => 'run_error');
+      }
       $groupedfilenames = array();
       foreach ($filenames as $filename) {
         $filepathdepth = count(explode(DIRECTORY_SEPARATOR, $filename));
         if (($filepathdepth > $rightdepth) || pifs_is_dir($filename, $this->workflowid, $this->otherid)) {
           $type = pifs_is_dir($filename, $this->workflowid, $this->otherid)?t('Directory'):t('File');
           $results[] = array('text' => t("@type '@file' found that should not be there", array('@type' => $type, '@file' => $filename)), 'type' => 'run_error');
-          $isgood = FALSE;
         }
         $info = pathinfo($filename);
         $mime = $mime_detect->getMimetype($filename);
@@ -71,7 +72,7 @@ class ValidateFlatStructureStep extends PrepareIngestValidateStep {
              $isValidXml = @$xmldom->load($filename);
            }
            else {
-             $content = pifs_read_content($filename, $this->workflowid, $this->otherid);
+             $content = pifs_entry_read_content($filename, $this->workflowid, $this->otherid);
              $isValidXml = @$xmldom->loadXml($content);
              $xmldom->documentURI = $filename;
            }

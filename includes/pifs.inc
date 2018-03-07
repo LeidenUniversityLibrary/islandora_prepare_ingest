@@ -59,7 +59,7 @@ function pifs_entry_is_dir($filepath, $workflow_id, $other_id) {
 function pifs_entry_is_of_type($filepath, $workflow_id, $other_id, $type) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', db_like($filepath));
+  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
   if (count($files) > 0) {
     $lastfile = end($files);
     $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
@@ -263,19 +263,16 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other
   if (count($dcfilenames) > 0) {
     $origlength = strlen($directorypath);
     foreach ($dcfilenames as $dcfilename) {
-      $items = islandora_prepare_ingest_data_cache_select($workflow_id, $dcfilename['step_id'], $other_id, 2, $dcfilename['item_nr'], $dcfilename['item_nr']);
-      if (count($items) === 1) {
-        $newfilename = $items[0]['filepath'];
-        if ($recursive || (strpos($newfilename, DIRECTORY_SEPARATOR, $origlength + 1) === FALSE)) {
-          // either recursive, or should not have a directory separator after the length of the original directory path.
-          if ($items[0]['type'] === 'directory') {
-            if ($includedirectories) {
-              $filenames[$newfilename] = 1;
-            }
-          }
-          else {
+      $newfilename = $dcfilename['value'];
+      if ($recursive || (strpos($newfilename, DIRECTORY_SEPARATOR, $origlength + 1) === FALSE)) {
+        // either recursive, or should not have a directory separator after the length of the original directory path.
+        if (pifs_is_dir($newfilename, $workflow_id, $other_id)) {
+          if ($includedirectories) {
             $filenames[$newfilename] = 1;
           }
+        }
+        else {
+          $filenames[$newfilename] = 1;
         }
       }
     }
