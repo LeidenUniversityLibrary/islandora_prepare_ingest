@@ -148,12 +148,12 @@ function pifs_write_content_to_file($entry) {
       }
     }
     elseif (isset($entry['realfilepath'])) {
-      $islinked = link($entry['realfilepath'], $entry['filepath']);
+      $islinked = @link($entry['realfilepath'], $entry['filepath']);
       if ($islinked) {
         return TRUE;
       }
       else {
-        $iscopied = copy($entry['realfilepath'], $entry['filepath']);
+        $iscopied = @copy($entry['realfilepath'], $entry['filepath']);
         if ($iscopied) {
           return TRUE;
         }

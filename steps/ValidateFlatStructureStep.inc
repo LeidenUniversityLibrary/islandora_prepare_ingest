@@ -72,7 +72,8 @@ class ValidateFlatStructureStep extends PrepareIngestValidateStep {
              $isValidXml = @$xmldom->load($filename);
            }
            else {
-             $content = pifs_entry_read_content($filename, $this->workflowid, $this->otherid);
+             $itemnr = NULL;
+             $content = pifs_entry_read_content($filename, $this->workflowid, $this->otherid, $itemnr);
              $isValidXml = @$xmldom->loadXml($content);
              $xmldom->documentURI = $filename;
            }
