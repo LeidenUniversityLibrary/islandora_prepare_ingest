@@ -246,7 +246,66 @@ function islandora_prepare_ingest_schema() {
     'foreign keys' => array(
     ),
   );  
-
+  $schema['islandora_prepare_ingest_pifs'] = array(
+    'description' => 'Holds the cache for all the data that is generated during a workflow run.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'workflow_id' => array(
+        'description' => 'The pifs cache is about this workflow.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'step_id' => array(
+        'description' => 'The pifs cache is about this step.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'other_id' => array(
+        'description' => 'Another id to identifiy this pifs cache.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 100,
+      ),
+      'dctimestamp' => array(
+        'description' => 'The timestamp for this pifs cache entry.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'valuetype' => array(
+        'description' => 'The type for the value of this file cache entry as a bitmask, is 32 for directory, 16 for file, 1 for realpath, 2 for content.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'path' => array(
+        'description' => 'The path of the file or directory.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 1024,
+      ),
+      'filevalue' => array(
+        'description' => 'The value of the file, dependent of valuetype: NULL for directories, filepath to real file for valuetype=1 and content for valuetype=2.',
+        'type' => 'text',
+        'not null' => NULL,
+        'length' => 65535,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+      'workflow_id_index' => array('workflow_id'),
+      'workflow_step_other_id_index' => array('workflow_id', 'step_id', 'other_id'),
+      'path_index' => array('path'),
+    ),
+    'foreign keys' => array(
+    ),
+  );
   return $schema;
 }
 
@@ -309,3 +368,8 @@ function islandora_prepare_ingest_update_7401() {
   }
 }
 
+function islandora_prepare_ingest_update_7402() {
+  if (!db_table_exists('islandora_prepare_ingest_pifs')) {
+    db_create_table('islandora_prepare_ingest_pifs', drupal_get_schema_unprocessed('islandora_prepare_ingest', 'islandora_prepare_ingest_pifs'));
+  }
+}

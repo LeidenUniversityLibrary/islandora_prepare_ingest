@@ -24,82 +24,160 @@
  *
  */
 
+CONST PIFS_IS_FILE     = 0b00010000; // 16
+CONST PIFS_IS_DIR      = 0b00100000; // 32
+CONST PIFS_HAS_CONTENT = 0b00000010; // 2
+CONST PIFS_HAS_REAL    = 0b00000001; // 1
+
 function pifs_cleanup_filepath($filepath) {
   $filepath = preg_replace('#' . DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . '+#', DIRECTORY_SEPARATOR, $filepath);
   $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
   return $filepath;
 }
 
-function pifs_file_exists($filepath, $workflow_id, $other_id) {
+function pifs_file_exists($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
   if (file_exists($filepath)) {
     return TRUE;
   }
-  return pifs_entry_exists($filepath, $workflow_id, $other_id);
+  return pifs_entry_exists($filepath, $workflow_id, $step_id, $other_id);
 }
 
-function pifs_entry_exists($filepath, $workflow_id, $other_id) {
-  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
-
+function pifs_entry_exists($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
-  return (count($files) > 0);
+  $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
+  $select->fields('pifs', array('path'));
+  $select->condition('workflow_id', $workflow_id)
+    ->condition('other_id', $other_id)
+    ->condition('step_id', $step_id, '<=')
+    ->condition('path', $filepath)
+    ->orderBy('step_id');
+  $count = $select->countQuery()->execute()->fetchField();
+
+  return ($count != "0");
 }
 
-function pifs_entry_is_file($filepath, $workflow_id, $other_id) {
+function pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  return pifs_entry_is_of_type($filepath, $workflow_id, $other_id, 'file');
-}
+  $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
+  $select->fields('pifs', array('path'));
+  $select->condition('workflow_id', $workflow_id)
+    ->condition('other_id', $other_id)
+    ->condition('step_id', $step_id, '<=')
+    ->condition('path', $filepath)
+    ->orderBy('step_id');
 
-function pifs_entry_is_dir($filepath, $workflow_id, $other_id) {
-  $filepath = pifs_cleanup_filepath($filepath);
-  return pifs_entry_is_of_type($filepath, $workflow_id, $other_id, 'directory');
-}
-
-function pifs_entry_is_of_type($filepath, $workflow_id, $other_id, $type) {
-  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
-
-  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $filepath);
-  if (count($files) > 0) {
-    $lastfile = end($files);
-    $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
-    if (count($items) === 1) {
-      $item = end($items);
-      if ($item['type'] === $type) {
-        return TRUE;
+  $dcs = $select->execute();
+  $entry = NULL;
+  while ($dc = $dcs->fetchAssoc()) {
+    if ($entry === NULL) {
+      $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']);
+    }
+    else {
+      if ($dc['valuetype'] & PIFS_IS_DIR) {
+        $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']); 
+      }
+      else if ($entry['valuetype'] & PIFS_HAS_REAL) {
+        if ($dc['valuetype'] & PIFS_HAS_REAL) {
+          $entry['filevalue'] = $dc['filevalue'];
+        }
+        else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
+          $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_CONTENT;
+          clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+          $fh = @fopen($entry['filevalue'], 'r');
+          if ($fh !== FALSE) {
+            $content = fread($fh, filesize($entry['filevalue']));
+            fclose($fh);
+          }
+          $entry['filevalue'] = $content;
+        }
+      }
+      else if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+        if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
+          $entry['filevalue'] .= $dc['filevalue'];
+        }
+        else if ($dc['valuetype'] & PIFS_HAS_REAL) {
+          $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_REAL;
+          $entry['filevalue'] = $dc['filevalue'];
+        }
       }
     }
-  }
-  return FALSE;
-}
-
-function pifs_is_file($filepath, $workflow_id, $other_id) {
-  $filepath = pifs_cleanup_filepath($filepath);
-  if (is_file($filepath)) {
-    return TRUE;
-  }
-  return pifs_entry_is_file($filepath, $workflow_id, $other_id);
-}
-
-function pifs_is_dir($filepath, $workflow_id, $other_id) {
-  $filepath = pifs_cleanup_filepath($filepath);
-  if (is_dir($filepath)) {
-    return TRUE;
-  }
-  return pifs_entry_is_dir($filepath, $workflow_id, $other_id);
-}
-
-function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id, $item_nr) {
-  $filepath = pifs_cleanup_filepath($filepath);
-  $entry = NULL;
-  if (!pifs_entry_is_dir($filepath, $workflow_id, $other_id)) {
-    $filepath = rtrim($filepath, DIRECTORY_SEPARATOR);
-    $entry = array('filepath' => $filepath, 'type' => 'directory');
   }
   return $entry;
 }
 
-function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id, $item_nr) {
+function pifs_entry_is_file($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  return pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, 'file');
+}
+
+function pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  return pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, 'directory');
+}
+
+function pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, $type) {
+  $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
+  $select->fields('pifs', array('path', 'valuetype'));
+  $select->condition('workflow_id', $workflow_id)
+    ->condition('other_id', $other_id)
+    ->condition('path', $filepath)
+    ->condition('step_id', $step_id, '<=');
+  $values = $select->execute()->fetchAssoc();
+  if ($type === 'file') {
+    return ($values['valuetype'] & PIFS_IS_FILE);
+  }
+  if ($type === 'directory') {
+    return ($values['valuetype'] & PIFS_IS_DIR);
+  }
+  return FALSE;
+}
+
+function pifs_is_file($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  if (is_file($filepath)) {
+    return TRUE;
+  }
+  return pifs_entry_is_file($filepath, $workflow_id, $step_id, $other_id);
+}
+
+function pifs_is_dir($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  if (is_dir($filepath)) {
+    return TRUE;
+  }
+  return pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
+}
+
+function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+
+  if (pifs_entry_exists($filepath, $workflow_id, $step_id, $other_id)) {
+    // TODO should raise error when this is not a directory?
+    return;
+  }
+  $entry = array('valuetype' => PIFS_IS_DIR, 'path' => $filepath);
+  pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
+}
+
+function pifs_store_entry($entry, $workflow_id, $step_id, $other_id) {
+  $fields = array('workflow_id', 'step_id', 'other_id', 'dctimestamp', 'valuetype', 'path');
+  $insert = db_insert('islandora_prepare_ingest_data_cache')->fields($fields);
+  $timestamp = REQUEST_TIME;
+  $record = array(
+    'workflow_id' => $workflow_id,
+    'step_id'     => $step_id,
+    'other_id'    => $other_id,
+    'dctimestamp' => $timestamp,
+    'valuetype'   => $entry['valuetype'],
+    'path'        => $entry['path'],
+    'filevalue'   => isset($entry['filevalue'])?$entry['filevalue']:NULL,
+  );
+  $insert->values($record);
+  $insert->execute();
+}
+
+function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
   $sourcefile = pifs_cleanup_filepath($sourcefile);
@@ -108,31 +186,76 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   if (pifs_is_dir($targetfile, $workflow_id, $other_id)) {
     $targetfile = rtrim($targetfile, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($sourcefile);
   }
-  $files = islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, 2, 'filepath', $sourcefile);
-  if (count($files) > 0) {
-    $lastfile = end($files);
-    $items = islandora_prepare_ingest_data_cache_select($workflow_id, $lastfile['step_id'], $other_id, 2, $lastfile['item_nr'], $lastfile['item_nr']);
-    if (count($items) === 1) {
-      $entry = array('filepath' => $targetfile, 'type' => $items[0]['type']);
-      if (isset($items[0]['content'])) {
-        $entry['content'] = $items[0]['content'];
-      }
-      elseif (isset($items[0]['realfilepath'])) {
-        $entry['realfilepath'] = $items[0]['realfilepath'];
-      }
-    }
+  $sourceentry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
+  if ($sourceentry !== NULL) {
+    $entry = $sourceentry;
+    $entry['path'] = $targetfile;
+    pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
   }
   elseif (is_file($sourcefile)) {
-    $entry = array('filepath' => $targetfile, 'type' => 'file', 'realfilepath' => $sourcefile);
+    $entry = array(
+      'path'      => $targetfile,
+      'valuetype' => PIFS_IS_FILE & PIFS_HAS_REAL,
+      'filevalue' => $sourcefile
+    );
+    pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
   }
-  return $entry;
 }
 
 function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $item_nr) {
   $targetfile = pifs_cleanup_filepath($targetfile);
-  return array('filepath' => $targetfile, 'type' => 'file', 'content' => $content);
+  $entry = array(
+    'path'      => $targetfile,
+    'valuetype' => PIFS_IS_FILE & PIFS_HAS_CONTENT,
+    'filevalue' => $content
+  );
+  pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
 }
 
+function pifs_persist_entries($workflow_id, $step_id, $other_id) {
+  $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
+  $select->fields('pifs', array('path', 'valuetype'));
+  $select->condition('workflow_id', $workflow_id)
+    ->condition('other_id', $other_id)
+    ->condition('step_id', $step_id);
+  $dcs = $select->execute();
+  while ($dc = $dcs->fetchAssoc()) {
+    $success = FALSE;
+    if ($dc['valuetype'] & PIFS_IS_DIR) {
+      $success = mkdir($dc['path']);
+    }
+    else if ($dc['valuetype'] & PIFS_IS_FILE) {
+      if ($dc['valuetype'] & PIFS_HAS_REAL) {
+        $islinked = @link($dc['filevalue'], $dc['path']);
+        if ($islinked) {
+          $success = TRUE;
+        }
+        else {
+          $iscopied = @copy($dc['filevalue'], $dc['path']);
+          if ($iscopied) {
+            $success = TRUE;
+          }
+        }
+      }
+      else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
+        $fh = fopen($dc['path'], "a"); // always append to file
+        if ($fh) {
+          $contentlen = mb_strlen($dc['filevalue'], '8bit');
+          $byteswritten = fwrite($fh, $dc['filevalue'], $contentlen);
+          if (fclose($fh) === TRUE) {
+            if ($contentlen === $byteswritten) {
+              $success = TRUE;
+            }
+          }
+        }
+      }
+    }
+    if (!$success) {
+//HIER NOG iets?
+    }
+  }
+}
+/*
 function pifs_write_content_to_file($entry) {
   if (isset($entry['filepath'], $entry['type']) && $entry['type'] === 'file') {
     if (isset($entry['content'])) {
@@ -173,7 +296,7 @@ function pifs_entry_append_content($targetfile, $content, $workflow_id, $step_id
   $entry = array('filepath' => $targetfile, 'type' => 'file', 'content' => $content);
   return $entry;
 }
-
+*/
 function pifs_entry_read_content($filepath, $workflow_id, $other_id, &$itemnr) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
@@ -205,7 +328,7 @@ function pifs_entry_read_content($filepath, $workflow_id, $other_id, &$itemnr) {
   }
   return NULL;
 }
-
+/*
 function pifs_mkdir($entry) {
   if (isset($entry['type'], $entry['filepath'])) {
     if ($entry['type'] === 'directory') {
@@ -226,7 +349,7 @@ function pifs_copy($entry) {
   }
   return FALSE;
 }
-
+*/
 function pifs_full_filenames_from_directory($directorypath, $workflow_id, $other_id, $filter = '', $recursive = FALSE, $includedirectories = FALSE) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
