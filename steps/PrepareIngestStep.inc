@@ -567,11 +567,4 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return $prevstep;
   }
 
-  protected function _previousFilesChangingStep() {
-    $prevstep = $this->previousstep;
-    while ($prevstep !== NULL && !$prevstep->changesFiles()) {
-      $prevstep = $prevstep->previousstep;
-    }
-    return $prevstep;
-  }
 }

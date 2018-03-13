@@ -591,7 +591,8 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
        'startitemnr'  : startitemnr,
        'enditemnr'    : enditemnr
     };
-    jQuery.getJSON('/admin/islandora/prepare_ingest/ajax/datacache', query, function(data) {
+    var url = '/admin/islandora/prepare_ingest/ajax/' + ((type === 1)?'datacache':'files');
+    jQuery.getJSON(url, query, function(data) {
       filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, prevcount);
       if (endFunction) {
         endFunction();
@@ -640,7 +641,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
     showfromitemnr = 0;
   }
   if (type === 2) {
-    usedKeys.push('filepath', 'type');
+    usedKeys.push('filepath');
   }
   else if (type === 1) {
     if (show === 2) {

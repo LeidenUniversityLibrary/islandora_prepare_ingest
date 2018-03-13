@@ -85,14 +85,11 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
-      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $xmlkey = $this->config['xml_key_name'];
       $xslkey = $this->config['xsl_key_name'];
       $targetfilepathtemplate = $this->config['target_filepath'];
       $results = array();
       $prevuseerr = libxml_use_internal_errors(true);
-
-      $fileentries = $this->_previousStepFileEntries();
 
       $results = array();
       $prevdatastep->resetDataIterator();
@@ -121,30 +118,17 @@ class TransformXmlStep extends PrepareIngestXmlStep {
             if ($content !== FALSE) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
               $targetdirectory = dirname($targetfilepath);
-              if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->otherid)) {
+              if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->stepid, $this->otherid)) {
                 $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
                           array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
               }
-              $isappended = FALSE;
-              if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->otherid)) {
-                if (pifs_entry_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
-                  $entry = pifs_entry_append_content($targetfilepath, $content, $this->workflowid, $this->otherid);
-                }
-                else {
+              if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+                if (pifs_entry_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
                   $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
                             array('@directory' => $targetfilepath)), 'type' => 'run_error');
                 }
               }
-              else {
-                $entry = pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $itemnr);
-                $itemnr++;
-              }
-              if (isset($fileentries[$entry['filepath']]) && !$isappended) {
-                $fileentries[$entry['filepath']]['content'] .= $entry['content'];
-              }
-              else {
-                $fileentries[$entry['filepath']] = $entry;
-              }
+              pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid);
             }
           }
           else {
@@ -157,8 +141,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
         }
         $item = $prevdatastep->nextDataItem();
       }
-      $this->_saveFileEntries($fileentries);
-
       libxml_clear_errors();
     }
     return FALSE;
@@ -169,13 +151,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   }
 
   public function prepareIngest(&$context) {
-    // no need to do anything
-    $this->resetDataIterator(2);
-    $item = $this->nextDataItem();
-    while ($item !== NULL) {
-      pifs_write_content_to_file($item);
-      $item = $this->nextDataItem();
-    }
+    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
   }
-
 }

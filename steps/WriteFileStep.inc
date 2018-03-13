@@ -86,8 +86,6 @@ class WriteFileStep extends PrepareIngestFilesStep {
       $contentkey = $this->config['content_key_name'];
       $targetfilepathtemplate = $this->config['target_filepath'];
   
-      $fileentries = $this->_previousStepFileEntries();
-
       $results = array();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
@@ -95,40 +93,22 @@ class WriteFileStep extends PrepareIngestFilesStep {
         $content = isset($item[$contentkey])?$item[$contentkey]:'';
         $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
         $targetdirectory = dirname($targetfilepath);
-        if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->otherid)) {
+        if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
                     array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
-        }
-        if (count($results) > 0) {
           return $results;
         }
-        $isappended = FALSE;
-        if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->otherid)) {
-          if (pifs_entry_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
-            $entry = pifs_entry_append_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
-            $isappended = TRUE;
-          }
-          else {
+        if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+          if (pifs_entry_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
             $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
                       array('@directory' => $targetfilepath)), 'type' => 'run_error');
             return $results;
           }
         }
-        else {
-          $entry = pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
-        }
-        if (isset($fileentries[$entry['filepath']]) && !$isappended) {
-          $fileentries[$entry['filepath']]['content'] .= $entry['content']; 
-        }
-        else {
-          $fileentries[$entry['filepath']] = $entry;
-        }
-
-        $this->saveDataItem($item);
+        pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid);
 
         $item = $prevdatastep->nextDataItem();
       }
-      $this->_saveFileEntries($fileentries);
     }
     return FALSE;
   }
@@ -138,6 +118,6 @@ class WriteFileStep extends PrepareIngestFilesStep {
   }
 
   public function prepareIngest(&$context) {
-    $this->_prepareIngestFilesUsingFunction('pifs_write_content_to_file');
+    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
   }
 }

@@ -51,15 +51,15 @@ class ValidateFlatStructureStep extends PrepareIngestValidateStep {
       $mime_detect = new MimeDetect();
       $importpathdepth = count(explode(DIRECTORY_SEPARATOR, $importdirectory));
       $rightdepth = $importpathdepth + 1;
-      $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->otherid, '', TRUE, TRUE);
+      $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->stepid, $this->otherid, '', TRUE, TRUE);
       if (count($filenames) == 0) {
         $results[] = array('text' => t("Filepath '@directory' contains no files.", array('@directory' => $importdirectory)), 'type' => 'run_error');
       }
       $groupedfilenames = array();
       foreach ($filenames as $filename) {
         $filepathdepth = count(explode(DIRECTORY_SEPARATOR, $filename));
-        if (($filepathdepth > $rightdepth) || pifs_is_dir($filename, $this->workflowid, $this->otherid)) {
-          $type = pifs_is_dir($filename, $this->workflowid, $this->otherid)?t('Directory'):t('File');
+        if (($filepathdepth > $rightdepth) || pifs_is_dir($filename, $this->workflowid, $this->stepid, $this->otherid)) {
+          $type = pifs_is_dir($filename, $this->workflowid, $this->stepid, $this->otherid)?t('Directory'):t('File');
           $results[] = array('text' => t("@type '@file' found that should not be there", array('@type' => $type, '@file' => $filename)), 'type' => 'run_error');
         }
         $info = pathinfo($filename);
@@ -72,8 +72,7 @@ class ValidateFlatStructureStep extends PrepareIngestValidateStep {
              $isValidXml = @$xmldom->load($filename);
            }
            else {
-             $itemnr = NULL;
-             $content = pifs_entry_read_content($filename, $this->workflowid, $this->otherid, $itemnr);
+             $content = pifs_entry_read_content($filename, $this->workflowid, $this->stepid, $this->otherid);
              $isValidXml = @$xmldom->loadXml($content);
              $xmldom->documentURI = $filename;
            }

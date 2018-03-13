@@ -97,9 +97,8 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
   }
 
   public function checkConfiguration($context) {
-    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
     $results = parent::checkConfiguration($context);
-    if (!pifs_is_dir($this->config['filepath'], $this->workflowid, $this->otherid)) {
+    if (!pifs_is_dir($this->config['filepath'], $this->workflowid, $this->stepid, $this->otherid)) {
       $results[] = array('text' => t("Argument '@key' should be a valid directory.",
                     array('@key' => $this->arguments()['filepath']['label'])), 'type' => 'argument_error');
     }
@@ -126,8 +125,6 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
 
   public function prepareIngest(&$context) {
     if (isset($context['drush']) && $context['drush']) {
-      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
-
       $filepath = $this->config['filepath'];
       $type = $this->typeString();
 

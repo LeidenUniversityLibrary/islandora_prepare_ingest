@@ -29,7 +29,7 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
   public function label() {
     $title = t('Make directory');
     if ($this->hasConfigKey('directory_name')) {
-      $title .= ' ' . t('based on the value of "@name"', array('@name' => $this->config['directory_name']));
+      $title .= ' ' . t('named "@name"', array('@name' => $this->config['directory_name']));
     }
     $title .= '.';
 
@@ -72,31 +72,29 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $dirnametemplate = $this->config['directory_name'];
   
-      $fileentries = $this->_previousStepFileEntries();
       $results = array();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
         $dirname = $this->fillOutTemplate($dirnametemplate, $item);
         $parentdir = dirname($dirname);
-        if (pifs_file_exists($dirname, $this->workflowid, $this->otherid) && !pifs_is_dir($dirname, $this->workflowid, $this->otherid)) {
+        if (pifs_file_exists($dirname, $this->workflowid, $this->stepid, $this->otherid) && !pifs_is_dir($dirname, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("'@directory' already exists but is not a directory.",
                     array('@directory' => $dirname)), 'type' => 'run_error');
         }
-        if (!pifs_is_dir($parentdir, $this->workflowid, $this->otherid)) {
+        if (!pifs_is_dir($parentdir, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("Parent directory '@parentdir' of directory '@dir' should exist, but does not.",
                     array('@parentdir' => $parentdir, '@dir' => $dirname)), 'type' => 'run_error');
         }
         if (count($results) > 0) {
           return $results;
         }
-        $entry = pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
-        $fileentries[$entry['filepath']] = $entry;
-        $this->saveDataItem($item);
+        pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid);
+
+        //$this->saveDataItem($item);
 
         $item = $prevdatastep->nextDataItem();
       }
-      $this->_saveFileEntries($fileentries);
     }
     return FALSE;
   }
@@ -106,6 +104,6 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
   }
 
   public function prepareIngest(&$context) {
-    $this->_prepareIngestFilesUsingFunction('pifs_mkdir');
+    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
   }
 }

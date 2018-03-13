@@ -113,7 +113,7 @@ class ReadFilenamesStep extends PrepareIngestStep {
       $dirpath = $this->config['directory_path'];
       $filter = $this->config['filter'];
       $includedir = $this->config['include_subdirectory_files'];
-      $filenames = pifs_full_filenames_from_directory($dirpath, $this->workflowid, $this->otherid, $filter, $includedir, FALSE);
+      $filenames = pifs_full_filenames_from_directory($dirpath, $this->workflowid, $this->stepid, $this->otherid, $filter, $includedir, FALSE);
       $key = $this->config['target_key_name'];
 
       // first add all existing items

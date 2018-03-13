@@ -81,40 +81,37 @@ class CopyFileStep extends PrepareIngestFilesStep {
       $sourcetemplate = $this->config['source_filepath'];
       $targettemplate = $this->config['target_filepath'];
 
-      $fileentries = $this->_previousStepFileEntries();
       $results = array();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
         $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
-        if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->otherid)) {
+        if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("File '@file' does not exist.",
                     array('@file' => $sourcefilepath)), 'type' => 'run_error');
         }
         $targetfilepath = $this->fillOutTemplate($targettemplate, $item);
-        if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $this->workflowid, $this->otherid)) {
+        if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
         }
-        if (pifs_is_file($targetfilepath, $this->workflowid, $this->otherid)) {
+        if (pifs_is_file($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("File '@file' already exists.",
                     array('@file' => $targetfilepath)), 'type' => 'run_error');
         }
         $targetdirectory = dirname($targetfilepath);
-        if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->otherid)) {
+        if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
                     array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
         }
         if (count($results) > 0) {
           return $results;
         }
-        $entry = pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid, $item['item nr']);
-        $fileentries[$entry['filepath']] = $entry;
+        pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
 
-        $this->saveDataItem($item);
+        //$this->saveDataItem($item);
 
         $item = $prevdatastep->nextDataItem();
       }
-      $this->_saveFileEntries($fileentries);
     }
     return FALSE;
   }
@@ -124,6 +121,6 @@ class CopyFileStep extends PrepareIngestFilesStep {
   }
 
   public function prepareIngest(&$context) {
-    $this->_prepareIngestFilesUsingFunction('pifs_copy');
+    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
   }
 }

@@ -86,7 +86,7 @@ class ParseXmlStep extends PrepareIngestStep {
       $item = $prevdatastep->nextDataItem();
       while ($item !== NULL) {
         $filepath = $this->fillOutTemplate($filepathtemplate, $item);
-        if (!pifs_is_file($filepath, $this->workflowid, $this->otherid)) {
+        if (!pifs_is_file($filepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("File '@file' does not exist.",
                   array('@file' => $filepath)), 'type' => 'run_error');
         }
@@ -100,7 +100,7 @@ class ParseXmlStep extends PrepareIngestStep {
         }
         else {
           $itemnr = 0;
-          $contentxml = pifs_entry_read_content($filepath, $this->workflowid, $this->otherid, $itemnr);
+          $contentxml = pifs_entry_read_content($filepath, $this->workflowid, $this->stepid, $this->otherid);
           if (!$domdoc->loadXML($contentxml)) {
             $results[] = array('text' => t("File '@file' is not a valid XML document.",
                       array('@file' => $filepath)), 'type' => 'run_error');

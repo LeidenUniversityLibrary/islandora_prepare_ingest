@@ -94,7 +94,7 @@ class ValidateBookStep extends PrepareIngestValidateStep {
       */
       $mime_detect = new MimeDetect();
       $importdirectory = rtrim($importdirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-      $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->otherid, '', TRUE, TRUE);
+      $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->stepid, $this->otherid, '', TRUE, TRUE);
       $booksarray = array();
       foreach ($filenames as $filename) {
         $relpath = preg_replace('#^' . $importdirectory . '/*#', '', $filename);
@@ -104,7 +104,7 @@ class ValidateBookStep extends PrepareIngestValidateStep {
         }
         $relpathparts = explode(DIRECTORY_SEPARATOR, $relpath);
         $bookname = $relpathparts[0];
-        if (pifs_is_dir($filename, $this->workflowid, $this->otherid)) {
+        if (pifs_is_dir($filename, $this->workflowid, $this->stepid, $this->otherid)) {
           if (count($relpathparts) == 1) {
             $booksarray[$bookname] = array();
           }
@@ -176,7 +176,7 @@ class ValidateBookStep extends PrepareIngestValidateStep {
               $isValidXml = @$xmldom->load($filename);
             }
             else {
-              $content = pifs_read_content($filename, $this->workflowid, $this->otherid);
+              $content = pifs_entry_read_content($filename, $this->workflowid, $this->stepid, $this->otherid);
               $isValidXml = @$xmldom->loadXml($content);
               $xmldom->documentURI = $filename;
             }

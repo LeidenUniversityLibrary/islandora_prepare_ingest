@@ -28,13 +28,13 @@
 class PrepareIngestXmlStep extends PrepareIngestFilesStep {
   
   protected function _loadXmlFromValue($xmlvalue, $xmldom, $itemnr) {
-    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->otherid));
+    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
     if ($isFilePath) {
       if (is_file($xmlvalue)) {
         $isValidXml = @$xmldom->load($xmlvalue);
       }
       else {
-        $content = pifs_read_content($xmlvalue, $this->workflowid, $this->otherid);
+        $content = pifs_entry_read_content($xmlvalue, $this->workflowid, $this->stepid, $this->otherid);
         $isValidXml = @$xmldom->loadXml($content);
         $xmldom->documentURI = $xmlvalue;
       }

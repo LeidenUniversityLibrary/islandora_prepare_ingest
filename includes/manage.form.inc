@@ -639,6 +639,23 @@ function islandora_prepare_ingest_ajax_datacache_handler() {
   return "{ }";
 }
 
+function islandora_prepare_ingest_ajax_files_handler() {
+  $query = drupal_get_query_parameters();
+  $workflowid = isset($query['workflowid'])?$query['workflowid']:0;
+  $stepid = isset($query['stepid'])?$query['stepid']:0;
+  $otherid = isset($query['otherid'])?$query['otherid']:0;
+  $startitemnr = isset($query['startitemnr'])?$query['startitemnr']:0;
+  $enditemnr = isset($query['enditemnr'])?$query['enditemnr']:0;
+  if ($workflowid && $stepid && $otherid) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
+    $count = pifs_count_of_all_filepaths_for_entries($workflowid, $stepid, $otherid);
+    $result = pifs_filepaths_for_entries($workflowid, $stepid, $otherid, $startitemnr, $enditemnr);
+    return '{ "count" : ' . $count . ', "list" : ' . json_encode(array_values($result)) . ' }';
+  }
+  return "{ }";
+}
+
 function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   // Only render content and validates return
   $content = '';
