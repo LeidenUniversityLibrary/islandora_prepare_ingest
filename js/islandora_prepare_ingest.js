@@ -593,7 +593,7 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
     };
     var url = '/admin/islandora/prepare_ingest/ajax/' + ((type === 1)?'datacache':'files');
     jQuery.getJSON(url, query, function(data) {
-      filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, prevcount);
+      filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, prevcount);
       if (endFunction) {
         endFunction();
       }
@@ -601,7 +601,7 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
   }
 }
 
-function filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+function filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr) {
   if (jQuery(element).data('count') === undefined) {
     jQuery(element).data('count', data['count']);
   }
@@ -624,11 +624,11 @@ function filloutDataCacheElementWithData(element, data, type, show, startitemnr,
     }
   }
 
-  showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr);
+  showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr);
   setupButtonsDataCache(element, data['count'], startitemnr, enditemnr, showfromitemnr);
 }
 
-function showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+function showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr) {
   var nrOfRows = data['list'].length;
   var usedKeys = [];
   var header = {};
@@ -689,25 +689,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
         var value = (d.hasOwnProperty(key)?d[key]:'-');
         var cellhtml = '';
         if (type === 2 && key === 'filepath') {
-          cellhtml += '<SPAN class="upi_fullvalue">';
-          cellhtml += value + '<BR/><BR/>';
-          if (d.hasOwnProperty('type') && d['type'] === 'directory') {
-            cellhtml += 'Is a directory';
-          }
-          else if (d.hasOwnProperty('content')) {
-            cellhtml += 'Content (' + d['content'].length + ' bytes):' + '</BR>';
-            cellhtml += '<pre>';
-            if (d['content'].length > 1000) {
-              cellhtml += htmlEncode(d['content'].substr(0, 1000) + '...');
-            }
-            else {
-              cellhtml += htmlEncode(d['content']);
-            }
-            cellhtml += '</pre>';
-          }
-          else if (d.hasOwnProperty('realfilepath')) {
-            cellhtml += 'Contains same data as file at ' + d['realfilepath'];
-          }
+          cellhtml += '<SPAN class="upi_fullvalue" data-filepath="'+value+'">';
           var shortvalue;
           if (value.length > maxLengthKeyValue) {
             shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
@@ -760,7 +742,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   table += '</TABLE>';
   table += '</DIV>';
   jQuery(element).find('> DIV').html(table);
-  setupDisplayFullValue(jQuery(element));
+  setupDisplayFullValue(jQuery(element), workflowid, otherid, stepid, type);
 }
 
 function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showfromitemnr) {
@@ -796,11 +778,9 @@ function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showf
   });
 }
 
-function setupDisplayFullValue($context) {
+function setupDisplayFullValue($context, workflowid, otherid, stepid, type) {
   // display full value
-  $context.find('.upi_shortvalue').click(function(e) {
-    e.stopPropagation();
-    var fvdiv = jQuery(this).prev('.upi_fullvalue');
+  var placementfunc = function(fvdiv) {
     fvdiv.css('display', 'block');
     var fsw = fvdiv.parents('.fieldset-wrapper').first();
     var fswoffset = fsw.offset();
@@ -833,6 +813,50 @@ function setupDisplayFullValue($context) {
         fvdiv.offset({ top: (fvdivoffset.top - clipped), left: fvdivoffset.left });
         fvdiv.height(fvdivh + toolittleleft);
       }
+    }
+  };
+  var htmlEncode = function(value) {
+    return jQuery('<div>').text(value).html();
+  };
+  $context.find('.upi_shortvalue').click(function(e) {
+    e.stopPropagation();
+    var fvdiv = jQuery(this).prev('.upi_fullvalue');
+
+    if (type == 2) {
+      var path = fvdiv.data('filepath');
+      var query = {
+        'workflowid'   : workflowid,
+        'otherid'      : otherid,
+        'stepid'       : stepid,
+        'path'         : path,
+      };
+
+      var url = '/admin/islandora/prepare_ingest/ajax/files';
+      jQuery.getJSON(url, query, function(fd) {
+        var cellhtml = path + '<BR/><BR/>';
+        if (fd.hasOwnProperty('type') && fd['type'] === 'directory') {
+          cellhtml += 'Is a directory';
+        }
+        else if (fd.hasOwnProperty('content')) {
+          cellhtml += 'Content (' + fd['content'].length + ' bytes):' + '</BR>';
+          cellhtml += '<pre>';
+          if (fd['content'].length > 10000) {
+            cellhtml += htmlEncode(fd['content'].substr(0, 10000) + '...');
+          }
+          else {
+            cellhtml += htmlEncode(fd['content']);
+          }
+          cellhtml += '</pre>';
+        }
+        else if (fd.hasOwnProperty('realfilepath')) {
+          cellhtml += 'Contains same data as file at ' + fd['realfilepath'];
+        }
+        fvdiv.html(cellhtml);
+        placementfunc(fvdiv);
+      });
+    }
+    else {
+      placementfunc(fvdiv);
     }
   });
   $context.find('.upi_fullvalue').click(function(e) {

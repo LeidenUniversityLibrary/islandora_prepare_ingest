@@ -35,6 +35,15 @@ function pifs_cleanup_filepath($filepath) {
   return $filepath;
 }
 
+function _pifs_step_weight($workflowid, $stepid) {
+  return db_select('islandora_prepare_ingest_step', 'step')
+    ->fields('step', array('weight'))
+    ->condition('step.id',$stepid)
+    ->condition('step.workflow_id',$workflowid)
+    ->execute()
+    ->fetchField();
+}
+
 function pifs_file_exists($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
   if (file_exists($filepath)) {
@@ -44,37 +53,39 @@ function pifs_file_exists($filepath, $workflow_id, $step_id, $other_id) {
 }
 
 function pifs_entry_exists($filepath, $workflow_id, $step_id, $other_id) {
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $filepath = pifs_cleanup_filepath($filepath);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('step_id', $step_id, '<=')
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id)
     ->condition('path', $filepath);
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
   $count = $select->countQuery()->execute()->fetchField();
 
   return ($count != "0");
 }
 
 function pifs_count_of_all_filepaths_for_entries($workflow_id, $step_id, $other_id) {
-  $filepath = pifs_cleanup_filepath($filepath);
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('step_id', $step_id, '<=');
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id);
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
   return $select->countQuery()->execute()->fetchField();
 }
 
 function pifs_filepaths_for_entries($workflow_id, $step_id, $other_id, $min, $max) {
-  $filepath = pifs_cleanup_filepath($filepath);
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('step_id', $step_id, '<=')
-    ->orderBy('path');
-    //->range($min, $max);
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id);
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  $select->groupBy('path')
+    ->orderBy('path')
+    ->range($min-1, $max);
   $dcs = $select->execute();
 
   $results = array();
@@ -86,16 +97,16 @@ function pifs_filepaths_for_entries($workflow_id, $step_id, $other_id, $min, $ma
   return $results;
 }
 
-function pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id) {
+function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $filepath = pifs_cleanup_filepath($filepath);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
-  $select->fields('pifs', array('path'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('step_id', $step_id, '<=')
-    ->condition('path', $filepath)
-    ->orderBy('step_id');
-
+  $select->fields('pifs', array('path', 'valuetype', 'filevalue'));
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id)
+    ->condition('path', $filepath);
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  $select->orderBy('step.weight');
   $dcs = $select->execute();
   $entry = NULL;
   while ($dc = $dcs->fetchAssoc()) {
@@ -154,13 +165,14 @@ function pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id) {
 }
 
 function pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, $type) {
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path', 'valuetype'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('path', $filepath)
-    ->condition('step_id', $step_id, '<=')
-    ->orderBy('step_id', 'DESC');
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id)
+    ->condition('path', $filepath);
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  $select->orderBy('step.weight', 'DESC');
   $entry = $select->execute()->fetchAssoc();
   if ($type === 'file') {
     return ($entry['valuetype'] & PIFS_IS_FILE);
@@ -195,12 +207,12 @@ function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id) {
     return;
   }
   $entry = array('valuetype' => PIFS_IS_DIR, 'path' => $filepath);
-dpm($entry, 'mkdir');
+
   pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
 }
 
 function pifs_store_entry($entry, $workflow_id, $step_id, $other_id) {
-  $fields = array('workflow_id', 'step_id', 'other_id', 'dctimestamp', 'valuetype', 'path');
+  $fields = array('workflow_id', 'step_id', 'other_id', 'dctimestamp', 'valuetype', 'path', 'filevalue');
   $insert = db_insert('islandora_prepare_ingest_pifs')->fields($fields);
   $timestamp = REQUEST_TIME;
   $record = array(
@@ -232,7 +244,7 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   elseif (is_file($sourcefile)) {
     $entry = array(
       'path'      => $targetfile,
-      'valuetype' => PIFS_IS_FILE & PIFS_HAS_REAL,
+      'valuetype' => PIFS_IS_FILE | PIFS_HAS_REAL,
       'filevalue' => $sourcefile
     );
     pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
@@ -243,7 +255,7 @@ function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id,
   $targetfile = pifs_cleanup_filepath($targetfile);
   $entry = array(
     'path'      => $targetfile,
-    'valuetype' => PIFS_IS_FILE & PIFS_HAS_CONTENT,
+    'valuetype' => PIFS_IS_FILE | PIFS_HAS_CONTENT,
     'filevalue' => $content
   );
   pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
@@ -252,7 +264,7 @@ function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id,
 function pifs_persist_entries($workflow_id, $step_id, $other_id) {
   $results = array();
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
-  $select->fields('pifs', array('path', 'valuetype'));
+  $select->fields('pifs', array('path', 'valuetype', 'filevalue'));
   $select->condition('workflow_id', $workflow_id)
     ->condition('other_id', $other_id)
     ->condition('step_id', $step_id);
@@ -260,7 +272,12 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id) {
   while ($dc = $dcs->fetchAssoc()) {
     $success = FALSE;
     if ($dc['valuetype'] & PIFS_IS_DIR) {
-      $success = mkdir($dc['path']);
+      if (!is_dir($dc['path'])) {
+        $success = mkdir($dc['path']);
+      }
+      else {
+        $success = TRUE;
+      }
     }
     else if ($dc['valuetype'] & PIFS_IS_FILE) {
       if ($dc['valuetype'] & PIFS_HAS_REAL) {
@@ -289,7 +306,7 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id) {
       }
     }
     if (!$success) {
-      $results[] = array('text' => t("Failed to persist '@file'.", array('@file' => $$dc['path'])), 'type' => 'run_error');
+      $results[] = array('text' => t("Failed to persist '@file'.", array('@file' => $dc['path'])), 'type' => 'run_error');
     }
   }
   return $results;
@@ -297,7 +314,7 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id) {
 
 function pifs_entry_read_content($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  $entry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
+  $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
   if ($entry !== NULL) {
     if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_CONTENT)) {
       return $entry['filevalue']; 
@@ -346,13 +363,14 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
     }
   }
   $origlength = strlen($directorypath);
+  $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path', 'valuetype'));
-  $select->condition('workflow_id', $workflow_id)
-    ->condition('other_id', $other_id)
-    ->condition('step_id', $step_id, '<=')
-    ->condition('path', db_like($directorypath . DIRECTORY_SEPARATOR) . '%', 'LIKE')
-    ->orderBy('step_id');
+  $select->condition('pifs.workflow_id', $workflow_id)
+    ->condition('pifs.other_id', $other_id)
+    ->condition('path', db_like($directorypath . DIRECTORY_SEPARATOR) . '%', 'LIKE');
+  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  $select->orderBy('step.weight');
   $dcs = $select->execute();
   while ($dc = $dcs->fetchAssoc()) {
     $newfilename = $dc['path'];
@@ -371,5 +389,20 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
   $filenames = array_keys($filenames);
   sort($filenames, SORT_STRING);
   return $filenames;
+}
+
+/**
+ * Delete all old pifs values with a specific other id or that are more than 1 day old.
+ */
+function islandora_prepare_ingest_pifs_delete_old($other_id = NULL) {
+  if ($other_id !== NULL) {
+    db_delete('islandora_prepare_ingest_pifs')
+      ->condition('other_id', $other_id)
+      ->execute();
+  }
+  $timestamp = REQUEST_TIME - (24*60*60);
+  db_delete('islandora_prepare_ingest_pifs')
+    ->condition('dctimestamp', $timestamp, '<')
+    ->execute();
 }
 

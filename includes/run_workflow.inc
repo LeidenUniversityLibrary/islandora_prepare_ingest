@@ -39,12 +39,14 @@ function islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
   $context = array();
   $results = array();
 
   # clear old cached data.
   islandora_prepare_ingest_data_cache_delete_old($otherid);
+  islandora_prepare_ingest_pifs_delete_old($otherid);
 
   # Workflow steps
   $prevstep = NULL;
@@ -125,6 +127,7 @@ function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, 
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
   $context = array('drush' => TRUE);
   $results = array();
@@ -135,6 +138,7 @@ function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, 
 
   # clear old cached data.
   islandora_prepare_ingest_data_cache_delete_old($otherid);
+  islandora_prepare_ingest_pifs_delete_old($otherid);
 
   # Workflow steps
   $prevstep = NULL;

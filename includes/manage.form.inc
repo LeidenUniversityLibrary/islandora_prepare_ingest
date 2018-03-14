@@ -649,9 +649,28 @@ function islandora_prepare_ingest_ajax_files_handler() {
   if ($workflowid && $stepid && $otherid) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
-    $count = pifs_count_of_all_filepaths_for_entries($workflowid, $stepid, $otherid);
-    $result = pifs_filepaths_for_entries($workflowid, $stepid, $otherid, $startitemnr, $enditemnr);
-    return '{ "count" : ' . $count . ', "list" : ' . json_encode(array_values($result)) . ' }';
+    if (isset($query['path'])) {
+      $entry = pifs_entry_for_filepath($query['path'], $workflowid, $stepid, $otherid);
+      if ($entry['valuetype'] & PIFS_IS_DIR) {
+        $result = array('type' => 'directory');
+        return json_encode($result);
+      }
+      else {
+        if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+          $result = array('type' => 'file', 'content' => $entry['filevalue']);
+          return json_encode($result);
+        }
+        elseif ($entry['valuetype'] & PIFS_HAS_REAL) {
+          $result = array('type' => 'file', 'realfilepath' => $entry['filevalue']);
+          return json_encode($result);
+        }
+      }
+    }
+    else {
+      $count = pifs_count_of_all_filepaths_for_entries($workflowid, $stepid, $otherid);
+      $result = pifs_filepaths_for_entries($workflowid, $stepid, $otherid, $startitemnr, $enditemnr);
+      return '{ "count" : ' . $count . ', "list" : ' . json_encode(array_values($result)) . ' }';
+    }
   }
   return "{ }";
 }
