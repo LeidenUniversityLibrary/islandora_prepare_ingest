@@ -131,12 +131,15 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
       $type = $this->typeString();
 
       $namespace = FALSE; 
+      $collection = FALSE;
       if (module_load_include('inc', 'islandora', 'includes/utilities')) {
-        $namespaces = islandora_get_allowed_namespaces();
-        $options = array_combine($namespaces, $namespaces);
-        $namespace = drush_choice($options, dt('Choose a namespace to use for ingest:'));
+        if (variable_get('islandora_namespace_restriction_enforced', FALSE)) {
+          $namespaces = islandora_get_allowed_namespaces();
+          $options = array_combine($namespaces, $namespaces);
+          $namespace = drush_choice($options, dt('Choose a namespace to use for ingest:'));
+        }
       }
-      if (!isset($namespace)) {
+      if (!$namespace) {
         $namespace = drush_prompt(dt('Give namespace'));
         if (preg_match('/^([A-Za-z0-9-\.]+)$/', $namespace) === 0 || !islandora_namespace_accessible($namespace)) {
           drush_log(dt('Invalid namespace given.'), 'warning');
