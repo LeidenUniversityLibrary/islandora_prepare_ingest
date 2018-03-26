@@ -5,7 +5,7 @@
  * Installation hooks.
  *
  *
- *  Copyright 2017 Leiden University Library
+ *  Copyright 2017-2018 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -71,7 +71,7 @@ function islandora_prepare_ingest_schema() {
         'length' => 4000,
       ),
       'type' => array(
-        'description' => 'The type of the workflow, active or full or partial.',
+        'description' => 'The type of the workflow, full or partial.',
         'type' => 'varchar',
         'not null' => TRUE,
         'length' => 10,
@@ -210,18 +210,24 @@ function islandora_prepare_ingest_schema() {
         'type' => 'int',
         'not null' => TRUE,
       ),
-      'timestamp' => array(
+      'dctimestamp' => array(
         'description' => 'The timestamp for this cache entry.',
         'type' => 'int',
         'not null' => TRUE,
       ),
-      'type' => array(
+      'dctype' => array(
         'description' => 'The type for this cache entry, is 1 for data and 2 for files.',
         'type' => 'int',
         'not null' => TRUE,
       ),
-      'value' => array(
-        'description' => 'The value of the cache of the item nr of the step.',
+      'dckey' => array(
+        'description' => 'The key of the value of the item nr of the step of type.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 100,
+      ),
+      'dcvalue' => array(
+        'description' => 'The value for the key of the item nr of the step of type.',
         'type' => 'text',
         'not null' => TRUE,
         'length' => 65535,
@@ -234,12 +240,136 @@ function islandora_prepare_ingest_schema() {
     'indexes' => array(
       'id_index' => array('id'),
       'workflow_id_index' => array('workflow_id'),
-      'workflow_step_other_id_type_index' => array('workflow_id', 'step_id', 'other_id', 'type'),
+      'workflow_step_other_id_type_index' => array('workflow_id', 'step_id', 'other_id', 'dctype'),
       'item_nr_index' => array('item_nr'),
     ),
     'foreign keys' => array(
     ),
   );  
-
+  $schema['islandora_prepare_ingest_pifs'] = array(
+    'description' => 'Holds the cache for all the data that is generated during a workflow run.',
+    'fields' => array(
+      'id' => array(
+        'description' => 'The primary key.',
+        'type' => 'serial',
+        'not null' => TRUE,
+      ),
+      'workflow_id' => array(
+        'description' => 'The pifs cache is about this workflow.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'step_id' => array(
+        'description' => 'The pifs cache is about this step.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'other_id' => array(
+        'description' => 'Another id to identifiy this pifs cache.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 100,
+      ),
+      'dctimestamp' => array(
+        'description' => 'The timestamp for this pifs cache entry.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'valuetype' => array(
+        'description' => 'The type for the value of this file cache entry as a bitmask, is 32 for directory, 16 for file, 1 for realpath, 2 for content.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+      'path' => array(
+        'description' => 'The path of the file or directory.',
+        'type' => 'varchar',
+        'not null' => TRUE,
+        'length' => 1024,
+      ),
+      'filevalue' => array(
+        'description' => 'The value of the file, dependent of valuetype: NULL for directories, filepath to real file for valuetype=1 and content for valuetype=2.',
+        'type' => 'text',
+        'not null' => NULL,
+        'length' => 65535,
+      ),
+    ),
+    'primary key' => array('id'),
+    'unique keys' => array(
+      'id_unique' => array('id'),
+    ),
+    'indexes' => array(
+      'id_index' => array('id'),
+      'workflow_id_index' => array('workflow_id'),
+      'workflow_step_other_id_index' => array('workflow_id', 'step_id', 'other_id'),
+      'path_index' => array('path'),
+    ),
+    'foreign keys' => array(
+    ),
+  );
   return $schema;
+}
+
+function islandora_prepare_ingest_update_7400() {
+  if (!db_field_exists('islandora_prepare_ingest_data_cache', 'key') && !db_field_exists('islandora_prepare_ingest_data_cache', 'dckey')) {
+    $spec = array(
+      'description' => 'The key of the value of the item nr of the step of type.',
+      'type' => 'varchar',
+      'not null' => TRUE,
+      'length' => 100,
+    );
+    db_add_field('islandora_prepare_ingest_data_cache', 'key', $spec);
+  }
+}
+
+function islandora_prepare_ingest_update_7401() {
+  if (db_field_exists('islandora_prepare_ingest_data_cache', 'timestamp')) {
+    $spec = array(
+      'description' => 'The timestamp for this cache entry.',
+      'type' => 'int',
+      'not null' => TRUE,
+    );
+    db_change_field('islandora_prepare_ingest_data_cache', 'timestamp', 'dctimestamp', $spec);
+  }
+
+  if (db_field_exists('islandora_prepare_ingest_data_cache', 'type')) {
+    $spec = array(
+      'description' => 'The type for this cache entry, is 1 for data and 2 for files.',
+      'type' => 'int',
+      'not null' => TRUE,
+    );
+    db_drop_index('islandora_prepare_ingest_data_cache', 'workflow_step_other_id_type_index');
+    db_change_field('islandora_prepare_ingest_data_cache', 'type', 'dctype', $spec, array(
+      'indexes' => array('workflow_step_other_id_type_index' => array('workflow_id', 'step_id', 'other_id', 'dctype'))
+    ));
+  }
+  $spec = array(
+    'description' => 'The key of the value of the item nr of the step of type.',
+    'type' => 'varchar',
+    'not null' => TRUE,
+    'length' => 100,
+  );
+  if (db_field_exists('islandora_prepare_ingest_data_cache', 'key')) {
+    db_change_field('islandora_prepare_ingest_data_cache', 'key', 'dckey', $spec);
+  }
+  else {
+    if (!db_field_exists('islandora_prepare_ingest_data_cache', 'dckey')) {
+      db_add_field('islandora_prepare_ingest_data_cache', 'dckey', $spec);
+    }
+  }
+
+  if (db_field_exists('islandora_prepare_ingest_data_cache', 'value')) {
+    $spec = array(
+      'description' => 'The value for the key of the item nr of the step of type.',
+      'type' => 'text',
+      'not null' => TRUE,
+      'length' => 65535,
+    );
+    db_change_field('islandora_prepare_ingest_data_cache', 'value', 'dcvalue', $spec);
+  }
+}
+
+function islandora_prepare_ingest_update_7402() {
+  if (!db_table_exists('islandora_prepare_ingest_pifs')) {
+    db_create_table('islandora_prepare_ingest_pifs', drupal_get_schema_unprocessed('islandora_prepare_ingest', 'islandora_prepare_ingest_pifs'));
+  }
 }

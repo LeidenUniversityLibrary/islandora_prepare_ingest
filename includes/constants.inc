@@ -5,7 +5,7 @@
  * Constants handling.
  *
  *
- *  Copyright 2017 Leiden University Library
+ *  Copyright 2017-2018 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *

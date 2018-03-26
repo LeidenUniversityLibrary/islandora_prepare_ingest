@@ -3,7 +3,7 @@
  * js/islandora_prepare_ingest.js
  *
  *
- *  Copyright 2017 Leiden University Library
+ *  Copyright 2017-2018 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -69,7 +69,46 @@ jQuery(document).ready(function() {
       filloutDataCacheElement(element, true);
     }
   });
+  jQuery('.workflow_step .tabs').each(function() {
+    var $tabs = jQuery(this);
+    var $showDataButton = $tabs.find('.show_data_button');
+    var $editButton = $tabs.find('.edit_button');
+    if ($showDataButton.size() == 1 && $editButton.size() == 1) {
+      $showDataButton.click(function(e) {
+        var $thisstep = $tabs.parents('.workflow_step').first();
+        $thisstep.find('.datacache').show();
+        $thisstep.find('.fields').hide();
+        $thisstep.find('.buttons').hide();
+        $showDataButton.hide();
+        $editButton.show();
+        e.preventDefault();
+      });
+      $editButton.click(function(e) {
+        var $thisstep = $tabs.parents('.workflow_step').first();
+        $thisstep.find('.datacache').hide();
+        $thisstep.find('.fields').show();
+        $thisstep.find('.buttons').show();
+        $showDataButton.show();
+        $editButton.hide();
+        e.preventDefault();
+      });
+      if ($tabs.prev().size() == 0) {
+        $showDataButton.click();
+      }
+      else {
+        $editButton.click();
+      }
+    }
+  });
 });
+
+function setUnsavedChanges() {
+  if (!hasUnsavedChanges) {
+    hasUnsavedChanges = true;
+    jQuery('#save_workflow_button').show();
+    jQuery('#dryrun_workflow_button').hide();
+  }
+}
 
 function setUpButtonsAndFields($context) {
   // remove button
@@ -85,13 +124,13 @@ function setUpButtonsAndFields($context) {
           var $nextstep = $thisstep.next();
           $nextstep.find('.remove_step').val('1');
           $nextstep.hide(500);
-          hasUnsavedChanges = true;
+          setUnsavedChanges();
         }
       }
       else {
         $thisstep.find('.remove_step').val('1');
         $thisstep.hide(500);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
       }
     }
   });
@@ -107,7 +146,7 @@ function setUpButtonsAndFields($context) {
       $nextstep.hide(500);
       var $groupitems = $thisstep.find('> div > div.grouped_steps > fieldset.workflow_step');
       swapElements($nextstep, $groupitems, function() { $nextstep.before($groupitems); $thisstep.hide(100); });
-      hasUnsavedChanges = true;
+      setUnsavedChanges();
     }
   });
 
@@ -194,7 +233,7 @@ function setUpButtonsAndFields($context) {
           $moveherestep.before($currentstep);
         }
         reassignStepWeights();
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
       });
       e.preventDefault();
     });
@@ -294,7 +333,7 @@ function setUpButtonsAndFields($context) {
               }
             }
             else if (jQuery(element).hasClass('keystemplate')) {
-              var re = /[^{]*{([^}]+)}/g;
+              var re = /[^{]*{([a-zA-Z0-9_-]+)(?:\[([^\[\]]+)\])?}/g;
               var match;
               while ((match = re.exec(outputvalue)) != null) {
                 if (match[1].length > 0) {
@@ -351,7 +390,7 @@ function setUpButtonsAndFields($context) {
         $textfield.val(jQuery(e.target).data('value'));
         $textfield.focus();
       }
-      hasUnsavedChanges = true;
+      setUnsavedChanges();
     });
     if ($menu.html().length > 0) {
       var offset = $textfield.offset();
@@ -413,7 +452,7 @@ function setUpButtonsAndFields($context) {
   $context.find('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
   $context.find(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
-     hasUnsavedChanges = true;
+     setUnsavedChanges();
   });
   $context.find('#check_workflow_button').click(function (e) {
     if (hasUnsavedChanges) {
@@ -430,9 +469,9 @@ function setUpButtonsAndFields($context) {
       var stepname = $whichStep.val();
       if (workflowid && stepname) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstep/' + workflowid + '/' + stepname;
         loadContent(loadUrl, $addStepDiv);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
         e.preventDefault();
       }
     }
@@ -445,9 +484,9 @@ function setUpButtonsAndFields($context) {
       var whichWorkflowId = $whichWorkflow.val();
       if (workflowid && whichWorkflowId) {
         var loc = window.location;
-        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/islandora_prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
+        var loadUrl = loc.protocol + '//' + loc.host + '/admin/islandora/prepare_ingest/ajax/addstepsgroup/' + workflowid + '/' + whichWorkflowId;
         loadContent(loadUrl, $addStepDiv);
-        hasUnsavedChanges = true;
+        setUnsavedChanges();
         e.preventDefault();
       }
     }
@@ -507,8 +546,8 @@ function loadContent(loadUrl, $addStepDiv) {
 var batchsize = 10;
 
 function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
-  var workflowid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="workflowid"]').val();
-  var otherid = jQuery('#islandora-prepare-ingest-check-workflow-form > DIV > INPUT[name="otherid"]').val();
+  var workflowid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
+  var otherid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="otherid"]').val();
   var stepid = jQuery(element).data('stepid');
   var type = jQuery(element).data('type');
   var startitemnr = jQuery(element).data('startitemnr');
@@ -552,8 +591,9 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
        'startitemnr'  : startitemnr,
        'enditemnr'    : enditemnr
     };
-    jQuery.getJSON('/admin/islandora/islandora_prepare_ingest/ajax/datacache', query, function(data) {
-      filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, prevcount);
+    var url = '/admin/islandora/prepare_ingest/ajax/' + ((type === 1)?'datacache':'files');
+    jQuery.getJSON(url, query, function(data) {
+      filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, prevcount);
       if (endFunction) {
         endFunction();
       }
@@ -561,7 +601,7 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
   }
 }
 
-function filloutDataCacheElementWithData(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+function filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr) {
   if (jQuery(element).data('count') === undefined) {
     jQuery(element).data('count', data['count']);
   }
@@ -584,11 +624,11 @@ function filloutDataCacheElementWithData(element, data, type, show, startitemnr,
     }
   }
 
-  showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr);
+  showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr);
   setupButtonsDataCache(element, data['count'], startitemnr, enditemnr, showfromitemnr);
 }
 
-function showDataCache(element, data, type, show, startitemnr, enditemnr, showfromitemnr) {
+function showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr) {
   var nrOfRows = data['list'].length;
   var usedKeys = [];
   var header = {};
@@ -601,17 +641,21 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
     showfromitemnr = 0;
   }
   if (type === 2) {
-    usedKeys.push('path', 'type');
+    usedKeys.push('filepath');
   }
   else if (type === 1) {
     if (show === 2) {
+      var alreadyUsed = [];
       var l = jQuery(element).data('inputkeys');
       for (var i=0; i<l.length; i++) {
         usedKeys.push(l[i]);
+        alreadyUsed[l[i]] = 1;
       }
       l = jQuery(element).data('outputkeys');
       for (var i=0; i<l.length; i++) {
-        usedKeys.push(l[i]);
+        if (!(l[i] in alreadyUsed)) {
+          usedKeys.push(l[i]);
+        }
       }
     }
     if (usedKeys.length === 0) {
@@ -644,7 +688,18 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
         var key = usedKeys[k];
         var value = (d.hasOwnProperty(key)?d[key]:'-');
         var cellhtml = '';
-        if (value.length > maxLengthKeyValue) {
+        if (type === 2 && key === 'filepath') {
+          cellhtml += '<SPAN class="upi_fullvalue" data-filepath="'+value+'">';
+          var shortvalue;
+          if (value.length > maxLengthKeyValue) {
+            shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
+          }
+          else {
+            shortvalue = value;
+          }
+          cellhtml += '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN>';
+        }
+        else if (value.length > maxLengthKeyValue) {
           var shortvalue = value.substr(0, maxLengthKeyValue/2-1) + '...' + value.substr(-maxLengthKeyValue/2+2);
           shortvalue = htmlEncode(shortvalue);
           value = htmlEncode(value);
@@ -687,7 +742,7 @@ function showDataCache(element, data, type, show, startitemnr, enditemnr, showfr
   table += '</TABLE>';
   table += '</DIV>';
   jQuery(element).find('> DIV').html(table);
-  setupDisplayFullValue(jQuery(element));
+  setupDisplayFullValue(jQuery(element), workflowid, otherid, stepid, type);
 }
 
 function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showfromitemnr) {
@@ -723,11 +778,9 @@ function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showf
   });
 }
 
-function setupDisplayFullValue($context) {
+function setupDisplayFullValue($context, workflowid, otherid, stepid, type) {
   // display full value
-  $context.find('.upi_shortvalue').click(function(e) {
-    e.stopPropagation();
-    var fvdiv = jQuery(this).prev('.upi_fullvalue');
+  var placementfunc = function(fvdiv) {
     fvdiv.css('display', 'block');
     var fsw = fvdiv.parents('.fieldset-wrapper').first();
     var fswoffset = fsw.offset();
@@ -760,6 +813,50 @@ function setupDisplayFullValue($context) {
         fvdiv.offset({ top: (fvdivoffset.top - clipped), left: fvdivoffset.left });
         fvdiv.height(fvdivh + toolittleleft);
       }
+    }
+  };
+  var htmlEncode = function(value) {
+    return jQuery('<div>').text(value).html();
+  };
+  $context.find('.upi_shortvalue').click(function(e) {
+    e.stopPropagation();
+    var fvdiv = jQuery(this).prev('.upi_fullvalue');
+
+    if (type == 2) {
+      var path = fvdiv.data('filepath');
+      var query = {
+        'workflowid'   : workflowid,
+        'otherid'      : otherid,
+        'stepid'       : stepid,
+        'path'         : path,
+      };
+
+      var url = '/admin/islandora/prepare_ingest/ajax/files';
+      jQuery.getJSON(url, query, function(fd) {
+        var cellhtml = path + '<BR/><BR/>';
+        if (fd.hasOwnProperty('type') && fd['type'] === 'directory') {
+          cellhtml += 'Is a directory';
+        }
+        else if (fd.hasOwnProperty('content')) {
+          cellhtml += 'Content (' + fd['content'].length + ' bytes):' + '</BR>';
+          cellhtml += '<pre>';
+          if (fd['content'].length > 10000) {
+            cellhtml += htmlEncode(fd['content'].substr(0, 10000) + '...');
+          }
+          else {
+            cellhtml += htmlEncode(fd['content']);
+          }
+          cellhtml += '</pre>';
+        }
+        else if (fd.hasOwnProperty('realfilepath')) {
+          cellhtml += 'Contains same data as file at ' + fd['realfilepath'];
+        }
+        fvdiv.html(cellhtml);
+        placementfunc(fvdiv);
+      });
+    }
+    else {
+      placementfunc(fvdiv);
     }
   });
   $context.find('.upi_fullvalue').click(function(e) {

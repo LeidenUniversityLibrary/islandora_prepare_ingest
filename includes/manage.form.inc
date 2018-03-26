@@ -5,7 +5,7 @@
  * islandora_prepare_ingest_manage.form.inc
  *
  *
- *  Copyright 2017 Leiden University Library
+ *  Copyright 2017-2018 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -35,16 +35,16 @@
 function islandora_prepare_ingest_manage_form(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
-  $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
+  $workflows = islandora_prepare_ingest_select_workflows();
 
   $options = array();
   foreach ($workflows as $workflow) {
     $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflow['id']),
+      'name' => l($workflow['name'], 'admin/islandora/prepare_ingest/edit/' . $workflow['id']),
       'type' => $workflow['type'],
       'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/islandora_prepare_ingest/generic_workflow/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/islandora_prepare_ingest/generic_workflow/export/' . $workflow['id']),
+      'copy' => l(t('copy'),'admin/islandora/prepare_ingest/copy/' . $workflow['id']),
+      'export' => l(t('export'),'admin/islandora/prepare_ingest/export/' . $workflow['id']),
     );
   }
   $form['table'] = array(
@@ -106,7 +106,7 @@ function islandora_prepare_ingest_manage_delete_selected_workflows(array $form, 
 }
 
 function islandora_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
-  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/make';
+  $form_state['redirect'] = 'admin/islandora/prepare_ingest/make';
 }
 
 /**
@@ -155,6 +155,7 @@ function islandora_prepare_ingest_manage_upload_import($form, $form_state) {
  *   The Drupal form state.
  */
 function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_state, $workflowid = FALSE) {
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
 
   $form = array();
 
@@ -163,7 +164,14 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
 
+    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
     $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+
+    if (isset($_SESSION['workflowresults'])) {
+      islandora_prepare_ingest_report_result_summary($workflowresults);
+      // there should be a better way to prevent this from displaying twice...
+      unset($_SESSION['workflowresults']);
+    }
 
     $form['workflowid'] = array(
       '#type' => 'hidden',
@@ -176,43 +184,61 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
   }
  
   # name, description and type
-  $form['workflowinfo'] = array(
-    '#title' => t('Workflow'),
-    '#type' => 'fieldset',
-    '#collapsible' => FALSE,
-    '#collapsed' => FALSE,
-  );
-  $form['workflowinfo']['workflowname'] = array(
-    '#title' => t('Name'),
-    '#type' => 'textfield',
-    '#default_value' => array_key_exists('name', $workflow)?$workflow['name']:'',
-    '#size' => 60,
-  );
-  $form['workflowinfo']['workflowdescription'] = array(
-    '#title' => t('Description'),
-    '#type' => 'textarea',
-    '#default_value' => array_key_exists('description', $workflow)?$workflow['description']:'',
-    '#size' => 60,
-  );
-  $form['workflowinfo']['workflowtype'] = array(
-    '#title' => t('Type'),
-    '#type' => 'select',
-    '#options' => array('partial' => t('partial'), 'full' => t('full')),
-    '#default_value' => array_key_exists('type', $workflow)?$workflow['type']:'partial',
-  );
+  $iseditable = TRUE;
+  if ($iseditable) {
+    $form['workflowinfo'] = array(
+      '#title' => t('Workflow'),
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+      '#collapsed' => FALSE,
+    );
+    $form['workflowinfo']['workflowname'] = array(
+      '#title' => t('Name'),
+      '#type' => 'textfield',
+      '#default_value' => array_key_exists('name', $workflow)?$workflow['name']:'',
+      '#size' => 60,
+    );
+    $form['workflowinfo']['workflowdescription'] = array(
+      '#title' => t('Description'),
+      '#type' => 'textarea',
+      '#default_value' => array_key_exists('description', $workflow)?$workflow['description']:'',
+      '#size' => 60,
+    );
+    $form['workflowinfo']['workflowtype'] = array(
+      '#title' => t('Type'),
+      '#type' => 'select',
+      '#options' => array('partial' => t('partial'), 'full' => t('full')),
+      '#default_value' => array_key_exists('type', $workflow)?$workflow['type']:'partial',
+    );
+  }
+  else {
+    $form['workflowinfo'] = array(
+      '#title' => $workflow['name'],
+      '#description' => $workflow['description'],
+      '#type' => 'fieldset',
+      '#collapsible' => FALSE,
+      '#collapsed' => FALSE,
+    );
+  }
 
   if ($workflowid) {
     # steps
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/steps.form');
-    $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, 'edit');
+    $form += islandora_prepare_ingest_steps($workflowid, $workflowresults, $otherid);
 
     # Add another step
     $options = array();
     $stepsinfo = module_invoke_all('workflow_step_info');
     foreach ($stepsinfo as $stepname => $stepinfo) {
       $typegroup = isset($stepinfo['type group'])?$stepinfo['type group']:t('Other');
-      $options[$typegroup][$stepname] = islandora_prepare_ingest_label_for_step($stepname);
+      if (is_array($typegroup)) {
+        foreach ($typegroup as $tg) {
+          $options[$tg][$stepname] = $stepinfo['name'];
+        }
+      }
+      else {
+        $options[$typegroup][$stepname] = $stepinfo['name'];
+      }
     }
     ksort($options);
     foreach ($options as $k => $v) {
@@ -234,9 +260,10 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
       '#value' => t('Add step'),
       '#id' => 'add_step_button',
     );
+
     # Add steps from workflow
     $options = array();
-    $workflows = islandora_prepare_ingest_select_workflows('active', TRUE);
+    $workflows = islandora_prepare_ingest_select_workflows();
     foreach ($workflows as $workflow) {
       $options[$workflow['id']] = $workflow['name'] . ' (' . $workflow['type'] . ')';
     }
@@ -251,24 +278,31 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     );
   }
  
-  # back
+  # Back
   $form['back'] = array(
     '#type' => 'submit',
     '#value' => t('Back'),
     '#submit' => array('islandora_prepare_ingest_edit_workflow_form_back'),
   );
-  # Check
-  $form['check'] = array(
-    '#type' => 'submit',
-    '#value' => t('Check workflow'),
-    '#submit' => array('islandora_prepare_ingest_edit_workflow_form_check'),
-    '#id' => 'check_workflow_button',
-  );
+
   # Save
   $form['save'] = array(
     '#type' => 'submit',
     '#value' => t('Save workflow'),
+    '#id' => 'save_workflow_button',
   );
+
+  if ($workflowid) {
+    # Test
+    $form['dryrun'] = array(
+      '#type' => 'submit',
+      '#value' => t('Dryrun workflow'),
+      '#submit' => array('islandora_prepare_ingest_edit_workflow_form_dryrun'),
+      '#id' => 'dryrun_workflow_button',
+    );
+    # Hide save button when there is nothing to save
+    $form['save']['#attributes']['style'] = 'display: none;';
+  }
   return $form;
 }
 
@@ -276,11 +310,12 @@ function islandora_prepare_ingest_edit_workflow_form_validate(array $form, array
   $name = $form_state['values']['workflowname'];
 
   if (!$name) {
-    form_set_error('workflowname',t('Needs value'));
+    form_set_error('workflowname', t('A workflow needs a name.'));
   }
 }
 
 function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &$form_state) {
+  // save workflow.
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   unset($_SESSION['workflowresults']);
@@ -300,7 +335,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
   }
   else {
     $workflowid = islandora_prepare_ingest_insert_workflow($name, $description, $type);  
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $workflowid;
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $workflowid;
   }
   $updates = array();
   foreach ($form_state['values'] as $key => $value) {
@@ -367,25 +402,18 @@ function islandora_prepare_ingest_edit_workflow_form_back(array $form, array &$f
   unset($_SESSION['workflowresults']);
   unset($_SESSION['otherid']);
 
-  $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflows';
+  $form_state['redirect'] = 'admin/islandora/prepare_ingest';
 }
 
-function islandora_prepare_ingest_edit_workflow_form_check(array $form, array &$form_state) {
+function islandora_prepare_ingest_edit_workflow_form_dryrun(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
   $otherid = islandora_prepare_ingest_random_string(10);
-  $workflowresults = islandora_prepare_ingest_run_workflow($workflowid, $otherid, WORK_EXTENT_CHECK_FILLED_ARGUMENTS); 
-  $_SESSION['workflowresults'] = $workflowresults; 
   $_SESSION['otherid'] = $otherid; 
-  if (islandora_prepare_ingest_report_result_summary($workflowid, 'check', $workflowresults)) {
-    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 1));
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/check/' . $workflowid;
-  }
-  else {
-    islandora_prepare_ingest_update_workflow($workflowid, array('checked' => 0));
-  }
+  unset($_SESSION['workflowresults']);
+  islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
 }
 
 function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_state, $workflowid) {
@@ -443,7 +471,7 @@ function islandora_prepare_ingest_edit_workflow_form_copy_workflow(array $form, 
 
     islandora_prepare_ingest_update_workflow($newworkflowid, array('name' => $name, 'description' => $description));
 
-    $form_state['redirect'] = 'admin/islandora/islandora_prepare_ingest/generic_workflow/edit/' . $newworkflowid;
+    $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $newworkflowid;
   }
 }
 
@@ -484,7 +512,9 @@ function islandora_prepare_ingest_export_workflow_form_submit(array $form, array
 
   $workflowid = $form_state['values']['workflowid'];
   $workflowjson = islandora_prepare_ingest_workflow_json($workflowid);
-  $filepath = "temporary://workflow.json";
+  $workflow = islandora_prepare_ingest_select_workflow($workflowid);
+  $wfname = preg_replace('/[^a-zA-Z0-9]+/', '_', $workflow['name']);
+  $filepath = "temporary://$wfname.json";
   $file = file_save_data($workflowjson, $filepath, FILE_EXISTS_REPLACE);
   $headers = array(
     'Content-Type' => 'application/json',
@@ -519,16 +549,19 @@ function islandora_prepare_ingest_ajax_addstep_handler($workflowid, $stepname, $
         $workflowstep = $wfstep;
       }
     }
+
     $stepsinfo = module_invoke_all('workflow_step_info');
     $stepinfo = $stepsinfo[$stepname];
-    $stepconfig = array();
-    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstep_form', $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname);
+    $stepclass = $stepinfo['class name'];
+    $step = new $stepclass($workflowstep, array(), NULL);
+
+    $form = drupal_get_form('islandora_prepare_ingest_ajax_addstep_form', $step);
     return $form;
   }
   return array();
 }
 
-function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $workflowstep, $stepinfo, $stepconfig, $stepid, $stepname) {
+function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $step) {
   $form = array(
     '#title' => t('Steps'),
     '#type' => 'fieldset',
@@ -536,7 +569,8 @@ function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $workfl
     '#collapsed' => FALSE,
   );
 
-  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($workflowstep, $stepinfo, $stepconfig, NULL, $stepid, $stepname, TRUE, TRUE, FALSE, FALSE, FALSE); 
+  $stepconfig = array();
+  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($step, array()); 
   $form['onestep']['#collapsed'] = FALSE;
 
   return $form;
@@ -582,7 +616,7 @@ function islandora_prepare_ingest_ajax_addstepsgroup_form($form, &$form_state, $
 
   foreach ($cfgs as $stepid => $cfg) {
     $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
-    $form['step_'.$stepid] = islandora_prepare_ingest_make_base_step_form($cfg['workflowstep'], $cfg['stepinfo'], $stepconfig, NULL, $stepid, $cfg['stepname'], TRUE, TRUE, FALSE, FALSE, FALSE);
+    $form['step_'.$stepid] = islandora_prepare_ingest_make_base_step_form($cfg['workflowstep'], $cfg['stepinfo'], $stepconfig, NULL, $stepid, $cfg['stepname']);
     $form['step_'.$stepid]['#collapsed'] = FALSE;
   }
 
@@ -600,9 +634,45 @@ function islandora_prepare_ingest_ajax_datacache_handler() {
   if ($workflowid && $stepid && $otherid && $type) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-    $count = islandora_prepare_ingest_data_cache_count($workflowid, $stepid, $otherid, $type);
+    $count = islandora_prepare_ingest_data_cache_per_step_count($workflowid, $stepid, $otherid, $type);
     $result = islandora_prepare_ingest_data_cache_select($workflowid, $stepid, $otherid, $type, $startitemnr, $enditemnr);
-    return '{ "count" : ' . $count . ', "list" : [' . implode(",", $result) . '] }';
+    return '{ "count" : ' . $count . ', "list" : ' . json_encode(array_values($result)) . ' }';
+  }
+  return "{ }";
+}
+
+function islandora_prepare_ingest_ajax_files_handler() {
+  $query = drupal_get_query_parameters();
+  $workflowid = isset($query['workflowid'])?$query['workflowid']:0;
+  $stepid = isset($query['stepid'])?$query['stepid']:0;
+  $otherid = isset($query['otherid'])?$query['otherid']:0;
+  $startitemnr = isset($query['startitemnr'])?$query['startitemnr']:0;
+  $enditemnr = isset($query['enditemnr'])?$query['enditemnr']:0;
+  if ($workflowid && $stepid && $otherid) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
+    if (isset($query['path'])) {
+      $entry = pifs_entry_for_filepath($query['path'], $workflowid, $stepid, $otherid);
+      if ($entry['valuetype'] & PIFS_IS_DIR) {
+        $result = array('type' => 'directory');
+        return json_encode($result);
+      }
+      else {
+        if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+          $result = array('type' => 'file', 'content' => $entry['filevalue']);
+          return json_encode($result);
+        }
+        elseif ($entry['valuetype'] & PIFS_HAS_REAL) {
+          $result = array('type' => 'file', 'realfilepath' => $entry['filevalue']);
+          return json_encode($result);
+        }
+      }
+    }
+    else {
+      $count = pifs_count_of_all_filepaths_for_entries($workflowid, $stepid, $otherid);
+      $result = pifs_filepaths_for_entries($workflowid, $stepid, $otherid, $startitemnr, $enditemnr);
+      return '{ "count" : ' . $count . ', "list" : ' . json_encode(array_values($result)) . ' }';
+    }
   }
   return "{ }";
 }
@@ -622,3 +692,39 @@ function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
   print $content;
   drupal_page_footer(); 
 }
+
+function islandora_prepare_ingest_report_result_summary($workflowresults) {
+  $errorcount = 0;
+  $warningcount = 0;
+  if (is_array($workflowresults) && count($workflowresults) > 0) {
+    foreach ($workflowresults as $stepid => $workflowres) {
+      if (is_array($workflowres)) {
+        foreach ($workflowres as $wftype => $wfres) {
+          if (count($wfres) > 0) {
+            foreach ($wfres as $res) {
+              $type = $res['type'];
+              if (strpos($type, 'error') !== FALSE || strpos($type, 'check') !== FALSE) {
+                $errorcount++;
+              }
+              elseif (strpos($type, 'warn') !== FALSE) {
+                $warningcount++;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  $haserrors = (($errorcount + $warningcount) > 0);
+  if ($errorcount > 0) {
+    drupal_set_message(t('Dryrun failed with !count errors. See below for details.', array('!count' => $errorcount)), 'error', FALSE);
+  }
+  if ($warningcount > 0) {
+    drupal_set_message(t('Dryrun failed with !count warnings. See below for details.', array('!count' => $warningcount)), 'warning', FALSE);
+  }
+  if (!$haserrors) {
+    drupal_set_message(t('Dryrun finished successful!'));
+  }
+  return !$haserrors;
+}
+
