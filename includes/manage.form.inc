@@ -512,7 +512,9 @@ function islandora_prepare_ingest_export_workflow_form_submit(array $form, array
 
   $workflowid = $form_state['values']['workflowid'];
   $workflowjson = islandora_prepare_ingest_workflow_json($workflowid);
-  $filepath = "temporary://workflow.json";
+  $workflow = islandora_prepare_ingest_select_workflow($workflowid);
+  $wfname = preg_replace('/[^a-zA-Z0-9]+/', '_', $workflow['name']);
+  $filepath = "temporary://$wfname.json";
   $file = file_save_data($workflowjson, $filepath, FILE_EXISTS_REPLACE);
   $headers = array(
     'Content-Type' => 'application/json',
