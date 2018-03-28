@@ -161,6 +161,8 @@ function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, 
     $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
     $prevstep = $step;
 
+    drush_log(dt("Doing step !stepnr '!steplabel'", array('!stepnr' => $step->weight(), '!steplabel' => $step->label())), 'notice');
+
     $results[$stepid] = array();
     if (_islandora_prepare_ingest_run_workflow_step($step, $context, $results[$stepid])) {
       $dryrunsteps[] = $step;
