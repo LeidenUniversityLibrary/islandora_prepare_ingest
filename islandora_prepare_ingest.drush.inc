@@ -103,39 +103,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
    
     drush_log(dt("Starting full run..."));
     $otherid = islandora_prepare_ingest_random_string(10);
-    $steps = array();
-    $context = array('drush' => TRUE);
-    $results = islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, $additionalconfig, $context, $steps);
-    $haserror = _islandora_prepare_ingest_drush_show_results($results);
-    if (!$haserror) {
-      $results = islandora_prepare_ingest_drush_prepare_workflow($steps, $context);
-      $haserror = _islandora_prepare_ingest_drush_show_results($results);
-      if (!$haserror) {
-        drush_log(dt("Run finished succesfully"), 'success');
-      }
-    }
+    islandora_prepare_ingest_drush_full_run_workflow($workflowid, $otherid, $additionalconfig);
   }
 }
 
-function _islandora_prepare_ingest_drush_show_results($results) {
-  $haserror = FALSE;
-  if (is_array($results) && count($results) > 0) {
-    foreach ($results as $stepid => $res) {
-      foreach ($res as $type => $infos) {
-        foreach ($infos as $info) {
-          if (strpos($info['type'], 'error') !== FALSE || strpos($info['type'], 'check') !== FALSE) {
-            drush_log($info['text'], 'error');
-            $haserror = TRUE;
-          }
-          elseif (strpos($info['type'], 'warn') !== FALSE) {
-            drush_log($info['text'], 'warning');
-          }
-          else {
-           drush_log($info['text'], 'ok');
-          }
-        }
-      }
-    }
-  }
-  return $haserror;
-}

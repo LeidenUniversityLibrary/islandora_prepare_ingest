@@ -126,7 +126,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
   }
 
   public function prepareIngest(&$context) {
-    if (isset($context['drush']) && $context['drush']) {
+    if (isset($context['sandbox']['drush']) && $context['sandbox']['drush']) {
       $filepath = $this->config['filepath'];
       $type = $this->typeString();
 

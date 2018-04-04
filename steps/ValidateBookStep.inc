@@ -96,6 +96,7 @@ class ValidateBookStep extends PrepareIngestValidateStep {
       $importdirectory = rtrim($importdirectory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
       $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->stepid, $this->otherid, '', TRUE, TRUE);
       $booksarray = array();
+      $results = array();
       foreach ($filenames as $filename) {
         $relpath = preg_replace('#^' . $importdirectory . '/*#', '', $filename);
         if (!$relpath) {

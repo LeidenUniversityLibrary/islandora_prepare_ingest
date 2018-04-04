@@ -97,7 +97,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   *    The identifier of the current run of this workflow.
   */
   public function __construct(array $workflowstep, array $stepconfig, $otherid, $prevstep = NULL) {
-    $this->config = $stepconfig; 
+    $this->config = $stepconfig;
     $this->workflowid = (int)$workflowstep['workflow_id'];
     $this->stepid = (int)$workflowstep['id'];
     $this->otherid = $otherid;
@@ -105,7 +105,24 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     $this->name = $workflowstep['step_name'];
     $this->previousstep = $prevstep;
   }
-  
+
+ /**
+  * Magic sleep function to keep from serializing the dataiterator.
+  **/
+  public function __sleep() {
+    unset($this->dataiterator['dbstatement']);
+    return array('name', 'config', 'workflowid', 'stepid', 'otherid', 'weight', 'previousstep');
+  }
+
+ /**
+  * Magic wakeup function to refresh dataiterator.
+  **/
+  public function __wakeup() {
+    if (isset($this->dataiterator['lastdata'])) {
+      // TODO: reset the data connection
+    }
+  }
+
  /**
   * Returns the identifier of this step.
   **/
@@ -495,7 +512,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     $prevdatastep = $this->_previousDataChangingStep();
 
     $results = array();
-  
+
     $inputkeys = array();
     $arguments = $this->arguments();
     foreach ($this->inputKeys() as $ikey => $keys) {
@@ -525,7 +542,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       $itemscount = islandora_prepare_ingest_data_cache_per_step_count($this->workflowid, $prevdatastep->stepid, $this->otherid, 1);
       foreach ($inputkeys as $key) {
         $keycount = islandora_prepare_ingest_data_cache_per_step_key_count($this->workflowid, $prevdatastep->stepid, $this->otherid, 1, $key);
-        if (($keycount === 0) && ($itemscount > 0)) { 
+        if (($keycount === 0) && ($itemscount > 0)) {
           $results[] = array('text' => t("Missing key '@key'. This key is not defined in any of the previous steps.", array('@key' => $key)),
                              'key' => $key, 'type' => 'key_error');
         }
