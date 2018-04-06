@@ -62,6 +62,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
   module_load_include('inc', 'islandora_prepare_ingest', 'islandora_prepare_ingest.workflow_step');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
   $workflowid = drush_get_option('workflow');
   if (!isset($workflowid)) {
@@ -100,10 +101,50 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
         }
       }
     }
-   
-    drush_log(dt("Starting full run..."));
+
+    drush_log(dt("Starting full run..."), 'ok');
     $otherid = islandora_prepare_ingest_random_string(10);
-    islandora_prepare_ingest_drush_full_run_workflow($workflowid, $otherid, $additionalconfig);
+    islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, $additionalconfig);
+
+    if (islandora_prepare_ingest_data_cache_count($workflowid, $otherid) > 0) {
+      $context = array();
+      $context['sandbox']['drush'] = TRUE;
+
+      # Workflow steps for prepare ingest
+      $haserror = FALSE;
+      $prevstep = NULL;
+      $stepsinfo = module_invoke_all('workflow_step_info');
+      $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
+      foreach ($workflowsteps as $workflowstep) {
+        $stepname = $workflowstep['step_name'];
+        $stepinfo = $stepsinfo[$stepname];
+        $stepclass = $stepinfo['class name'];
+        $stepid = $workflowstep['id'];
+        $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+        $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
+        $prevstep = $step;
+
+        $stepresult = $step->prepareIngest($context);
+
+        if ($stepresult) {
+          foreach ($stepresult as $sr) {
+            if (strpos($sr['type'], 'error') !== FALSE || strpos($sr['type'], 'check') !== FALSE) {
+              drush_log($sr['text'], 'error');
+              $haserror = TRUE;
+            }
+            elseif (strpos($sr['type'], 'warn') !== FALSE) {
+              drush_log($sr['text'], 'warning');
+            }
+            else {
+             drush_log($sr['text'], 'ok');
+            }
+          }
+        }
+      }
+      if (!$haserror) {
+        drush_log(dt("Run finished succesfully"), 'success');
+      }
+    }
   }
 }
 

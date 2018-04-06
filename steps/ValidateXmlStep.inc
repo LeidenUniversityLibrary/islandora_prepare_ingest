@@ -137,6 +137,8 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
   }
 
   private function _load_xml_from_value($xmlvalue, $xmldom, $itemnr) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
     $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
     if ($isFilePath) {
       if (is_file($xmlvalue)) {

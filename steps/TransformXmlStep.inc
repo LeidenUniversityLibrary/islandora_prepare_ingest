@@ -151,6 +151,8 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   }
 
   public function prepareIngest(&$context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
     pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
   }
 }

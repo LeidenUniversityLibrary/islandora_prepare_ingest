@@ -99,6 +99,7 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($workflowstep, $s
 
   if (!isset($context['results']['_workflowid'])) {
     $context['results']['_workflowid'] = $workflowstep['workflow_id'];
+    $context['results']['_otherid'] = $otherid;
     $context['results']['_by_type'] = array();
   }
   if (empty($context['sandbox'])) {
@@ -135,7 +136,7 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($workflowstep, $s
     // Don't do dry run of the step if previous steps had any errors.
     return;
   }
-  $context['message'] = t("Doing step !stepnr '!steplabel'", array('!stepnr' => $step->weight(), '!steplabel' => $step->label()));
+  $context['message'] = t("Doing step !stepnr: !steplabel", array('!stepnr' => $step->weight(), '!steplabel' => $step->label()));
   $stepresult = $step->dryRun($context);
   if ($stepresult) {
     if (isset($context['results']['_by_type'][$step->id()]['dryrun'])) {
@@ -178,7 +179,7 @@ function islandora_prepare_ingest_dry_run_step_batch_finished($success, $results
   }
 }
 
-function islandora_prepare_ingest_drush_full_run_workflow($workflowid, $otherid, array $additionalconfig) {
+function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, array $additionalconfig) {
   //module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   //module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
   //module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
@@ -193,7 +194,7 @@ function islandora_prepare_ingest_drush_full_run_workflow($workflowid, $otherid,
   $batch = array(
     'title' => t('Full run'),
     'operations' => $operations,
-    'finished' => 'islandora_prepare_ingest_full_run_step_batch_finished',
+    'finished' => 'islandora_prepare_ingest_drush_dry_run_step_batch_finished',
     'file' => drupal_get_path('module', 'islandora_prepare_ingest') . '/includes/run_workflow.inc',
   );
 
@@ -204,7 +205,7 @@ function islandora_prepare_ingest_drush_full_run_workflow($workflowid, $otherid,
 
   drush_backend_batch_process();
 }
-
+/*
 function islandora_prepare_ingest_drush_full_run_operation(&$context) {
   $steps = $context['results']['_steps'];
   if (empty($context['sandbox'])) {
@@ -231,8 +232,8 @@ function islandora_prepare_ingest_drush_full_run_operation(&$context) {
 
   $context['finished'] = $context['sandbox']['current'] / $context['sandbox']['maxsteps'];
 }
-
-function islandora_prepare_ingest_full_run_step_batch_finished($success, $results, $operations) {
+*/
+function islandora_prepare_ingest_drush_dry_run_step_batch_finished($success, $results, $operations) {
   $haserror = FALSE;
   if (is_array($results['_by_type']) && count($results['_by_type']) > 0) {
     foreach ($results['_by_type'] as $stepid => $res) {
@@ -256,29 +257,14 @@ function islandora_prepare_ingest_full_run_step_batch_finished($success, $result
     drush_log(dt("Workflow contains no steps"), 'error');
   }
   else if (!$haserror) {
-    $steps = $results['_steps'];
-    $context = array();
-    $context['sandbox']['drush'] = TRUE;
-    foreach ($steps as $step) {
-      $stepresult = $step->prepareIngest($context);
+    drush_log(dt("Dry run finished succesfully, continuing with prepare ingest."), "ok");
+  }
+  else {
+    drush_log(dt("Full run failed."), 'error');
+    if (isset($results['_otherid'])) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-      if ($stepresult) {
-        foreach ($stepresult as $sr) {
-          if (strpos($sr['type'], 'error') !== FALSE || strpos($sr['type'], 'check') !== FALSE) {
-            drush_log($sr['text'], 'error');
-            $haserror = TRUE;
-          }
-          elseif (strpos($sr['type'], 'warn') !== FALSE) {
-            drush_log($sr['text'], 'warning');
-          }
-          else {
-           drush_log($sr['text'], 'ok');
-          }
-        }
-      }
-    }
-    if (!$haserror) {
-      drush_log(dt("Run finished succesfully"), 'success');
+      islandora_prepare_ingest_data_cache_delete_old($results['_otherid']);
     }
   }
 }
