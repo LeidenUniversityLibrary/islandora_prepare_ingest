@@ -123,21 +123,25 @@ class ValueFromXmlStep extends PrepareIngestStep {
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('source_xml_key_name') && $this->hasConfigKey('target_key_name') && $this->hasConfigKey('xpath') && isset($prevdatastep)) {
+      if (!isset($context['sandbox']['total_items'])) {
+        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+
+        $prevdatastep->resetDataIterator();
+      }
       $xmlkey = $this->config['source_xml_key_name'];
       $targetkey = $this->config['target_key_name'];
       $xpath = $this->config['xpath'];
       $namespaces = $this->_namespaces();
 
       $results = array();
-      $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
-      while ($item !== NULL) {
+      $limit = 10;
+      while ($item !== NULL && $limit-- > 0) {
         $xml = $item[$xmlkey];
         $domdoc = new DOMDocument();
         if ($domdoc->loadXML($xml) === FALSE) {
-          $result[] = array('text' => t("Failed to parse xml at '@key' with '@value'.",
+          $results[] = array('text' => t("Failed to parse xml at '@key' with '@value'.",
                     array('@key' => $this->arguments()['source_xml_key_name']['label'], '@value' => $this->config['source_xml_key_name'])), 'type' => 'argument_error');
-          return $result;
         }
         $domxpath = new DOMXPath($domdoc);
         foreach ($namespaces as $prefix => $nsuri) {
@@ -147,7 +151,6 @@ class ValueFromXmlStep extends PrepareIngestStep {
         if ($domnodelist === FALSE) {
           $results[] = array('text' => t("Malformed XPath at '@key' with '@value'.",
                     array('@key' => $this->arguments()['xpath']['label'], '@value' => $this->config['xpath'])), 'type' => 'argument_error');
-          return $results;
         }
         if ($domnodelist->length > 0) {
           foreach ($domnodelist as $domnode) {
@@ -159,7 +162,20 @@ class ValueFromXmlStep extends PrepareIngestStep {
           }
         }
         $this->saveDataItem($item);
-        $item = $prevdatastep->nextDataItem();
+        if ($limit > 0) {
+          $item = $prevdatastep->nextDataItem();
+        }
+      }
+      if ($context['sandbox']['total_items'] > 0) {
+        if ($item !== NULL) {
+          $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
+        }
+        else {
+          $context['finished'] = 1;
+        }
+      }
+      if (count($results) > 0) {
+        return $results;
       }
     }
     return FALSE;

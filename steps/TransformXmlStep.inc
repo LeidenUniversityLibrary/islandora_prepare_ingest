@@ -85,6 +85,11 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
+      if (!isset($context['sandbox']['total_items'])) {
+        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+
+        $prevdatastep->resetDataIterator();
+      }
       $xmlkey = $this->config['xml_key_name'];
       $xslkey = $this->config['xsl_key_name'];
       $targetfilepathtemplate = $this->config['target_filepath'];
@@ -92,10 +97,9 @@ class TransformXmlStep extends PrepareIngestXmlStep {
       $prevuseerr = libxml_use_internal_errors(true);
 
       $results = array();
-      $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
-      $itemnr = 1;
-      while ($item !== NULL) {
+      $limit = 10;
+      while ($item !== NULL && $limit-- > 0) {
         $isValidXml = TRUE; // be positive about it!
         $xmlvalue = $item[$xmlkey];
         $xslvalue = $item[$xslkey];
@@ -135,13 +139,22 @@ class TransformXmlStep extends PrepareIngestXmlStep {
             $results[] =  array('text' => t("Transform failed for item at @nr", array('@nr' => $current)), 'type' => 'run_error');
           }
         }
-        if (count($results) > 0) {
-          libxml_clear_errors();
-          return $results;
+        if ($limit > 0) {
+          $item = $prevdatastep->nextDataItem();
         }
-        $item = $prevdatastep->nextDataItem();
       }
       libxml_clear_errors();
+      if ($context['sandbox']['total_items'] > 0) {
+        if ($item !== NULL) {
+          $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
+        }
+        else {
+          $context['finished'] = 1;
+        }
+      }
+      if (count($results) > 0) {
+        return $results;
+      }
     }
     return FALSE;
   }

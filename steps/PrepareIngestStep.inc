@@ -79,8 +79,12 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected $stepid;
   protected $otherid;
   protected $weight;
-  private $dataiterator;
-  public $previousstep;
+  protected $previousstep;
+  protected $previousdatachangingstep;
+  private $di_dbstatement;
+  private $di_lastdata;
+  protected $di_currentitemnr;
+  protected $di_type;
 
  /**
   * Initializes a PrepareIngestStep object with the appropriate values.
@@ -104,22 +108,32 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     $this->weight = $workflowstep['weight'];
     $this->name = $workflowstep['step_name'];
     $this->previousstep = $prevstep;
+
+    while ($prevstep !== NULL && !($prevstep->changesCount() || $prevstep->changesKeys())) {
+      $prevstep = $prevstep->previousstep;
+    }
+    $this->previousdatachangingstep = $prevstep;
   }
 
  /**
-  * Magic sleep function to keep from serializing the dataiterator.
+  * Magic sleep function to keep from serializing the di_dbstatement and di_lastdata.
   **/
   public function __sleep() {
-    unset($this->dataiterator['dbstatement']);
-    return array('name', 'config', 'workflowid', 'stepid', 'otherid', 'weight', 'previousstep');
+    return array('name', 'config', 'workflowid', 'stepid', 'otherid', 'weight', 'previousstep', 'previousdatachangingstep', 'di_currentitemnr', 'di_type');
   }
 
  /**
-  * Magic wakeup function to refresh dataiterator.
+  * Magic wakeup function to refresh di_dbstatement and di_lastdata.
   **/
   public function __wakeup() {
-    if (isset($this->dataiterator['lastdata'])) {
-      // TODO: reset the data connection
+    if (isset($this->di_currentitemnr, $this->di_type)) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
+      $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $this->di_type, array());
+      $selectquery = $selectquery->orderBy('item_nr');
+      $selectquery->condition('item_nr', $this->di_currentitemnr, '>=');
+      $this->di_dbstatement = $selectquery->execute();
+      $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
     }
   }
 
@@ -346,21 +360,22 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function resetDataIterator($type = 1) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
-    $this->dataiterator = array();
     $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $type, array());
-    $this->dataiterator['dbstatement'] = $selectquery->execute();
-    $this->dataiterator['lastdata'] = $this->dataiterator['dbstatement']->fetchAssoc();
-    $this->dataiterator['currentitemnr'] = $this->dataiterator['lastdata']['item_nr'];
+    $selectquery = $selectquery->orderBy('item_nr');
+    $this->di_dbstatement = $selectquery->execute();
+    $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
+    $this->di_currentitemnr = $this->di_lastdata['item_nr'];
+    $this->di_type = $type;
   }
 
   protected function nextDataItem() {
     $dataitem = NULL;
-    $currentitemnr = $this->dataiterator['currentitemnr'];
-    $d = $this->dataiterator['lastdata'];
-    $dbs = $this->dataiterator['dbstatement'];
+    $currentitemnr = $this->di_currentitemnr;
+    $d = $this->di_lastdata;
+    $dbs = $this->di_dbstatement;
     while ($d !== FALSE) {
       if ($d['item_nr'] > $currentitemnr) {
-        $this->dataiterator['currentitemnr'] = $d['item_nr'];
+        $this->di_currentitemnr = $d['item_nr'];
         break;
       }
       if ($dataitem === NULL) {
@@ -368,7 +383,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       }
       $dataitem[$d['dckey']] = unserialize($d['dcvalue']);
       $d = $dbs->fetchAssoc();
-      $this->dataiterator['lastdata'] = $d;
+      $this->di_lastdata = $d;
     }
     return $dataitem;
   }
@@ -577,11 +592,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function _previousDataChangingStep() {
-    $prevstep = $this->previousstep;
-    while ($prevstep !== NULL && !($prevstep->changesCount() || $prevstep->changesKeys())) {
-      $prevstep = $prevstep->previousstep;
-    }
-    return $prevstep;
+    return $this->previousdatachangingstep;
   }
 
 }
