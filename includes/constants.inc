@@ -25,23 +25,24 @@
  */
 
 function islandora_prepare_ingest_constants_set($name, $value, &$context) {
-  if (!array_key_exists('_constants', $context)) {
-    $context['_constants'] = array();
+  if (!isset($context['results']['_constants'])) {
+    $context['results']['_constants'] = array();
   }
-  if (array_key_exists($name, $context['_constants'])) {
+  $key = '{' . $name . '}';
+  if (isset($context['results']['_constants'][$key])) {
     $results[] = array('text' => t("Constant with name '@name' already exists, has value '@value'.",
-                array('@name' => $name, '@value' => $value)), 'type' => 'run_error');
+                array('@name' => $name, '@value' => $context['results']['_constants'][$key])), 'type' => 'run_error');
     return $results;
   }
-  $context['_constants']['{' . $name . '}'] = $value;
+  $context['results']['_constants'][$key] = $value;
   return FALSE;
 }
 
 function islandora_prepare_ingest_constants_add_to_stepconfig(&$stepconfig, $context) {
-  if (array_key_exists('_constants', $context)) {
+  if (isset($context['results']['_constants'])) {
     $sckeys = array_keys($stepconfig);
-    $ckeys = array_keys($context['_constants']);
-    $cvalues = array_values($context['_constants']);
+    $ckeys = array_keys($context['results']['_constants']);
+    $cvalues = array_values($context['results']['_constants']);
     foreach ($sckeys as $key) {
       $value = $stepconfig[$key];
       $newvalue = str_replace($ckeys, $cvalues, $value);

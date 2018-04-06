@@ -78,13 +78,19 @@ class ParseXmlStep extends PrepareIngestStep {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
+      if (!isset($context['sandbox']['total_items'])) {
+        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+
+        $prevdatastep->resetDataIterator();
+      }
       $filepathtemplate = $this->config['filepath'];
       $xmlkey = $this->config['xml_key_name'];
 
       $results = array();
-      $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
-      while ($item !== NULL) {
+      $limit = 10;
+      while ($item !== NULL && $limit-- > 0) {
         $filepath = $this->fillOutTemplate($filepathtemplate, $item);
         if (!pifs_is_file($filepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("File '@file' does not exist.",
@@ -99,7 +105,6 @@ class ParseXmlStep extends PrepareIngestStep {
           }
         }
         else {
-          $itemnr = 0;
           $contentxml = pifs_entry_read_content($filepath, $this->workflowid, $this->stepid, $this->otherid);
           if (!$domdoc->loadXML($contentxml)) {
             $results[] = array('text' => t("File '@file' is not a valid XML document.",
@@ -118,13 +123,23 @@ class ParseXmlStep extends PrepareIngestStep {
                array('@file' => $filepath, '@message' => $message)), 'type' => 'run_error');
         }
 
-        if (count($results) > 0) {
-          return $results;
-        }
         $item[$xmlkey] = $domdoc->saveXML();
 
         $this->saveDataItem($item);
-        $item = $prevdatastep->nextDataItem();
+        if ($limit > 0) {
+          $item = $prevdatastep->nextDataItem();
+        }
+      }
+      if ($context['sandbox']['total_items'] > 0) {
+        if ($item !== NULL) {
+          $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
+        }
+        else {
+          $context['finished'] = 1;
+        }
+      }
+      if (count($results) > 0) {
+        return $results;
       }
     }
     return FALSE;

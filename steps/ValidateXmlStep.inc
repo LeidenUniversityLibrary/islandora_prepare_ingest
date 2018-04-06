@@ -87,14 +87,20 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
+      if (!isset($context['sandbox']['total_items'])) {
+        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+
+        $prevdatastep->resetDataIterator();
+      }
       $xmlkey = $this->config['xml_key_name'];
       $results = array();
       $prevuseerr = libxml_use_internal_errors(true);
 
       $results = array();
-      $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
-      while ($item !== NULL) {
+      $limit = 1;
+      while ($item !== NULL && $limit-- > 0) {
         $isValidXml = FALSE;
         $xmlvalue = $item[$xmlkey];
         $xmldoc = new DOMDocument();
@@ -104,31 +110,41 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
         }
         else {
           $isValidXml = TRUE;
-        }
-        if ($isValidXml && $this->config['validate_dtd']) {
-          $isValidXml = $xmldoc->validate();
-        }
-        if ($isValidXml && $this->hasConfigKey('schema_key_name')) {
-          $schemakey = $this->config['schema_key_name'];
-          if (isset($item[$schemakey]) && strlen($item[$schemakey]) > 0) {
-            $schemavalue = $item[$schemakey];
-            if ((substr($schemavalue, 0, 1) === '/') && pifs_is_file($schemavalue, $this->workflowid, $this->stepid, $this->otherid)) {
-              $isValidXml = $xmldoc->schemaValidate($schemavalue);
-            }
-            else {
-              $isValidXml = $xmldoc->schemaValidateSource($schemavalue);
+          if ($isValidXml && $this->config['validate_dtd']) {
+            $isValidXml = $xmldoc->validate();
+          }
+          if ($isValidXml && $this->hasConfigKey('schema_key_name')) {
+            $schemakey = $this->config['schema_key_name'];
+            if (isset($item[$schemakey]) && strlen($item[$schemakey]) > 0) {
+              $schemavalue = $item[$schemakey];
+              if ((substr($schemavalue, 0, 1) === '/') && pifs_is_file($schemavalue, $this->workflowid, $this->stepid, $this->otherid)) {
+                $isValidXml = $xmldoc->schemaValidate($schemavalue);
+              }
+              else {
+                $isValidXml = $xmldoc->schemaValidateSource($schemavalue);
+              }
             }
           }
-        }
-        if (!$isValidXml) {
-          $error = libxml_get_last_error();
-          $results[] = array('text' => t("Key @key of item @itemnr does not contain valid XML: @error at line @line",
-            array('@key' => $this->arguments()['xml_key_name']['label'], '@itemnr' => $item['item nr'], '@error' => $error->message, '@line' => $error->line)), 'type' => 'validate_error');
+          if (!$isValidXml) {
+            $error = libxml_get_last_error();
+            $results[] = array('text' => t("Key @key of item @itemnr does not contain valid XML: @error at line @line",
+              array('@key' => $this->arguments()['xml_key_name']['label'], '@itemnr' => $item['item nr'], '@error' => $error->message, '@line' => $error->line)), 'type' => 'validate_error');
+          }
         }
         libxml_clear_errors();
-        $item = $prevdatastep->nextDataItem();
+        if ($limit > 0) {
+          $item = $prevdatastep->nextDataItem();
+        }
       }
       libxml_use_internal_errors($prevuseerr);
+      if ($context['sandbox']['total_items'] > 0) {
+        if ($item !== NULL) {
+          $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
+        }
+        else {
+          $context['finished'] = 1;
+        }
+      }
       if (count($results) > 0) {
         return $results;
       }
@@ -137,6 +153,8 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
   }
 
   private function _load_xml_from_value($xmlvalue, $xmldom, $itemnr) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
     $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
     if ($isFilePath) {
       if (is_file($xmlvalue)) {
