@@ -32,6 +32,7 @@ This method must do a dryrun of the actions the step does. This method should ma
 The data_cache functions should be used to read the items of the previous step and store the manipulated items (in case the step only changes keys), or the old and new items (in case the step adds new items), or no items at all (e.g. step does validation only).
 This method should return a value as described in 'Return values for ...'
 The prepareIngest method will do the actual writing of files/directories and other "real" things based on the output of this step.
+The method is run as part of an operation of a batch set. The context is the only argument to this method. If needed, the work done in this method can be divided in smaller pieces by using ```$context['finished']``` with a value less than 1 to call this method multiple times within the operation. See ```steps/TransformXmlStep.inc``` for an example.
 
 ## prepareIngest()
 This method does the "real" things, usually based on the (temporary) output. If dryRun has file data saved as cache data, write the files to disk in this step. Do not do what dryRun does again, but reuse its output.
