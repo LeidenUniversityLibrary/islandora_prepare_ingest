@@ -51,7 +51,7 @@ class TransformXmlStep extends PrepareIngestXmlStep {
       ),
       'xsl_key_name' => array(
         'label' => t('XSLT key'),
-        'description' => t('The input XSLT. The value of this key is either an absolute filepath to an XSLT file or contains XSLT itself.'),
+        'description' => t('The input XSLT. The value of this key is either an absolute filepath to an XSLT file or contains XSLT itself. The keys of the items can be used as parameters within this XSLT.'),
         'type' => 'key',
       ),
       'target_filepath' => array(
@@ -118,6 +118,9 @@ class TransformXmlStep extends PrepareIngestXmlStep {
         if ($isValidXml) {
           $xsltproc = new XSLTProcessor;
           if ($xsltproc->importStyleSheet($xsldoc)) { // attach the xsl rules
+            foreach ($item as $key => $value) {
+              $xsltproc->setParameter('', $key, $value);
+            }
             $content = $xsltproc->transformToXML($xmldoc);
             if ($content !== FALSE) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
