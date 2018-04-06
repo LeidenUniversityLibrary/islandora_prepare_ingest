@@ -151,7 +151,7 @@ This step sorts the items based on the values of one or two keys.
 
 ## Transform XML
 
-This step transforms XML by using XSLT to a target filepath. The XML key can include a filepath to an XML file or XML data. The XSLT key can include a filepath to an XSLT file or XSLT data.
+This step transforms XML by using XSLT to a target filepath. The XML key can include a filepath to an XML file or XML data. The XSLT key can include a filepath to an XSLT file or the XSLT data itself. The keys of the items are available as parameters within the XSLT.
 
 ## Validate XML
 
