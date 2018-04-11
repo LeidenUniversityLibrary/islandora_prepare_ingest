@@ -86,7 +86,8 @@ class DefineConstantStep extends PrepareIngestStep {
   }
 
   public function prepareIngest(&$context) {
-    // no need to do anything
+    // do dry run again to make sure the constants get set.
+    return $this->dryRun($context);
   }
 
 }
