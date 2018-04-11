@@ -98,7 +98,7 @@ class TransformXmlStep extends PrepareIngestXmlStep {
 
       $results = array();
       $item = $prevdatastep->nextDataItem();
-      $limit = 10;
+      $limit = 5;
       while ($item !== NULL && $limit-- > 0) {
         $isValidXml = TRUE; // be positive about it!
         $xmlvalue = $item[$xmlkey];
