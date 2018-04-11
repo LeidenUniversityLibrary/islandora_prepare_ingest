@@ -85,7 +85,7 @@ function pifs_filepaths_for_entries($workflow_id, $step_id, $other_id, $min, $ma
   $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
   $select->groupBy('path')
     ->orderBy('path')
-    ->range($min-1, $max);
+    ->range(($min - 1), ($max - $min + 1));
   $dcs = $select->execute();
 
   $results = array();
