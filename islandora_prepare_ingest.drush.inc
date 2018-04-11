@@ -63,6 +63,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/run_workflow');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
 
   $workflowid = drush_get_option('workflow');
   if (!isset($workflowid)) {
@@ -79,6 +80,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
   }
 
   $additionalconfig = NULL;
+  $context = array();
   if (isset($workflowid)) {
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
     $stepsinfo =  module_invoke_all('workflow_step_info');
@@ -121,6 +123,12 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
         $stepclass = $stepinfo['class name'];
         $stepid = $workflowstep['id'];
         $stepconfig = islandora_prepare_ingest_select_workflow_step_configuration($stepid);
+        if (isset($additionalconfig[$stepid])) {
+          foreach ($additionalconfig[$stepid] as $k => $v) {
+            $stepconfig[$k] = $v;
+          }
+        }
+        islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
         $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
         $prevstep = $step;
 
