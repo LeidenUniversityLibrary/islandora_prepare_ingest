@@ -456,6 +456,7 @@ function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_s
     '#submit' => array('islandora_prepare_ingest_edit_workflow_form_copy_workflow'),
     '#validate' => array('islandora_prepare_ingest_edit_workflow_form_validate'),
   );
+  unset($form['dryrun']);
 
   return $form;
 }
