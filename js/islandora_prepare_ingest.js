@@ -451,12 +451,12 @@ function setUpButtonsAndFields($context) {
   $context.find('.keys').keyup(function(e) { var $textfield = jQuery(e.target); checkvaluefunc($textfield, /[^a-zA-Z0-9_;-]+/g); });
   $context.find('.number, .filepath, .key').blur(function(e) { jQuery('#fielderror').hide(); });
 
-  $context.find(".workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
+  $context.find("#edit-workflowname, #edit-workflowdescription, #edit-workflowtype, .workflow_step INPUT[type='text'], .workflow_step SELECT, .workflow_step TEXTAREA").on('keydown change', function(e) {
      setUnsavedChanges();
   });
-  $context.find('#check_workflow_button').click(function (e) {
+  $context.find('#back_button').click(function (e) {
     if (hasUnsavedChanges) {
-      if (!confirm('This workflow has changes. Are you sure you want to check it without saving the changes?')) {
+      if (!confirm('This workflow has changes. Are you sure you want to leave without saving the changes?')) {
         e.preventDefault();
       }
     }

@@ -283,6 +283,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     '#type' => 'submit',
     '#value' => t('Back'),
     '#submit' => array('islandora_prepare_ingest_edit_workflow_form_back'),
+    '#id' => 'back_button',
   );
 
   # Save
