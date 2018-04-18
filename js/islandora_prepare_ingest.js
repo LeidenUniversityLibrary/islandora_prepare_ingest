@@ -735,7 +735,8 @@ function showDataCache(element, data, workflowid, otherid, stepid, type, show, s
   }
   table += '<BUTTON type="button" id="startbutton">|&lt;</BUTTON>';
   table += '<BUTTON type="button" id="prevbutton">&lt;</BUTTON>';
-  table += '<SPAN>' + startitemnr + ' to ' + Math.min(itemcount, enditemnr) + ' of ' + itemcount;
+  table += '<SPAN id="rangetext">' + startitemnr + ' to ' + Math.min(itemcount, enditemnr) + ' of ' + itemcount + '</SPAN>';
+  table += '<SPAN id="rangeinput"><INPUT type="number" min="1" max="' + itemcount + '" size="5" value="' + startitemnr + '" step="' + batchsize + '"/><BUTTON type="button" id="rangego">go</BUTTON></SPAN>';
   table += '<BUTTON type="button" id="nextbutton">&gt;</BUTTON>';
   table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
   table += '</TH></TR>';
@@ -775,6 +776,22 @@ function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showf
       jQuery(element).data('show', 1);
     }
     filloutDataCacheElement(element, true);
+  });
+  jQuery(element).find('TABLE #rangeinput').hide();
+  jQuery(element).find('TABLE #rangetext').click(function(e) {
+    jQuery(this).hide();
+    jQuery(element).find('TABLE #rangeinput').show();
+  });
+  jQuery(element).find('TABLE #rangego').click(function(e) {
+    var newstartstr = jQuery(element).find('TABLE #rangeinput > INPUT').val();
+    if (/^[1-9][0-9]{0,8}$/.test(newstartstr)) {
+      var newend = Math.floor((Math.min(parseInt(newstartstr), itemcount) + batchsize - 1) / batchsize) * batchsize;
+      reloadForMinMax(newend - batchsize + 1, newend);
+    }
+    else {
+      jQuery(element).find('TABLE #rangeinput').hide();
+      jQuery(element).find('TABLE #rangetext').show();
+    }
   });
 }
 
