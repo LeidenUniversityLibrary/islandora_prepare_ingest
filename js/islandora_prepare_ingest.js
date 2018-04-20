@@ -545,7 +545,7 @@ function loadContent(loadUrl, $addStepDiv) {
 {
 var batchsize = 10;
 
-function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
+function filloutDataCacheElement(element, isStarting, prevcount, endFunction, filter) {
   var workflowid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="workflowid"]').val();
   var otherid = jQuery('#islandora-prepare-ingest-edit-workflow-form > DIV > INPUT[name="otherid"]').val();
   var stepid = jQuery(element).data('stepid');
@@ -592,12 +592,78 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction) {
        'enditemnr'    : enditemnr
     };
     var url = '/admin/islandora/prepare_ingest/ajax/' + ((type === 1)?'datacache':'files');
-    jQuery.getJSON(url, query, function(data) {
-      filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, prevcount);
-      if (endFunction) {
-        endFunction();
-      }
-    });
+
+    if (filter === undefined) {
+      jQuery.getJSON(url, query, function(data) {
+        filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, prevcount);
+        if (endFunction) {
+          endFunction();
+        }
+      });
+    }
+    else {
+      var filterbatchsize = 1000;
+      var filloutFilteredDataCacheElement = function(element, url, query, filter, filteredData, workflowid, otherid, stepid, type, show, endFunction) {
+        jQuery.getJSON(url, query, function(data) {
+          var hasMoreData = false;
+          var count = ('count' in filter)?filter['count']:0;
+          var from = ('from' in filter)?filter['from']:0;
+          jQuery.each(data['list'], function (index, item) {
+            if (filter['type']) {
+              var filtertype = filter['type'];
+              if (filter['value']) {
+                if ((filtertype in item) && item[filtertype].indexOf(filter['value']) !== -1) {
+                  if (count >= from) {
+                    filteredData.push(item);
+                  }
+                  count++;
+                }
+              }
+              else {
+                if (!(filtertype in item) || item[filtertype] === '') {
+                  if (count >= from) {
+                    filteredData.push(item);
+                  }
+                  count++;
+                }
+              }
+            }
+            else {
+              jQuery.each(item, function (key, value) {
+                if ( key !== 'item nr' && value.indexOf(filter['value']) !== -1) {
+                  if (count >= from) {
+                    filteredData.push(item);
+                  }
+                  count++;
+                  return false;
+                }
+              });
+            }
+            if (filteredData.length >= batchsize) {
+              hasMoreData = true;
+              return false;
+            }
+          });
+          filter['count'] = count;
+          if (count < (from + batchsize) && data['list'].length > 0) {
+            query['startitemnr'] += filterbatchsize;
+            query['enditemnr'] += filterbatchsize;
+            filloutFilteredDataCacheElement(element, url, query, filter, filteredData, workflowid, otherid, stepid, type, show, endFunction);
+          }
+          else {
+            showDataCache(element, {'list' : filteredData, 'count' : -1}, workflowid, otherid, stepid, type, show, 1, 11, 0, filter);
+            setupButtonsDataCache(element, (hasMoreData?10:0), 1, 11, 0);
+          }
+          if (endFunction) {
+            endFunction();
+          }
+        });
+      };
+      query['startitemnr'] = 1;
+      query['enditemnr'] = filterbatchsize;
+      var filteredData = [];
+      filloutFilteredDataCacheElement(element, url, query, filter, filteredData, workflowid, otherid, stepid, type, show, endFunction);
+    }
   }
 }
 
@@ -628,7 +694,7 @@ function filloutDataCacheElementWithData(element, data, workflowid, otherid, ste
   setupButtonsDataCache(element, data['count'], startitemnr, enditemnr, showfromitemnr);
 }
 
-function showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr) {
+function showDataCache(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, showfromitemnr, filter) {
   var nrOfRows = data['list'].length;
   var usedKeys = [];
   var header = {};
@@ -722,6 +788,8 @@ function showDataCache(element, data, workflowid, otherid, stepid, type, show, s
     table += '<TR><TH>&nbsp;</TH><TD colspan="' + usedKeysCount + '">&nbsp;</TD></TR>';
   }
   table += '<TR><TH class="fixedpos">&nbsp;</TH><TH class="fixedpos" colspan="' + usedKeysCount + '">';
+  table += '<FORM novalidate>';
+  table += '<SPAN id="rangeselection"' + (filter?' style="display:none;"':'') + '>'
   if ((type === 1) && (jQuery(element).data('outputkeys').length > 0)) {
     table += '<BUTTON type="button" id="usebutton">';
     if (show === 1) {
@@ -736,9 +804,29 @@ function showDataCache(element, data, workflowid, otherid, stepid, type, show, s
   table += '<BUTTON type="button" id="startbutton">|&lt;</BUTTON>';
   table += '<BUTTON type="button" id="prevbutton">&lt;</BUTTON>';
   table += '<SPAN id="rangetext">' + startitemnr + ' to ' + Math.min(itemcount, enditemnr) + ' of ' + itemcount + '</SPAN>';
-  table += '<SPAN id="rangeinput"><INPUT type="number" min="1" max="' + itemcount + '" size="5" value="' + startitemnr + '" step="' + batchsize + '"/><BUTTON type="button" id="rangego">go</BUTTON></SPAN>';
+  //table += '<SPAN id="rangeinput"><INPUT name="rangeinputfield" type="number" min="1" max="' + itemcount + '" size="5" value="' + startitemnr + '" step="' + batchsize + '"/><BUTTON type="button" id="rangego">go</BUTTON></SPAN>';
+  table += '<SPAN id="rangeinput"><INPUT name="rangeinputfield" value="' + startitemnr + '"/><BUTTON type="button" id="rangego">go</BUTTON></SPAN>';
   table += '<BUTTON type="button" id="nextbutton">&gt;</BUTTON>';
   table += '<BUTTON type="button" id="endbutton">&gt;|</BUTTON>';
+  table += '&nbsp;&nbsp;<BUTTON type="button" id="filterbutton">filter</BUTTON>';
+  table += '</SPAN>';
+  table += '<SPAN id="filterspan"' + (!filter?' style="display:none;"':'') + '>'
+  table += '<SELECT name="filtertype" id="filtertype">';
+  if (type === 1) {
+    table += '<OPTION value="">All values</OPTION>'
+  }
+  for (var i=0; i<usedKeys.length; i++) {
+    table += '<OPTION value="' + usedKeys[i] + '"' + ((filter && usedKeys[i] === filter['type'])?' selected':'') + '>' + usedKeys[i] + '</OPTION>';
+  }
+  table += '</SELECT>';
+  table += '<INPUT name="filtervalue" id="filtervalue" type="text" size="20" value="' + ((filter && 'value' in filter)?filter['value']:'') + '"/>';
+  table += '<INPUT name="filterfrom" id="filterfrom" type="hidden" value="' + ((filter && 'from' in filter)?filter['from']:'0') + '"/>';
+  table += '<BUTTON type="button" id="filtergo">go</BUTTON>&nbsp;';
+  table += '<BUTTON type="button" id="fprevbutton">&lt;</BUTTON>';
+  table += '<BUTTON type="button" id="fnextbutton">&gt;</BUTTON>';
+  table += '<BUTTON type="button" id="fclosebutton">close</BUTTON>';
+  table += '</SPAN>';
+  table += '</FORM>';
   table += '</TH></TR>';
   table += '</TABLE>';
   table += '</DIV>';
@@ -791,6 +879,47 @@ function setupButtonsDataCache(element, itemcount, startitemnr, enditemnr, showf
     else {
       jQuery(element).find('TABLE #rangeinput').hide();
       jQuery(element).find('TABLE #rangetext').show();
+    }
+  });
+  jQuery(element).find('TABLE #filterbutton, TABLE #fclosebutton').click(function(e) {
+    jQuery(element).find('TABLE #filterspan').toggle();
+    jQuery(element).find('TABLE #rangeselection').toggle();
+    if (jQuery(element).find('TABLE #rangeselection').is(':visible')) {
+      reloadForMinMax(startitemnr, enditemnr);
+    }
+  });
+  jQuery(element).find('TABLE #filtergo').click(function(e) {
+    var filtertype = jQuery(element).find('TABLE #filtertype').val();
+    var filtervalue = jQuery(element).find('TABLE #filtervalue').val();
+    var filterfrom = 0;
+
+    if (filtertype || filtervalue) {
+      jQuery(element).find('TABLE #filterfrom').val(filterfrom);
+      var filter = {type:filtertype, value:filtervalue, from:filterfrom};
+      filloutDataCacheElement(element, false, showfromitemnr, undefined, filter);
+    }
+  });
+  var filterfrom = parseInt(jQuery(element).find('TABLE #filterfrom').val());
+  jQuery(element).find('TABLE #fprevbutton').prop('disabled', (filterfrom <= 0)).click(function(e) {
+    var filtertype = jQuery(element).find('TABLE #filtertype').val();
+    var filtervalue = jQuery(element).find('TABLE #filtervalue').val();
+
+    if ((filtertype || filtervalue) && (filterfrom >= batchsize)) {
+      filterfrom -= batchsize;
+      jQuery(element).find('TABLE #filterfrom').val(filterfrom);
+      var filter = {type:filtertype, value:filtervalue, from:filterfrom};
+      filloutDataCacheElement(element, false, showfromitemnr, undefined, filter);
+    }
+  });
+  jQuery(element).find('TABLE #fnextbutton').prop('disabled', (itemcount == 0)).click(function(e) {
+    var filtertype = jQuery(element).find('TABLE #filtertype').val();
+    var filtervalue = jQuery(element).find('TABLE #filtervalue').val();
+
+    if (filtertype || filtervalue) {
+      filterfrom += batchsize;
+      jQuery(element).find('TABLE #filterfrom').val(filterfrom);
+      var filter = {type:filtertype, value:filtervalue, from:filterfrom};
+      filloutDataCacheElement(element, false, showfromitemnr, undefined, filter);
     }
   });
 }
