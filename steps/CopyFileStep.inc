@@ -76,6 +76,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
           'keep_old' => t('leave the target unchanged'),
           'keep_new' => t('replace the target with the source file'),
         ),
+        'optional' => true,
       ),
     );
   }
