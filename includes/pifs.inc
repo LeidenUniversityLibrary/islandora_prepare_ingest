@@ -24,10 +24,11 @@
  *
  */
 
-CONST PIFS_IS_FILE     = 0b00010000; // 16
-CONST PIFS_IS_DIR      = 0b00100000; // 32
-CONST PIFS_HAS_CONTENT = 0b00000010; // 2
-CONST PIFS_HAS_REAL    = 0b00000001; // 1
+CONST PIFS_IS_FILE         = 0b00010000; // 16
+CONST PIFS_IS_DIR          = 0b00100000; // 32
+CONST PIFS_OVERWRITTEN     = 0b00000100; // 4
+CONST PIFS_HAS_CONTENT     = 0b00000010; // 2
+CONST PIFS_HAS_REAL        = 0b00000001; // 1
 
 function pifs_cleanup_filepath($filepath) {
   $filepath = preg_replace('#' . DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR . '+#', DIRECTORY_SEPARATOR, $filepath);
@@ -116,32 +117,46 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
     else {
       if ($dc['valuetype'] & PIFS_IS_DIR) {
         // The new value is a directory. TODO check if previous was a directory?
-        $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']); 
+        $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']);
       }
       else if ($entry['valuetype'] & PIFS_HAS_REAL) {
         // There is already a file entry with a relation to a real file from a previous step:
         if ($dc['valuetype'] & PIFS_HAS_REAL) {
-          // The pifs file is overwritten by another pifs file with a relation to a real file 
+          // The pifs file is overwritten by another pifs file with a relation to a real file
           $entry['filevalue'] = $dc['filevalue'];
         }
         else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
           // Content was added to the pifs file, but the existing pifs file has a relation to a real file:
-          // So first read this content and then add the other content. 
-          $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_CONTENT;
-          clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
-          $fh = @fopen($entry['filevalue'], 'r');
-          if ($fh !== FALSE) {
-            $content = fread($fh, filesize($entry['filevalue']));
-            fclose($fh);
+          // should the added content overwrite the real file?
+          if ($dc['valuetype'] & PIFS_OVERWRITTEN) {
+            // Yes, the added content overwrites the existing content.
+            $entry['valuetype'] = $dc['valuetype'];
+            $entry['filevalue'] = $dc['filevalue'];
           }
-          $entry['filevalue'] = $content . $dc['filevalue'];
+          else {
+            // no, so first read this content and then add the other content.
+            $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_CONTENT;
+            clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+            $fh = @fopen($entry['filevalue'], 'r');
+            if ($fh !== FALSE) {
+              $content = fread($fh, filesize($entry['filevalue']));
+              fclose($fh);
+            }
+            $entry['filevalue'] = $content . $dc['filevalue'];
+          }
         }
       }
       else if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
         // There is already a file entry with content from a previous step:
         if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
-          // The new entry is also content, so add it to the existing content.
-          $entry['filevalue'] .= $dc['filevalue'];
+          if ($dc['valuetype'] & PIFS_OVERWRITTEN) {
+            // The new entry is also content, but overwritten, so replace.
+            $entry['filevalue'] = $dc['filevalue'];
+          }
+          else {
+            // The new entry is also content, so add it to the existing content.
+            $entry['filevalue'] .= $dc['filevalue'];
+          }
         }
         else if ($dc['valuetype'] & PIFS_HAS_REAL) {
           // The new entry is a pifs file with a relation to a real file. This overwrites the old entry.
@@ -239,7 +254,7 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   if ($sourceentry !== NULL) {
     $entry = $sourceentry;
     $entry['path'] = $targetfile;
-    pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
+    pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
   }
   elseif (is_file($sourcefile)) {
     $entry = array(
@@ -247,21 +262,21 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
       'valuetype' => PIFS_IS_FILE | PIFS_HAS_REAL,
       'filevalue' => $sourcefile
     );
-    pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
+    pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
   }
 }
 
-function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id) {
+function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $do_append = true) {
   $targetfile = pifs_cleanup_filepath($targetfile);
   $entry = array(
     'path'      => $targetfile,
-    'valuetype' => PIFS_IS_FILE | PIFS_HAS_CONTENT,
+    'valuetype' => PIFS_IS_FILE | ($do_append?PIFS_HAS_CONTENT:(PIFS_HAS_CONTENT | PIFS_OVERWRITTEN)),
     'filevalue' => $content
   );
-  pifs_store_entry($entry, $workflow_id, $step_id, $other_id); 
+  pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
 }
 
-function pifs_persist_entries($workflow_id, $step_id, $other_id) {
+function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action = 'append') {
   $results = array();
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
   $select->fields('pifs', array('path', 'valuetype', 'filevalue'));
@@ -293,7 +308,16 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id) {
         }
       }
       else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
-        $fh = fopen($dc['path'], "a"); // always append to file
+        if ($exists_action === 'append') {
+          $open_mode = 'a';
+        }
+        elseif ($exists_action === 'overwrite') {
+          $open_mode = 'w';
+        }
+        elseif ($exists_action === 'error') {
+          $open_mode = 'x';
+        }
+        $fh = fopen($dc['path'], $open_mode);
         if ($fh) {
           $contentlen = mb_strlen($dc['filevalue'], '8bit');
           $byteswritten = fwrite($fh, $dc['filevalue'], $contentlen);
@@ -317,7 +341,7 @@ function pifs_entry_read_content($filepath, $workflow_id, $step_id, $other_id) {
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
   if ($entry !== NULL) {
     if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_CONTENT)) {
-      return $entry['filevalue']; 
+      return $entry['filevalue'];
     }
     if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_REAL)) {
       clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
