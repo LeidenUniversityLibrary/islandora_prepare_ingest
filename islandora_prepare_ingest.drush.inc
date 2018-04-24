@@ -52,7 +52,7 @@ function drush_islandora_prepare_ingest_prepare_ingest_validate() {
 
   if (isset($workflowid)) {
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
-    if ($workflow === NULL || !$workflow['checked']) {
+    if ($workflow === NULL) {
       return drush_set_error(dt("The workflow option should indicate the workflow id of a checked workflow."));
     }
   }
@@ -67,13 +67,24 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
 
   $workflowid = drush_get_option('workflow');
   if (!isset($workflowid)) {
+    $allworkflows = islandora_prepare_ingest_select_workflows();
     $checkedworkflows = array();
-    foreach (islandora_prepare_ingest_select_workflows() as $workflow) {
+    foreach ($allworkflows as $workflow) {
       if (isset($workflow['checked']) && $workflow['checked']) {
-        $checkedworkflows[$workflow['id']] = $workflow['name'];
+        $checkedworkflows[$workflow['id']] = dt("Workflow !id: !name", array('!name' => $workflow['name'], '!id' => $workflow['id']));
       }
     }
+    $checkedworkflows['other'] = dt('Other workflows');
     $workflowid = drush_choice($checkedworkflows, dt("Choose a workflow to run:"));
+    if ($workflowid === 'other') {
+      $otherworkflows = array();
+      foreach ($allworkflows as $workflow) {
+        if (!(isset($workflow['checked']) && $workflow['checked'])) {
+          $otherworkflows[$workflow['id']] = dt("Workflow !id: !name", array('!name' => $workflow['name'], '!id' => $workflow['id']));
+        }
+      }
+      $workflowid = drush_choice($otherworkflows, dt("Choose a workflow to run:"));
+    }
     if (!$workflowid) {
       return;
     }
@@ -83,6 +94,13 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
   $context = array();
   if (isset($workflowid)) {
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
+
+    if (!$workflow['checked']) {
+      if (!drush_confirm(dt("Workflow '@name' is not checked. Are you sure you want to use it?", array('@name' => $workflow['name'])))) {
+        return;
+      }
+    }
+
     $stepsinfo =  module_invoke_all('workflow_step_info');
     $workflowsteps = islandora_prepare_ingest_select_workflow_steps($workflowid);
 

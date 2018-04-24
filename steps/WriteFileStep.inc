@@ -35,6 +35,14 @@ class WriteFileStep extends PrepareIngestFilesStep {
     if ($this->hasConfigKey('target_filepath')) {
       $title .= ' ' . t('located at "@fp"', array('@fp' => $this->config['target_filepath']));
     }
+    if ($this->hasConfigKey('target_exists_action')) {
+      if ($this->config['target_exists_action'] === 'error') {
+        $title .= ', ' . t('fail if file exists already');
+      }
+      else if ($this->config['target_exists_action'] === 'overwrite') {
+        $title .= ', ' . t('overwrite if file exists already');
+      }
+    }
     $title .= '.';
 
     return $title;
@@ -51,6 +59,16 @@ class WriteFileStep extends PrepareIngestFilesStep {
         'label' => t('Target filepath'),
         'description' => t('This should hold an absolute path to a not existing file.'),
         'type' => 'templatestring',
+      ),
+      'target_exists_action' => array(
+        'label' => t('If target exists'),
+        'type' => 'select',
+        'options' => array(
+          '' => t('append content to target'),
+          'overwrite' => t('overwrite with content'),
+          'error' => t('fail with message'),
+        ),
+        'optional' => true,
       ),
     );
   }
@@ -85,7 +103,7 @@ class WriteFileStep extends PrepareIngestFilesStep {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $contentkey = $this->config['content_key_name'];
       $targetfilepathtemplate = $this->config['target_filepath'];
-  
+
       $results = array();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
@@ -98,14 +116,27 @@ class WriteFileStep extends PrepareIngestFilesStep {
                     array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
           return $results;
         }
-        if (pifs_entry_exists($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
-          if (pifs_entry_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+        if (pifs_file_exists($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+          if (pifs_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
             $results[] = array('text' => t("Cannot write file: a directory '@directory' already exists at that location.",
                       array('@directory' => $targetfilepath)), 'type' => 'run_error');
             return $results;
           }
+          if ($this->hasConfigKey('target_exists_action')) {
+            if ($this->config['target_exists_action'] === 'error') {
+              $results[] = array('text' => t("Cannot write to file '@file' because it already exists.",
+                        array('@file' => $targetfilepath)), 'type' => 'run_error');
+              return $results;
+            }
+          }
         }
-        pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid);
+        $do_append = true;
+        if ($this->hasConfigKey('target_exists_action')) {
+          if ($this->config['target_exists_action'] === 'overwrite') {
+            $do_append = false;
+          }
+        }
+        pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, $do_append);
 
         $item = $prevdatastep->nextDataItem();
       }
@@ -120,6 +151,15 @@ class WriteFileStep extends PrepareIngestFilesStep {
   public function prepareIngest(&$context) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
-    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid);
+    $exists_action = 'append';
+    if ($this->hasConfigKey('target_exists_action')) {
+      if ($this->config['target_exists_action'] === 'error') {
+        $exists_action = 'error';
+      }
+      else if ($this->config['target_exists_action'] === 'overwrite') {
+        $exists_action = 'overwrite';
+      }
+    }
+    pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid, $exists_action);
   }
 }
