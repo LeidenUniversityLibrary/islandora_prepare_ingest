@@ -155,6 +155,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Validation'),
     'class name' => 'ValidateBookStep',
   );
+  $info['validate_pdf'] = array(
+    'name' => t('Validate PDF'),
+    'type group' => t('Validation'),
+    'class name' => 'ValidatePDFStep',
+  );
 
   return $info;
 }
