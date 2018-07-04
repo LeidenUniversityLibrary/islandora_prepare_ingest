@@ -368,7 +368,7 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
           if (strlen($filter) === 0) {
             $filenames[$filepath] = 1;
           }
-          elseif (preg_match('/' . $regexfilter . '$/', $filepath)) {
+          elseif (preg_match('/' . $regexfilter . '$/i', $filepath)) {
             $filenames[$filepath] = 1;
           }
         }
@@ -406,7 +406,12 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
         }
       }
       else {
-        $filenames[$newfilename] = 1;
+        if (strlen($filter) === 0) {
+          $filenames[$newfilename] = 1;
+        }
+        elseif (preg_match('/' . $regexfilter . '$/i', $newfilename)) {
+          $filenames[$newfilename] = 1;
+        }
       }
     }
   }
