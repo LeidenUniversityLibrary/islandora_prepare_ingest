@@ -186,7 +186,12 @@ function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, 
   //module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
   if ($otherid === NULL) {
-    $otherid = islandora_prepare_ingest_random_string(10);
+    if (variable_get('islandora_prepare_ingest_per_run_data', TRUE)) {
+      $otherid = islandora_prepare_ingest_random_string(10);
+    }
+    else {
+      $otherid = "drush$workflowid";
+    }
   }
 
   $operations = islandora_prepare_ingest_dry_run_operations($workflowid, $otherid, $additionalconfig);

@@ -92,6 +92,36 @@ function islandora_prepare_ingest_manage_form(array $form, array &$form_state) {
     '#submit' => array('islandora_prepare_ingest_manage_upload_import'),
   );
 
+  $form['config'] =  array(
+    '#type' => 'fieldset',
+    '#title' => t('Configuration'),
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['config']['per_run_data'] =  array(
+    '#type' => 'checkbox',
+    '#title' => t('Store workflow run data per run'),
+    '#description' => t('If enabled, stores the data of a workflow run '
+      . 'separately, so the same workflow can be run at the same time by '
+      . 'different users, but this will increase database load. '
+      . '<BR/>'
+      . 'If disabled, the data of a workflow run can be seen by all users of '
+      . 'the workflow.'),
+    '#default_value' => variable_get('islandora_prepare_ingest_per_run_data', TRUE),
+  );
+  $form['config']['keep_cache_hours'] = array(
+    '#title' => t('Empty cache if older than'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('islandora_prepare_ingest_keep_cache_hours', 24),
+    '#size' => 5,
+  );
+  $form['config']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save configuration'),
+    '#submit' => array('islandora_prepare_ingest_manage_save_configuration'),
+    '#validate' => array('islandora_prepare_ingest_manage_validate_configuration'),
+  );
+
   return $form;
 }
 
@@ -165,7 +195,12 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
     $workflow = islandora_prepare_ingest_select_workflow($workflowid);
 
     $workflowresults = isset($_SESSION['workflowresults'])?$_SESSION['workflowresults']:array();
-    $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+    if (variable_get('islandora_prepare_ingest_per_run_data', TRUE)) {
+      $otherid = isset($_SESSION['otherid'])?$_SESSION['otherid']:NULL;
+    }
+    else {
+      $otherid = "web$workflowid";
+    }
 
     if (isset($_SESSION['workflowresults'])) {
       islandora_prepare_ingest_report_result_summary($workflowresults);
@@ -320,7 +355,9 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   unset($_SESSION['workflowresults']);
-  unset($_SESSION['otherid']);
+  if (variable_get('islandora_prepare_ingest_per_run_data', TRUE)) {
+    unset($_SESSION['otherid']);
+  }
 
   $name = $form_state['values']['workflowname'];
   $description = $form_state['values']['workflowdescription'];
@@ -411,8 +448,13 @@ function islandora_prepare_ingest_edit_workflow_form_dryrun(array $form, array &
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
   $workflowid = $form_state['values']['workflowid'];
-  $otherid = islandora_prepare_ingest_random_string(10);
-  $_SESSION['otherid'] = $otherid; 
+  if (variable_get('islandora_prepare_ingest_per_run_data', TRUE)) {
+    $otherid = islandora_prepare_ingest_random_string(10);
+  }
+  else {
+    $otherid = $form_state['values']['otherid'];
+  }
+  $_SESSION['otherid'] = $otherid;
   unset($_SESSION['workflowresults']);
   islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
 }
@@ -730,3 +772,13 @@ function islandora_prepare_ingest_report_result_summary($workflowresults) {
   return !$haserrors;
 }
 
+function islandora_prepare_ingest_manage_validate_configuration($form, &$form_state) {
+  if (preg_match('/^[1-9][0-9]{0,2}$/', $form_state['values']['keep_cache_hours']) !== 1) {
+    form_set_error('keep_cache_hours', t('Empty cache if older than should be a positive whole number below 1000'));
+  }
+}
+
+function islandora_prepare_ingest_manage_save_configuration($form, &$form_state) {
+  variable_set('islandora_prepare_ingest_per_run_data', $form_state['values']['per_run_data']);
+  variable_set('islandora_prepare_ingest_keep_cache_hours', $form_state['values']['keep_cache_hours']);
+}

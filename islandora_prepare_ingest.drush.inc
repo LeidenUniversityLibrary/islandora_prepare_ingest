@@ -123,7 +123,12 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
     }
 
     drush_log(dt("Starting full run..."), 'ok');
-    $otherid = islandora_prepare_ingest_random_string(10);
+    if (variable_get('islandora_prepare_ingest_per_run_data', TRUE)) {
+      $otherid = islandora_prepare_ingest_random_string(10);
+    }
+    else {
+      $otherid = "drush$workflowid";
+    }
     islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, $additionalconfig);
 
     if (islandora_prepare_ingest_data_cache_count($workflowid, $otherid) > 0) {
