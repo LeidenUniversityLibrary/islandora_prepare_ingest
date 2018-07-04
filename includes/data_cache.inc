@@ -269,7 +269,8 @@ function islandora_prepare_ingest_data_cache_delete_old($other_id = NULL) {
       ->condition('other_id', $other_id)
       ->execute();
   }
-  $timestamp = REQUEST_TIME - (24*60*60);
+  $hours = variable_get('islandora_prepare_ingest_keep_cache_hours', 24);
+  $timestamp = REQUEST_TIME - ($hours*60*60);
   db_delete('islandora_prepare_ingest_data_cache')
     ->condition('dctimestamp', $timestamp, '<')
     ->execute();

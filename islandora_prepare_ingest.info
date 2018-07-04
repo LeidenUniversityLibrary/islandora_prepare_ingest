@@ -35,4 +35,5 @@ files[] = steps/ValidateFlatStructureStep.inc
 files[] = steps/ValidateBasicImageStep.inc
 files[] = steps/ValidateLargeImageStep.inc
 files[] = steps/ValidateBookStep.inc
+files[] = steps/ValidatePDFStep.inc
 

@@ -163,3 +163,9 @@ DIV.datacache TABLE.datalisting DIV.celldata .upi_fullvalue {
 DIV.datacache #usebutton {
   width: 15em;
 }
+DIV#loadingdata {
+  position: absolute;
+  width: 100%;
+  padding-top: 5em;
+  text-align: center;
+}

@@ -593,6 +593,9 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction, fi
     };
     var url = '/admin/islandora/prepare_ingest/ajax/' + ((type === 1)?'datacache':'files');
 
+    jQuery(element).find('> DIV > DIV.datacache > TABLE').animate({opacity: 0.25}, 500, function() {
+      jQuery(this).before('<DIV id="loadingdata">Loading...</DIV>');
+    });
     if (filter === undefined) {
       jQuery.getJSON(url, query, function(data) {
         filloutDataCacheElementWithData(element, data, workflowid, otherid, stepid, type, show, startitemnr, enditemnr, prevcount);
