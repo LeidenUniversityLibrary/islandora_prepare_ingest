@@ -128,7 +128,7 @@ function islandora_prepare_ingest_manage_upload_import($form, $form_state) {
     }
     $isimported = islandora_prepare_ingest_insert_new_workflow_from_json($json);
     if (!$isimported) {
-      $errortype = json_last_error(); 
+      $errortype = json_last_error();
       if ($errortype === JSON_ERROR_NONE) {
         drupal_set_message(t("Imported file is JSON, but does not contain valid workflow data."), 'error');
       }
@@ -182,7 +182,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
       '#value' => $otherid,
     );
   }
- 
+
   # name, description and type
   $iseditable = TRUE;
   if ($iseditable) {
@@ -277,7 +277,7 @@ function islandora_prepare_ingest_edit_workflow_form(array $form, array &$form_s
       '#id' => 'add_workflow_steps_button',
     );
   }
- 
+
   # Back
   $form['back'] = array(
     '#type' => 'submit',
@@ -335,7 +335,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
     ));
   }
   else {
-    $workflowid = islandora_prepare_ingest_insert_workflow($name, $description, $type);  
+    $workflowid = islandora_prepare_ingest_insert_workflow($name, $description, $type);
     $form_state['redirect'] = 'admin/islandora/prepare_ingest/edit/' . $workflowid;
   }
   $updates = array();
@@ -346,7 +346,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
         if (($stepid = filter_var($stepidstr, FILTER_VALIDATE_INT)) !== FALSE) {
            islandora_prepare_ingest_delete_step($stepid, $workflowid);
            $updates[$stepid]['_removed'] = TRUE;
-        } 
+        }
       }
     }
     elseif (strpos($key, 'step_') === 0) {
@@ -355,7 +355,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
         $stepidstr = $parts[1];
         $configkey = $parts[2];
         if (($stepid = filter_var($stepidstr, FILTER_VALIDATE_INT)) !== FALSE) {
-          $updates[$stepid][$configkey] = $value; 
+          $updates[$stepid][$configkey] = $value;
         }
       }
     }
@@ -364,7 +364,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
       if (($stepid = filter_var($stepidstr, FILTER_VALIDATE_INT)) !== FALSE) {
         if (strpos($value, 'new_weight=') === 0) {
           $newweight = str_replace('new_weight=', '', $value);
-          islandora_prepare_ingest_update_step($stepid, $workflowid, array('weight' => $newweight)); 
+          islandora_prepare_ingest_update_step($stepid, $workflowid, array('weight' => $newweight));
         }
       }
     }
@@ -381,7 +381,7 @@ function islandora_prepare_ingest_edit_workflow_form_submit(array $form, array &
         else {
           islandora_prepare_ingest_insert_step_configuration($stepid, $key, $value);
         }
-      } 
+      }
     }
   }
 
@@ -412,9 +412,9 @@ function islandora_prepare_ingest_edit_workflow_form_dryrun(array $form, array &
 
   $workflowid = $form_state['values']['workflowid'];
   $otherid = islandora_prepare_ingest_random_string(10);
-  $_SESSION['otherid'] = $otherid; 
+  $_SESSION['otherid'] = $otherid;
   unset($_SESSION['workflowresults']);
-  islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid); 
+  islandora_prepare_ingest_dry_run_workflow($workflowid, $otherid);
 }
 
 function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_state, $workflowid) {
@@ -423,9 +423,9 @@ function islandora_prepare_ingest_copy_workflow_form(array $form, array &$form_s
   unset($form['steps']);
   unset($form['check']);
   unset($form['save']);
-  
+
   $form['back']['#value'] = t('Cancel');
-  
+
   $origname = $form['workflowinfo']['workflowname']['#default_value'];
   $form['workflowinfo']['#description'] = t('You are about to make a copy of workflow %origname. Fill out a new name and description below and then press %copybutton to make the copy.', array('%origname' => $origname, '%copybutton' => t('Copy workflow')));
 
@@ -572,7 +572,7 @@ function islandora_prepare_ingest_ajax_addstep_form($form, &$form_state, $step) 
   );
 
   $stepconfig = array();
-  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($step, array()); 
+  $form['onestep'] = islandora_prepare_ingest_make_base_step_form($step, array());
   $form['onestep']['#collapsed'] = FALSE;
 
   return $form;
@@ -599,7 +599,7 @@ function islandora_prepare_ingest_ajax_addstepsgroup_handler($workflowid, $steps
         'workflowstep' => $step,
         'stepinfo' => $stepsinfo[$stepname],
         'stepname' => $stepname,
-      ); 
+      );
     }
     $form = drupal_get_form('islandora_prepare_ingest_ajax_addstepsgroup_form', $cfgs);
 
@@ -692,7 +692,7 @@ function islandora_prepare_ingest_ajax_delivery_handler($page_callback_result) {
     $content = drupal_render($page_callback_result);
   }
   print $content;
-  drupal_page_footer(); 
+  drupal_page_footer();
 }
 
 function islandora_prepare_ingest_report_result_summary($workflowresults) {
