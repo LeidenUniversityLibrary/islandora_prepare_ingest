@@ -755,7 +755,7 @@ function showDataCache(element, data, workflowid, otherid, stepid, type, show, s
     if (d['item nr'] > showfromitemnr) {
       for (var k=0; k<usedKeysCount; k++) {
         var key = usedKeys[k];
-        var value = (d.hasOwnProperty(key)?d[key]:'-');
+        var value = ((d.hasOwnProperty(key) && d[key] != null)?d[key]:'-');
         var cellhtml = '';
         if (type === 2 && key === 'filepath') {
           cellhtml += '<SPAN class="upi_fullvalue" data-filepath="'+value+'">';
