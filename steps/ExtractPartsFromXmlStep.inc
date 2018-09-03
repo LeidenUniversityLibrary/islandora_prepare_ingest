@@ -147,7 +147,7 @@ class ExtractPartsFromXmlStep extends PrepareIngestStep {
 
       $results = array();
       $item = $prevdatastep->nextDataItem();
-      $limit = 10;
+      $limit = 5;
       $lastitemnr = 0;
       while ($item !== NULL && $limit-- > 0) {
         $xml = $item[$xmlkey];
