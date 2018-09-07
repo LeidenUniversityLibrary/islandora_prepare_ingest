@@ -78,7 +78,7 @@ The arguments of a step can have one of the following types:
  - number: a numeric value without fractions
  - string: a textual value. Can contain any value.
  - boolean: a true or false value.
- - template: a special kind of text. Can contain the names of keys, surrounded in curly brackets. These will be replaced. Visualized as a text area.
+ - template: a special kind of text. Can contain the names of keys, surrounded in curly brackets. These will be replaced. Can have the following form: ```{existing_key}```, ```{existing_key|alternative_key}```, ```{existing_key|"""alternative text"""}```, ```{"""prefix"""<existing_key>"""suffix"""}``` (see HOWTO for more information).  Visualized as a text area.
  - templatestring: same as the template, but visualized as a text field.
  - key: the name of a key, only the following characters are allowed: a-z A-Z 0-9 - _
  - filepath: the path to a directory of file, that exists or not.

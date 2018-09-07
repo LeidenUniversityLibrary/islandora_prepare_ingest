@@ -76,7 +76,7 @@ The regular expression can match part of the value or the whole value. The repla
 
 ## Add key with template based value
 
-This step adds a new key-value to all existing items in the list. The target key is given. The values for this key are based on the values of one or more existing keys. A template is used to make the new value. The template can include one or more existing keys placed between curly braces.
+This step adds a new key-value to all existing items in the list. The target key is given. The values for this key are based on the values of one or more existing keys. A template is used to make the new value. The template can include one or more existing keys placed between curly braces, like ```{an_existing_key}```. It is possible to have an alternative key when the existing key is empty or non-existent yet, like ```{an_existing_key|alternative_key}```. It is also possible to provide a constant alternative like so ```{an_existing_key|"""constant alternative"""}```. If you want a prefix and/or suffix, you can apply it like this: ```{"""prefix"""<an_existing_key>"""postfix"""}```. Also, constant alternatives, prefixes and postfixes can contain keys in curly braces.
 
 ## Add key(s) using template
 

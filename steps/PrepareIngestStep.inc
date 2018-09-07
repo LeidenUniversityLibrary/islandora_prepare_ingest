@@ -403,15 +403,32 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
 
   protected function fillOutTemplate($template, $keyvalues) {
     if (strpos($template, '{') !== FALSE) {
-      $keys = array();
-      $values = array();
-      foreach ($keyvalues as $k => $v) {
-        if (strlen($k) > 0 && isset($v)) {
-          $keys[] = '{' . $k . '}';
-          $values[] = $v;
-        }
-      }
-      $template = str_replace($keys, $values, $template);
+      $template = preg_replace_callback(
+         '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
+         function($matches) use ($keyvalues) {
+           $prefix = isset($matches[1])?$matches[1]:'';
+           $postfix = isset($matches[6])?$matches[6]:'';
+           $prefix = $this->fillOutTemplate($prefix, $keyvalues);
+           $postfix = $this->fillOutTemplate($postfix, $keyvalues);
+           if (isset($keyvalues[$matches[2]]) && strlen($keyvalues[$matches[2]]) > 0) {
+             return $prefix . $keyvalues[$matches[2]] . $postfix;
+           }
+           elseif (isset($keyvalues[$matches[3]]) && strlen($keyvalues[$matches[3]]) > 0) {
+             return $prefix . $keyvalues[$matches[3]] . $postfix;
+           }
+           elseif (isset($matches[4])) {
+             if (strlen($matches[4]) > 0) {
+               $value = $this->fillOutTemplate($matches[5], $keyvalues);
+               return $prefix . $value . $postfix;
+             }
+             else {
+               return '';
+             }
+           }
+           return $matches[0];
+         },
+         $template
+      );
     }
     return $template;
   }
