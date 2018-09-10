@@ -27,10 +27,12 @@
 
 class PrepareIngestXmlStep extends PrepareIngestFilesStep {
   
-  protected function _loadXmlFromValue($xmlvalue, $xmldom, $itemnr) {
+  protected function _loadXmlFromValue($xmlvalue, $xmldom, $itemnr, $isFilePath = NULL) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
-    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
+    if ($isFilePath === NULL) {
+      $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
+    }
     if ($isFilePath) {
       if (is_file($xmlvalue)) {
         $isValidXml = @$xmldom->load($xmlvalue);
@@ -60,4 +62,16 @@ class PrepareIngestXmlStep extends PrepareIngestFilesStep {
     return FALSE;
   }
 
+  protected function _saveXmlToKey(&$item, $xmlvalue, $key, $isFilePath, $itemnr) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
+    if ($isFilePath) {
+      pifs_entry_write_content($item[$key], $xmlvalue, $this->workflowid, $this->stepid, $this->otherid, false);
+    }
+    else {
+      $item[$key] = $xmlvalue;
+      $this->saveDataItem($item);
+    }
+    return FALSE;
+  }
 }

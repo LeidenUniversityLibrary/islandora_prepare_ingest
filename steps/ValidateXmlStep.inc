@@ -30,13 +30,21 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
   public function label() {
     $title = t('Validate XML');
     if ($this->hasConfigKey('xml_key_name')) {
-      $title .= ' ' . t('at "@key"', array('@key' => $this->config['xml_key_name']));
+      if ($this->hasConfigKey('xml_key_contents_type') && $this->config['xml_key_contents_type'] !== 'filepath') {
+        $title .= ' ' . t('at "@key"', array('@key' => $this->config['xml_key_name']));
+      }
+      else {
+        $title .= ' ' . t('in file located at "@key"', array('@key' => $this->config['xml_key_name']));
+      }
     }
     if ($this->hasConfigKey('validate_dtd') && $this->config['validate_dtd']) {
       $title .= ' ' . t('with included DTD');
     }
     if ($this->hasConfigKey('schema_key_name')) {
       $title .= ' ' . t('against schema at "@key"', array('@key' => $this->config['schema_key_name']));
+    }
+    if ($this->hasConfigKey('pretty_print') && $this->config['pretty_print']) {
+      $title .= ' ' . t('and pretty print');
     }
     $title .= '.';
     return $title;
@@ -49,6 +57,17 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
         'description' => t('Validate the XML. The value of this key is either an absolute filepath to an XML file or contains XML itself.'),
         'type' => 'key',
       ),
+      'xml_key_contents_type' => array(
+        'label' => t('XML key contains'),
+        'description' => t('The key above contains XML or is a filepath.'),
+        'type' => 'select',
+        'options' => array(
+          NULL => t('automatic'),
+          'XML' => t('XML'),
+          'filepath' => t('filepath'),
+        ),
+        'optional' => TRUE,
+      ),
       'validate_dtd' => array(
         'label' => t('Validate based on DTD'),
         'description' => t('The XML should contain a DTD for this to work.'),
@@ -58,6 +77,12 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
         'label' => t('Schema key'),
         'description' => t('Optionally, validate against a schema. The value of this key is either an absolute filepath to a schema file or contains a schema itself.'),
         'type' => 'key',
+        'optional' => TRUE,
+      ),
+      'pretty_print' => array(
+        'label' => t('Pretty print XML'),
+        'description' => t('Format the XML nicely and save the result.'),
+        'type' => 'boolean',
         'optional' => TRUE,
       ),
     );
@@ -76,16 +101,19 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
   }
 
   public function changesKeys() {
-    return FALSE;
+    $isFilePath = $this->hasConfigKey('xml_key_contents_type') && $this->config['xml_key_contents_type'] === 'filepath';
+    return $this->hasConfigKey('xml_key_contents_type') && !$isFilePath && $this->hasConfigKey('pretty_print') && $this->config['pretty_print'];
   }
 
   public function changesFiles() {
-    return FALSE;
+    $isFilePath = $this->hasConfigKey('xml_key_contents_type') && $this->config['xml_key_contents_type'] === 'filepath';
+    return $this->hasConfigKey('xml_key_contents_type') && $isFilePath &&  $this->hasConfigKey('pretty_print') && $this->config['pretty_print'];
   }
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
       if (!isset($context['sandbox']['total_items'])) {
@@ -100,11 +128,15 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
       $results = array();
       $item = $prevdatastep->nextDataItem();
       $limit = 1;
+      $isFilePath = NULL;
+      if ($this->hasConfigKey('xml_key_contents_type')) {
+        $isFilePath = $this->config['xml_key_contents_type'] === 'filepath';
+      }
       while ($item !== NULL && $limit-- > 0) {
         $isValidXml = FALSE;
         $xmlvalue = $item[$xmlkey];
         $xmldoc = new DOMDocument();
-        $result = $this->_loadXmlFromValue($xmlvalue, $xmldoc, $item['item nr']);
+        $result = $this->_loadXmlFromValue($xmlvalue, $xmldoc, $item['item nr'], $isFilePath);
         if ($result !== FALSE) {
           $results[] = $result;
         }
@@ -130,6 +162,14 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
             $results[] = array('text' => t("Key @key of item @itemnr does not contain valid XML: @error at line @line",
               array('@key' => $this->arguments()['xml_key_name']['label'], '@itemnr' => $item['item nr'], '@error' => $error->message, '@line' => $error->line)), 'type' => 'validate_error');
           }
+          else {
+            if ($this->hasConfigKey('pretty_print') && $this->config['pretty_print']) {
+              $xmldoc->preserveWhiteSpace = FALSE;
+              $xmldoc->formatOutput = TRUE;
+              $prettyxml = $xmldoc->saveXML();
+              $this->_saveXmlToKey($item, $prettyxml, $xmlkey, $isFilePath,  $item['item nr']);
+            }
+          }
         }
         libxml_clear_errors();
         if ($limit > 0) {
@@ -147,39 +187,6 @@ class ValidateXmlStep extends PrepareIngestXmlStep {
       }
       if (count($results) > 0) {
         return $results;
-      }
-    }
-    return FALSE;
-  }
-
-  private function _load_xml_from_value($xmlvalue, $xmldom, $itemnr) {
-    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
-
-    $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
-    if ($isFilePath) {
-      if (is_file($xmlvalue)) {
-        $isValidXml = @$xmldom->load($xmlvalue);
-      }
-      else {
-        $content = pifs_entry_read_content($xmlvalue, $this->workflowid, $this->stepid, $this->otherid);
-        $isValidXml = @$xmldom->loadXml($content);
-        $xmldom->documentURI = $xmlvalue;
-      }
-    }
-    else {
-      $isValidXml = @$xmldom->loadXml($xmlvalue);
-    }
-    if (!$isValidXml) {
-      $error = libxml_get_last_error();
-      $message = $error?$error->message:t("Unknown error");
-      $line = $error?$error->line:t("unknown");
-      if ($isFilePath) {
-        return array('text' => t("File @file does not contain valid XML: @error at line @line",
-          array('@file' => $xmlvalue, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
-      }
-      else {
-        return array('text' => t("Item @nr does not contain valid XML: @error at line @line",
-          array('@nr' => $itemnr, '@error' => $message, '@line' => $line)), 'type' => 'validate_error');
       }
     }
     return FALSE;
