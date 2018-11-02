@@ -88,11 +88,11 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
                 $allowedfile = TRUE;
               }
             }
-            if (in_array($fileinfo['basename'], array('structure.xml', 'MODS.xml', 'MARCXML.xml', 'LICENSE.txt'))) {
+            if (in_array($fileinfo['basename'], array('structure.xml', 'MODS.xml', 'MARCXML.xml'))) {
               $allowedfile = TRUE;
             }
             if (!$allowedfile) {
-              $results[] = array('text' => t("File '@file' of mime '@mime' found that should not be there", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_error');
+              $results[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
             }
           }
           elseif (count($relpathparts) == 3) {
@@ -110,7 +110,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
               $compoundsarray[$compoundname][$childname][$fileinfo['filename']] = $filename;
             }
             if (!$allowedfile) {
-              $results[] = array('text' => t("File '@file' of mime '@mime' found that should not be there", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_error');
+              $results[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
             }
           }
           else {
