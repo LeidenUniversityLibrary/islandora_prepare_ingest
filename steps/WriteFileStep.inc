@@ -39,8 +39,11 @@ class WriteFileStep extends PrepareIngestFilesStep {
       if ($this->config['target_exists_action'] === 'error') {
         $title .= ', ' . t('fail if file exists already');
       }
-      else if ($this->config['target_exists_action'] === 'overwrite') {
+      elseif ($this->config['target_exists_action'] === 'overwrite') {
         $title .= ', ' . t('overwrite if file exists already');
+      }
+      elseif ($this->config['target_exists_action'] === 'skip_item') {
+        $title .= ', ' . t('skip items in next steps if file exists already');
       }
     }
     $title .= '.';
@@ -67,6 +70,7 @@ class WriteFileStep extends PrepareIngestFilesStep {
           '' => t('append content to target'),
           'overwrite' => t('overwrite with content'),
           'error' => t('fail with message'),
+          'skip_item' => t('skip item in all next steps'),
         ),
         'optional' => true,
       ),
@@ -127,6 +131,11 @@ class WriteFileStep extends PrepareIngestFilesStep {
               $results[] = array('text' => t("Cannot write to file '@file' because it already exists.",
                         array('@file' => $targetfilepath)), 'type' => 'run_error');
               return $results;
+            }
+            elseif ($this->config['target_exists_action'] === 'skip_item') {
+              $prevdatastep->skipDataItemInNextSteps($item);
+              $item = $prevdatastep->nextDataItem();
+              continue;
             }
           }
         }

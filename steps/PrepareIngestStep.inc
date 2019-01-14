@@ -369,22 +369,24 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function nextDataItem() {
-    $dataitem = NULL;
-    $currentitemnr = $this->di_currentitemnr;
     $d = $this->di_lastdata;
     $dbs = $this->di_dbstatement;
-    while ($d !== FALSE) {
-      if ($d['item_nr'] > $currentitemnr) {
-        $this->di_currentitemnr = $d['item_nr'];
-        break;
+    do {
+      $dataitem = NULL;
+      $currentitemnr = $this->di_currentitemnr;
+      while ($d !== FALSE) {
+        if ($d['item_nr'] > $currentitemnr) {
+          $this->di_currentitemnr = $d['item_nr'];
+          break;
+        }
+        if ($dataitem === NULL) {
+          $dataitem = array();
+        }
+        $dataitem[$d['dckey']] = unserialize($d['dcvalue']);
+        $d = $dbs->fetchAssoc();
+        $this->di_lastdata = $d;
       }
-      if ($dataitem === NULL) {
-        $dataitem = array();
-      }
-      $dataitem[$d['dckey']] = unserialize($d['dcvalue']);
-      $d = $dbs->fetchAssoc();
-      $this->di_lastdata = $d;
-    }
+    } while ($dataitem !== NULL && isset($dataitem['_SKIP_']) && $dataitem['_SKIP_']);
     return $dataitem;
   }
 
@@ -397,8 +399,17 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     if (!isset($dataitem['_UID_'])) {
       $dataitem['_UID_'] = uniqid($dataitem['item nr'] . '_');
     }
+    if (!isset($dataitem['_SKIP_'])) {
+      $dataitem['_SKIP_'] = 0;
+    }
     $itemnr = $dataitem['item nr'];
     islandora_prepare_ingest_data_cache_single_insert($this->workflowid, $this->stepid, $this->otherid, 1, $itemnr, $dataitem);
+  }
+
+  protected function skipDataItemInNextSteps($dataitem) {
+    $dataitem['_SKIP_'] = 1;
+    $itemnr = $dataitem['item nr'];
+    islandora_prepare_ingest_data_cache_single_update($this->workflowid, $this->stepid, $this->otherid, 1, $itemnr, array('_SKIP_' => 1));
   }
 
   protected function fillOutTemplate($template, $keyvalues) {

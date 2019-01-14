@@ -34,8 +34,13 @@ class CopyFileStep extends PrepareIngestFilesStep {
     if ($this->hasConfigKey('target_filepath')) {
       $title .= ' ' . t('to "@fp"', array('@fp' => $this->config['target_filepath']));
     }
-    if ($this->hasConfigKey('source_skip_missing') && $this->config['source_skip_missing']) {
-      $title .= ' ' . t('and skip missing source files');
+    if ($this->hasConfigKey('source_skip_missing')) {
+      if ($this->config['source_skip_missing'] === '1') {
+        $title .= ' ' . t('and skip missing source files');
+      }
+      elseif ($this->config['source_skip_missing'] === 'skip_item') {
+        $title .= ' ' . t('and skip items with missing source files in next steps');
+      }
     }
     if ($this->hasConfigKey('target_exists_action')) {
       if ($this->config['target_exists_action'] === 'keep_old') {
@@ -43,6 +48,9 @@ class CopyFileStep extends PrepareIngestFilesStep {
       }
       else if ($this->config['target_exists_action'] === 'keep_new') {
         $title .= ' ' . t('but overwrite target if it exists');
+      }
+      else if ($this->config['target_exists_action'] === 'skip_item') {
+        $title .= ' ' . t('and skip items in next steps if target exists');
       }
     }
     $title .= '.';
@@ -58,9 +66,14 @@ class CopyFileStep extends PrepareIngestFilesStep {
         'type' => 'templatestring',
       ),
       'source_skip_missing' => array(
-        'label' => t('Skip missing'),
-        'description' => t('Skip the file if it is missing.'),
-        'type' => 'boolean',
+        'label' => t('Source missing'),
+        'description' => t('What to do if source file is missing.'),
+        'type' => 'select',
+        'options' => array(
+          '' => t('fail with message'),
+          '1' => t('skip missing source files'),
+          'skip_item' => t('skip item in all next steps'),
+        ),
         'optional' => true,
       ),
       'target_filepath' => array(
@@ -75,6 +88,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
           '' => t('fail with message'),
           'keep_old' => t('leave the target unchanged'),
           'keep_new' => t('replace the target with the source file'),
+          'skip_item' => t('skip item in all next steps'),
         ),
         'optional' => true,
       ),
@@ -115,7 +129,12 @@ class CopyFileStep extends PrepareIngestFilesStep {
       while ($item !== NULL) {
         $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
         if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid)) {
-          if ($skipmissing) {
+          if ($skipmissing === '1') {
+            $item = $prevdatastep->nextDataItem();
+            continue;
+          }
+          elseif ($skipmissing === 'skip_item') {
+            $prevdatastep->skipDataItemInNextSteps($item);
             $item = $prevdatastep->nextDataItem();
             continue;
           }
@@ -135,7 +154,12 @@ class CopyFileStep extends PrepareIngestFilesStep {
               $item = $prevdatastep->nextDataItem();
               continue;
             }
-            else if ($this->config['target_exists_action'] === 'keep_new') {
+            elseif ($this->config['target_exists_action'] === 'skip_item') {
+              $prevdatastep->skipDataItemInNextSteps($item);
+              $item = $prevdatastep->nextDataItem();
+              continue;
+            }
+            elseif ($this->config['target_exists_action'] === 'keep_new') {
               $report_error = false;
             }
           }
