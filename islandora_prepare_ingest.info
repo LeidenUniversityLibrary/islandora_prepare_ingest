@@ -1,4 +1,4 @@
-name = Islandora Prepare Ingest
+Name = Islandora Prepare Ingest
 description = Module for preparing data for ingest into Islandora
 package = Islandora Tools
 dependencies[] = islandora
@@ -37,3 +37,4 @@ files[] = steps/ValidateLargeImageStep.inc
 files[] = steps/ValidateBookStep.inc
 files[] = steps/ValidatePDFStep.inc
 files[] = steps/ValidateCompoundStep.inc
+files[] = steps/FilterByFileStatsStep.inc

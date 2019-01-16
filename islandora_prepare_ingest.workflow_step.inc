@@ -5,7 +5,7 @@
  * Step info.
  *
  *
- *  Copyright 2017-2018 Leiden University Library
+ *  Copyright 2017-2019 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -164,6 +164,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'name' => t('Validate Compound'),
     'type group' => t('Validation'),
     'class name' => 'ValidateCompoundStep',
+  );
+  $info['filter_by_file'] = array(
+    'name' => t('Filter By File'),
+    'type group' => t('Files and directories'),
+    'class name' => 'FilterByFileStatsStep',
   );
 
   return $info;

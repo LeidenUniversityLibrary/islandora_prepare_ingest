@@ -5,7 +5,7 @@
  * Prepare Ingest File System.
  *
  *
- *  Copyright 2017-2018 Leiden University Library
+ *  Copyright 2017-2019 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -102,7 +102,7 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
   $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $filepath = pifs_cleanup_filepath($filepath);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
-  $select->fields('pifs', array('path', 'valuetype', 'filevalue'));
+  $select->fields('pifs', array('path', 'valuetype', 'filevalue', 'dctimestamp'));
   $select->condition('pifs.workflow_id', $workflow_id)
     ->condition('pifs.other_id', $other_id)
     ->condition('path', $filepath);
@@ -112,18 +112,19 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
   $entry = NULL;
   while ($dc = $dcs->fetchAssoc()) {
     if ($entry === NULL) {
-      $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']);
+      $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue'], 'timestamp' => $dc['dctimestamp']);
     }
     else {
       if ($dc['valuetype'] & PIFS_IS_DIR) {
         // The new value is a directory. TODO check if previous was a directory?
-        $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue']);
+        $entry = array('path' => $dc['path'], 'valuetype' => $dc['valuetype'], 'filevalue' => $dc['filevalue'], 'timestamp' => $dc['dctimestamp']);
       }
       else if ($entry['valuetype'] & PIFS_HAS_REAL) {
         // There is already a file entry with a relation to a real file from a previous step:
         if ($dc['valuetype'] & PIFS_HAS_REAL) {
           // The pifs file is overwritten by another pifs file with a relation to a real file
           $entry['filevalue'] = $dc['filevalue'];
+          $entry['timestamp'] = $dc['dctimestamp'];
         }
         else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
           // Content was added to the pifs file, but the existing pifs file has a relation to a real file:
@@ -132,6 +133,7 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
             // Yes, the added content overwrites the existing content.
             $entry['valuetype'] = $dc['valuetype'];
             $entry['filevalue'] = $dc['filevalue'];
+            $entry['timestamp'] = $dc['dctimestamp'];
           }
           else {
             // no, so first read this content and then add the other content.
@@ -143,6 +145,7 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
               fclose($fh);
             }
             $entry['filevalue'] = $content . $dc['filevalue'];
+            $entry['timestamp'] = $dc['dctimestamp'];
           }
         }
       }
@@ -152,16 +155,19 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
           if ($dc['valuetype'] & PIFS_OVERWRITTEN) {
             // The new entry is also content, but overwritten, so replace.
             $entry['filevalue'] = $dc['filevalue'];
+            $entry['timestamp'] = $dc['dctimestamp'];
           }
           else {
             // The new entry is also content, so add it to the existing content.
             $entry['filevalue'] .= $dc['filevalue'];
+            $entry['timestamp'] = $dc['dctimestamp'];
           }
         }
         else if ($dc['valuetype'] & PIFS_HAS_REAL) {
           // The new entry is a pifs file with a relation to a real file. This overwrites the old entry.
           $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_REAL;
           $entry['filevalue'] = $dc['filevalue'];
+          $entry['timestamp'] = $dc['dctimestamp'];
         }
       }
     }
@@ -212,6 +218,44 @@ function pifs_is_dir($filepath, $workflow_id, $step_id, $other_id) {
     return TRUE;
   }
   return pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
+}
+
+function pifs_filesize($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  if (is_file($filepath)) {
+    clearstatcache(TRUE, $filepath); // make sure we get the right size.
+    return filesize($filepath);
+  }
+  $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
+  if ($entry['valuetype'] & PIFS_IS_FILE) {
+    if ($entry['valuetype'] & PIFS_HAS_REAL) {
+      clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+      return filesize($entry['filevalue']);
+    }
+    elseif ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+      return strlen($entry['filevalue']);
+    }
+  }
+  return FALSE;
+}
+
+function pifs_filemtime($filepath, $workflow_id, $step_id, $other_id) {
+  $filepath = pifs_cleanup_filepath($filepath);
+  if (is_file($filepath)) {
+    clearstatcache(TRUE, $filepath); // make sure we get the right modification date.
+    return filemtime($filepath);
+  }
+  $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
+  if ($entry['valuetype'] & PIFS_IS_FILE) {
+    if ($entry['valuetype'] & PIFS_HAS_REAL) {
+      clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right modification date.
+      return filemtime($entry['filevalue']);
+    }
+    elseif ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+      return $entry['timestamp'];
+    }
+  }
+  return FALSE;
 }
 
 function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id) {
