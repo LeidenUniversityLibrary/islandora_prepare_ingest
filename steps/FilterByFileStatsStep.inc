@@ -24,7 +24,7 @@
  *      
  */
 
-class FilterByFileStatsStep extends PrepareIngestStep {
+class FilterByFileStatsStep extends FilterItemsStep {
   
   public function label() {
     $title = t('Filter by file');

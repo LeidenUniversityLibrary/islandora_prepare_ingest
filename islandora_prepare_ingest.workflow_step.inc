@@ -86,12 +86,12 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'GroupItemsStep',
   );
   $info['filter_items'] = array(
-    'name' => t('Filter items  start'),
+    'name' => t('Filter  items'),
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'FilterItemsStep',
   );
   $info['end_filter'] = array(
-    'name' => t('Filter items end'),
+    'name' => t('Filter end'),
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'EndFilterItemsStep',
   );
@@ -166,8 +166,8 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'ValidateCompoundStep',
   );
   $info['filter_by_file'] = array(
-    'name' => t('Filter By File'),
-    'type group' => t('Files and directories'),
+    'name' => t('Filter by file'),
+    'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'FilterByFileStatsStep',
   );
 
