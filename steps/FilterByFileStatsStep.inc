@@ -32,12 +32,20 @@ class FilterByFileStatsStep extends FilterItemsStep {
       $title .= ' ' . t('located at "@key"', array('@key' => $this->config['filter_key_name']));
     }
     if ($this->hasConfigKey('filter_type')) {
-      if ($this->config['filter_type'] === 'exists') {
+      if ($this->config['filter_type'] === 'file_exists') {
         if ($this->hasConfigKey('negate') && $this->config['negate']) {
-          $title .= ' ' . t('if does not exist');
+          $title .= ' ' . t('if file does not exist');
         }
         else {
-          $title .= ' ' . t('if exists');
+          $title .= ' ' . t('if file exists');
+        }
+      }
+      elseif ($this->config['filter_type'] === 'dir_exists') {
+        if ($this->hasConfigKey('negate') && $this->config['negate']) {
+          $title .= ' ' . t('if directory does not exist');
+        }
+        else {
+          $title .= ' ' . t('if directory exists');
         }
       }
       elseif ($this->config['filter_type'] === 'larger_size') {
@@ -102,7 +110,8 @@ class FilterByFileStatsStep extends FilterItemsStep {
         'description' => t('Choose how you want to filter: existance, size or modification date.'),
         'type' => 'select',
         'options' => array(
-          'exists' => t('file exists'),
+          'file_exists' => t('file exists'),
+          'dir_exists' => t('directory exists'),
           'larger_size' => t('file size is larger than size'),
           'larger_file' => t('file is larger in size than other file'),
           'older_date' => t('file modified after date'),
@@ -114,7 +123,7 @@ class FilterByFileStatsStep extends FilterItemsStep {
         'description' => t('The value to filter by.'),
         'type' => 'templatestring',
         'allow_constants' => TRUE,
-        'optional' => array('filter_type' => array('exists')),
+        'optional' => array('filter_type' => array('file_exists', 'dir_exists')),
       ),
       'negate' => array(
         'label' => t('Negate'),
@@ -147,7 +156,11 @@ class FilterByFileStatsStep extends FilterItemsStep {
   public function checkConfiguration($context) {
     $results = parent::checkConfiguration($context);
     if ($this->hasConfigKey('filter_type')) {
-      if ($this->config['filter_type'] === 'exists') {
+      if ($this->config['filter_type'] === 'file_exists') {
+        // no check needed, filter_value does not matter.
+        unset($results['filter_value']);
+      }
+      elseif ($this->config['filter_type'] === 'dir_exists') {
         // no check needed, filter_value does not matter.
         unset($results['filter_value']);
       }
@@ -186,8 +199,11 @@ class FilterByFileStatsStep extends FilterItemsStep {
         $value = $this->fillOutTemplate($this->config['filter_value'], $item);
 
         $shouldkeep = FALSE;
-        if ($type === 'exists') {
+        if ($type === 'file_exists') {
           $shouldkeep = pifs_is_file($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+        }
+        elseif ($type === 'dir_exists') {
+          $shouldkeep = pifs_is_dir($filterkey, $this->workflowid, $this->stepid, $this->otherid);
         }
         elseif ($type === 'larger_size') {
           $units = array(
