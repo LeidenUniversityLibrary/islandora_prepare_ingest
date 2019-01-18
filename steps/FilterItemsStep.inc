@@ -62,6 +62,17 @@ class FilterItemsStep extends PrepareIngestStep {
           $title .= ' ' . $this->config['filter_value'];
         }
       }
+      elseif ($this->config['filter_type'] === 'item_nrs') {
+        if ($this->hasConfigKey('negate') && $this->config['negate']) {
+          $title .= ' ' . t('does not exist or does not contain the item nrs');
+        }
+        else {
+          $title .= ' ' . t('exists and item contains the item nrs');
+        }
+        if ($this->hasConfigKey('filter_value')) {
+          $title .= ' ' . $this->config['filter_value'];
+        }
+      }
     }
     $title .= '.';
 
@@ -77,9 +88,14 @@ class FilterItemsStep extends PrepareIngestStep {
       ),
       'filter_type' => array(
         'label' => t('Filter type'),
-        'description' => t('Choose how you want to filter: "key exists" filters if the key has any value, "equals" filters if the value of the filter key name is exactly the same as the filter value, "matches" filters if the value of the filter key name matches the regular expression in the filter value.'),
+        'description' => t('Choose how you want to filter: "key exists" filters if the key has any value, "key exists and item contains item nrs" filters if key has any value and the item nr is in the filter value, "equals" filters if the value of the filter key name is exactly the same as the filter value, "matches" filters if the value of the filter key name matches the regular expression in the filter value.'),
         'type' => 'select',
-        'options' => array('exists' => t('key exists'), 'equals' => t('equals'), 'matches' => t('matches')),
+        'options' => array(
+          'exists' => t('key exists'),
+          'item_nrs' => t('key exists and item contains item nrs'),
+          'equals' => t('equals'),
+          'matches' => t('matches'),
+        ),
       ),
       'filter_value' => array(
         'label' => t('Filter value'),
@@ -134,6 +150,12 @@ class FilterItemsStep extends PrepareIngestStep {
                              array('@value' => $this->config['filter_value'])), 'type' => 'argument_error');
         }
       }
+      elseif ($this->config['filter_type'] === 'item_nrs') {
+        if (!$this->hasConfigKey('filter_value') || !preg_match('/^[0-9,-]+$/', $this->config['filter_value'])) {
+          $results[] = array('text' => t("Filter with type 'contains item number' should have a value containing item numbers, or a range, but has '@value'. Valid values are for example: '1-6', '1,3,5' or '-10,20-'",
+                             array('@value' => $this->config['filter_value'])), 'type' => 'argument_error');
+        }
+      }
     }
     return $results;
   }
@@ -145,6 +167,24 @@ class FilterItemsStep extends PrepareIngestStep {
       $type = $this->config['filter_type'];
       $value = $this->config['filter_value'];
       $negate = $this->config['negate'];
+      if ($type === 'item_nrs') {
+        $ranges = array();
+        $parts = explode(',', $value);
+        foreach ($parts as $part) {
+          $p = split('-', $part);
+          if (count($p) === 1) {
+            if (is_numeric($p[0])) {
+              $m = intval($p[0]);
+              array_push($ranges, array('min' => $m, 'max' => $m));
+            }
+          }
+          elseif (count($p) === 2) {
+            $min = is_numeric($p[0])?intval($p[0]):1;
+            $max = is_numeric($p[1])?intval($p[1]):PHP_INT_MAX;
+            array_push($ranges, array('min' => $min, 'max' => $max));
+          }
+        }
+      }
 
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
@@ -159,6 +199,16 @@ class FilterItemsStep extends PrepareIngestStep {
         }
         elseif ($type === 'matches') {
           $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
+        }
+        elseif ($type === 'item_nrs') {
+          if (isset($item[$filterkey])) {
+            foreach ($ranges as $range) {
+              if ($item['item nr'] >= $range['min'] && $item['item nr'] <= $range['max']) {
+                $shouldkeep = TRUE;
+                break;
+              }
+            }
+          }
         }
         if ($negate) {
           $shouldkeep = !$shouldkeep;
