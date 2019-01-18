@@ -39,6 +39,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
         'none' => t('do not warn for additional files'),
       ),
     );
+    return $result;
   }
 
   public function typeString() {
