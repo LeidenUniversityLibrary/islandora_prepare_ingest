@@ -26,7 +26,21 @@
 
 
 class ValidateCompoundStep extends PrepareIngestValidateStep {
-  
+
+
+  public function arguments() {
+    $result = $parent::arguments();
+    $result['warn_level'] = array(
+      'label' => t('Warning on'),
+      'type' => 'select',
+      'options' => array(
+        'all' => t('all additional files'),
+        'once' => t('warn once for additional files'),
+        'none' => t('do not warn for additional files'),
+      ),
+    );
+  }
+
   public function typeString() {
     return t('Compound');
   }
@@ -56,6 +70,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
       $filenames = pifs_full_filenames_from_directory($importdirectory, $this->workflowid, $this->stepid, $this->otherid, '', TRUE, TRUE);
       $compoundsarray = array();
       $results = array();
+      $warnings = array();
       foreach ($filenames as $filename) {
         $relpath = preg_replace('#^' . $importdirectory . '/*#', '', $filename);
         if (!$relpath) {
@@ -92,7 +107,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
               $allowedfile = TRUE;
             }
             if (!$allowedfile) {
-              $results[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
+              $warnings[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
             }
           }
           elseif (count($relpathparts) == 3) {
@@ -110,7 +125,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
               $compoundsarray[$compoundname][$childname][$fileinfo['filename']] = $filename;
             }
             if (!$allowedfile) {
-              $results[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
+              $warnings[] = array('text' => t("File '@file' of mime '@mime' found that might not ingest correctly", array('@file' => $filename, '@mime' => $mime)), 'type' => 'validate_warning');
             }
           }
           else {
@@ -173,13 +188,25 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
       $text .= '.';
       $results[] = array('text' => $text, 'type' => 'validate_info');
 
+      if (count($warnings) > 0) {
+        if ($this->hasConfigKey('warn_level') && $this->config['warn_level'] === 'once') {
+          $results[] = array('text' => t("Files found that might not ingest correctly"), 'type' => 'validate_warning');
+        }
+        elseif ($this->hasConfigKey('warn_level') && $this->config['warn_level'] === 'none') {
+          // do not include warnings
+        }
+        else {
+          $results += $warnings;
+        }
+      }
+
       return $results;
     }
     return FALSE;
   }
 
   public function preprocessDrushCommand() {
-    return 'islandora_compound_batch_preprocess'; 
+    return 'islandora_compound_batch_preprocess';
   }
 
   public function modifyPreprocessOptions(&$options) {
@@ -219,7 +246,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
             }
           }
           if ($cbdir) {
-            exec("cd $cbdir; php create_structure_files.php $filepath 2>&1", $output, $retvalue); 
+            exec("cd $cbdir; php create_structure_files.php $filepath 2>&1", $output, $retvalue);
             if ($retvalue === 0 && count($output) > 0) {
               drush_log(dt("Made @count structure.xml files", array('@count' => count($output))));
             }
