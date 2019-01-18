@@ -29,7 +29,7 @@ class ValidateCompoundStep extends PrepareIngestValidateStep {
 
 
   public function arguments() {
-    $result = $parent::arguments();
+    $result = parent::arguments();
     $result['warn_level'] = array(
       'label' => t('Warning on'),
       'type' => 'select',

@@ -171,7 +171,7 @@ class FilterItemsStep extends PrepareIngestStep {
         $ranges = array();
         $parts = explode(',', $value);
         foreach ($parts as $part) {
-          $p = split('-', $part);
+          $p = explode('-', $part);
           if (count($p) === 1) {
             if (is_numeric($p[0])) {
               $m = intval($p[0]);
