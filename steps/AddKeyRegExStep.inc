@@ -80,6 +80,9 @@ class AddKeyRegExStep extends PrepareIngestStep {
     if ($this->hasConfigKey('source_key_name')) {
       $result['source_key_name'] = array($this->config['source_key_name']);
     }
+    else {
+      $result['source_key_name'] = array();
+    }
     return $result;
   }
 

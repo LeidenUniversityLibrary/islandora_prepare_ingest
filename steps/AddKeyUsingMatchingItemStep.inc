@@ -83,8 +83,14 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
     if ($this->hasConfigKey('matching_key_name')) {
       $result['matching_key_name'] = array($this->config['matching_key_name']);
     }
+    else {
+      $result['matching_key_name'] = array();
+    }
     if ($this->hasConfigKey('current_key_name')) {
       $result['current_key_name'] = array($this->config['current_key_name']);
+    }
+    else {
+      $result['current_key_name'] = array();
     }
     return $result;
   }

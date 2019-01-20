@@ -608,6 +608,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function _getKeysFromTemplates($templatekeynames) {
     $results = array();
     foreach ($templatekeynames as $templatekeyname) {
+      $results[$templatekeyname] = array();
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
         $keys = array();

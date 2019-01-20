@@ -82,6 +82,9 @@ class WriteFileStep extends PrepareIngestFilesStep {
     if ($this->hasConfigKey('content_key_name')) {
       $result['content_key_name'] = array($this->config['content_key_name']);
     }
+    else {
+      $result['content_key_name'] = array();
+    }
     return $result;
   }
 

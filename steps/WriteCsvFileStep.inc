@@ -113,10 +113,7 @@ class WriteCsvFileStep extends PrepareIngestFilesStep {
   }
 
   public function inputKeys() {
-    $result = $this->_getInputKeysFromTemplates(array('target_filepath'));
-    $result += $this->_getInputKeysFromTemplates(array('header'));
-    $result += $this->_getInputKeysFromTemplates(array('content'));
-    return $result;
+    return $this->_getInputKeysFromTemplates(array('target_filepath', 'header', 'content'));
   }
 
   public function outputKeys() {
