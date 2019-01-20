@@ -74,6 +74,7 @@ function pifs_count_of_all_filepaths_for_entries($workflow_id, $step_id, $other_
   $select->condition('pifs.workflow_id', $workflow_id)
     ->condition('pifs.other_id', $other_id);
   $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  $select->distinct();
   return $select->countQuery()->execute()->fetchField();
 }
 
