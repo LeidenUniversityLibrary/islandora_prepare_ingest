@@ -170,6 +170,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'FilterByFileStatsStep',
   );
+  $info['filter_by_file'] = array(
+    'name' => t('Add key using matching item'),
+    'type group' => t('Add key'),
+    'class name' => 'AddKeyUsingMatchingItemStep',
+  );
 
   return $info;
 }

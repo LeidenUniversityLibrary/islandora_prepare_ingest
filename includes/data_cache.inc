@@ -76,12 +76,12 @@ function islandora_prepare_ingest_data_cache_select($workflow_id, $step_id, $oth
 /**
  * Select data cache from a specific workflow, other id, of type, and with a specific key and value.
  **/
-function islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $other_id, $type, $key, $value, $startmatch = FALSE) {
+function islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $step_id, $other_id, $type, $key, $value, $startmatch = FALSE) {
   $servalue = db_like(serialize($value));
   if ($startmatch) {
     $servalue = preg_replace(array('/^s:\d+:/','/";$/'), array('s:%:', '%'), $servalue);
   }
-  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, NULL, $other_id, $type, array('item_nr', 'step_id', 'dckey', 'dcvalue'));
+  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, array('item_nr', 'dckey', 'dcvalue'));
   $select = $select->orderBy('item_nr');
   $select = $select->condition('dckey', $key, 'LIKE');
   $select = $select->condition('dcvalue', $servalue, 'LIKE');
@@ -89,7 +89,6 @@ function islandora_prepare_ingest_data_cache_select_key_value($workflow_id, $oth
   $results = array();
   while ($dc = $dcs->fetchAssoc()) {
     $results[] = array(
-      'step_id' => $dc['step_id'],
       'item_nr' => $dc['item_nr'],
       'key' => $dc['dckey'],
       'value' => unserialize($dc['dcvalue']),
