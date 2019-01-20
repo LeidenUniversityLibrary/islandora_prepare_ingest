@@ -39,3 +39,4 @@ files[] = steps/ValidatePDFStep.inc
 files[] = steps/ValidateCompoundStep.inc
 files[] = steps/FilterByFileStatsStep.inc
 files[] = steps/AddKeyUsingMatchingItemStep.inc
+files[] = steps/WriteCsvFileStep.inc
