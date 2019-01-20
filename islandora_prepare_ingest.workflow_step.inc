@@ -170,12 +170,12 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Sorting, filtering and grouping'),
     'class name' => 'FilterByFileStatsStep',
   );
-  $info['filter_by_file'] = array(
+  $info['add_key_using_matching_item'] = array(
     'name' => t('Add key using matching item'),
     'type group' => t('Add key'),
     'class name' => 'AddKeyUsingMatchingItemStep',
   );
-  $info['filter_by_file'] = array(
+  $info['write_to_csv_file'] = array(
     'name' => t('Write to CSV file'),
     'type group' => t('Files and directories'),
     'class name' => 'WriteCsvFileStep',
