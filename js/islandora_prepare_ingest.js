@@ -633,7 +633,7 @@ function filloutDataCacheElement(element, isStarting, prevcount, endFunction, fi
             }
             else {
               jQuery.each(item, function (key, value) {
-                if ( key !== 'item nr' && value.indexOf(filter['value']) !== -1) {
+                if ( key !== 'item nr' && value.indexOf && value.indexOf(filter['value']) !== -1) {
                   if (count >= from) {
                     filteredData.push(item);
                   }
