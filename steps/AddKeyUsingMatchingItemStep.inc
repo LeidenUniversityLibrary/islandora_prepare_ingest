@@ -171,7 +171,16 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
   }
 
   public function verify($context) {
-    return parent::verify($context);
+    // custom verify method, because this step allows missing keys.
+    $results = array();
+    foreach ($this->inputKeys() as $ikey => $keys) {
+      if (!isset($this->config[$ikey]) || (strlen($this->config[$ikey]) == 0)) {
+        $results[] = array('text' => t("Missing argument '@key'.", array('@key' => $arguments[$ikey]['label'])),
+                           'key' => $arguments[$ikey]['label'], 'type' => 'config_error');
+        continue;
+      }
+    }
+    return $results;
   }
 
   public function prepareIngest(&$context) {
