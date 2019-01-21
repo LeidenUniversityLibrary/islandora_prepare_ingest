@@ -139,7 +139,6 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
           }
         }
         $this->saveDataItem($item);
-        $item = $prevdatastep->nextDataItem();
         if ($limit > 0) {
           $item = $prevdatastep->nextDataItem();
         }
