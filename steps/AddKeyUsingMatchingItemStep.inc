@@ -121,9 +121,15 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
       $matchingkey = $this->config['matching_key_name'];
       $currentkey = $this->config['current_key_name'];
 
-      $prevdatastep->resetDataIterator();
+      if (!isset($context['sandbox']['total_items'])) {
+        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+
+        $prevdatastep->resetDataIterator();
+      }
+
       $item = $prevdatastep->nextDataItem();
-      while ($item !== NULL) {
+      $limit = 100;
+      while ($item !== NULL && $limit-- > 0) {
         if (isset($item[$currentkey])) {
           $matchvalue = $item[$currentkey];
           $matchingitem = $this->findMatchingItem($prevdatastep, $matchingkey, $matchvalue);
@@ -134,6 +140,17 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
         }
         $this->saveDataItem($item);
         $item = $prevdatastep->nextDataItem();
+        if ($limit > 0) {
+          $item = $prevdatastep->nextDataItem();
+        }
+      }
+      if ($context['sandbox']['total_items'] > 0) {
+        if ($item !== NULL) {
+          $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
+        }
+        else {
+          $context['finished'] = 1;
+        }
       }
     }
     return FALSE;
