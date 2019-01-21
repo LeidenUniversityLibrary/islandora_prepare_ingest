@@ -57,8 +57,13 @@ function islandora_prepare_ingest_data_cache_select_iterator($workflow_id, $step
  */
 function islandora_prepare_ingest_data_cache_select($workflow_id, $step_id, $other_id, $type, $min_item_nr, $max_item_nr) {
   $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, array('item_nr', 'dckey', 'dcvalue'));
-  $select = $select->orderBy('item_nr');
-  $select = $select->condition('item_nr', array($min_item_nr, $max_item_nr), 'BETWEEN');
+  if ($min_item_nr < $max_item_nr) {
+    $select = $select->orderBy('item_nr');
+    $select = $select->condition('item_nr', array($min_item_nr, $max_item_nr), 'BETWEEN');
+  }
+  else {
+    $select = $select->condition('item_nr', $min_item_nr);
+  }
   $dcs = $select->execute();
   $results = array();
   while ($dc = $dcs->fetchAssoc()) {
