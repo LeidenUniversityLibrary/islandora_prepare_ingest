@@ -128,7 +128,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
       }
 
       $item = $prevdatastep->nextDataItem();
-      $limit = 100;
+      $limit = 50;
       while ($item !== NULL && $limit-- > 0) {
         if (isset($item[$currentkey])) {
           $matchvalue = $item[$currentkey];
