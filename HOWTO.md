@@ -88,6 +88,12 @@ Use the step “Add key with regular expression based value” if you need more 
 
 This step adds a new key-value to all existing items in the list. The target key is given. The values for this key is a number that starts at the start value, increments with a value of step and includes leading zero’s if the given width is greater than the actual width of the number. Optionally, you can specify a key for each unique value the counting starts from the start value.
 
+## Add key using matching item
+
+This step tries to find another item that has a key with the same value as the key of the current item. When found, a new key-value is added to the current item using the values of the found item.
+If the current item does not have the key or no item is found, no key-value is added.
+This step can be useful to map values from one to another.
+
 ## Change the value of a key
 
 This step changes the value of a specific source key in one of the following ways: to uppercase, to lowercase, remove -, remove - or _, remove spaces, remove spaces from front and end of string, replace - with space, replace - or _ with space, pad zeros to a number to get 5 numbers, strip tags, to SHA1 hash, XML encode or XML decode.
@@ -110,7 +116,11 @@ This step copies a file indicated by a source filepath from values of one or mor
 
 ## Write to file
 
-This step writes to a file indicated by a filepath from values of one or more keys in all existing items in the list. The content that is written to the file is a the value of the content key in all existing items in the list. The target file should not exist when starting to write to the file, but it is possible to write the contents of a key of multiple existing items to the same file. No warning will be given if the file already exists. The directory containing the output file should exist.
+This step writes to a file indicated by a filepath from values of one or more keys in all existing items in the list. The content that is written to the file is a the value of the content key in all existing items in the list. The target file should not exist when starting to write to the file, but it is possible to write the contents of a key of multiple existing items to the same file. If the file already exists, different actions are possible. The directory containing the output file should exist.
+
+## Write to CSV file
+
+This step writes CSV to a file indicated by a filepath. The header of the CSV file can be given and can contain constants, it can also be left empty. If given, the header is written to the file if it did not exist yet. The content (the rows) are generated from a template and written to file for every item in the list. The template can contain multiple rows, if needed. Header and content should have their values seperated by semicolon. The actual CSV limiter can be comma, semicolon or tab.
 
 ## Group items
 
