@@ -235,14 +235,6 @@ class WriteCsvFileStep extends PrepareIngestFilesStep {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
     $exists_action = 'append';
-    if ($this->hasConfigKey('target_exists_action')) {
-      if ($this->config['target_exists_action'] === 'error') {
-        $exists_action = 'error';
-      }
-      else if ($this->config['target_exists_action'] === 'overwrite') {
-        $exists_action = 'overwrite';
-      }
-    }
     pifs_persist_entries($this->workflowid, $this->stepid, $this->otherid, $exists_action);
   }
 }
