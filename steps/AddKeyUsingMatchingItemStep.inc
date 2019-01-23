@@ -128,7 +128,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
       }
 
       $item = $prevdatastep->nextDataItem();
-      $limit = 50;
+      $limit = 10000;
       while ($item !== NULL && $limit-- > 0) {
         if (isset($item[$currentkey])) {
           $matchvalue = $item[$currentkey];
@@ -156,12 +156,17 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
   }
 
   private function findMatchingItem($prevdatastep, $matchkey, $matchvalue) {
-    $results = islandora_prepare_ingest_data_cache_select_key_value($prevdatastep->workflowid, $prevdatastep->id, $prevdatastep->otherid, 1, $matchkey, $matchvalue);
-    $result = end($results);
-    if ($result !== FALSE) {
-      $matchitemnr = $result['item_nr'];
-      $matchstepid = $result['step_id'];
-      $matchitems = islandora_prepare_ingest_data_cache_select($this->workflowid, $matchstepid, $this->otherid, 1, $matchitemnr, $matchitemnr);
+    $cache = &drupal_static(__FUNCTION__);
+
+    if (empty($cache[$matchkey])) {
+dd((memory_get_usage()/1024/1024), 'memory before');
+      $cache[$matchkey] = islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($prevdatastep->workflowid, $prevdatastep->id, $prevdatastep->otherid, 1, $matchkey);
+dd($cache, 'cache');
+dd((memory_get_usage()/1024/1024), 'memory after');
+    }
+    if (isset($cache[$matchkey][$matchvalue])) {
+      $matchitemnr = $cache[$matchkey][$matchvalue];
+      $matchitems = islandora_prepare_ingest_data_cache_select($this->workflowid, $prevdatastep->id, $this->otherid, 1, $matchitemnr, $matchitemnr);
       if (isset($matchitems[$matchitemnr])) {
         return $matchitems[$matchitemnr];
       }
