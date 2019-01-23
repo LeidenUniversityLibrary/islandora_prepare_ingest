@@ -159,10 +159,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
     $cache = &drupal_static(__FUNCTION__);
 
     if (empty($cache[$matchkey])) {
-dd((memory_get_usage()/1024/1024), 'memory before');
       $cache[$matchkey] = islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($prevdatastep->workflowid, $prevdatastep->id, $prevdatastep->otherid, 1, $matchkey);
-dd($cache, 'cache');
-dd((memory_get_usage()/1024/1024), 'memory after');
     }
     if (isset($cache[$matchkey][$matchvalue])) {
       $matchitemnr = $cache[$matchkey][$matchvalue];
