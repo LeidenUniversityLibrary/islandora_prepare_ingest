@@ -93,6 +93,21 @@ function islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($workflow
 }
 
 /**
+ * Select all data cache items from a specific workflow, other id, of type, and with multiple keys.
+ * Returns an array with key is item_nr and value is an associated array with the input keys as keys and the found values as values.
+ **/
+function islandora_prepare_ingest_data_cache_select_keyvalues_by_itemnr($workflow_id, $step_id, $other_id, $type, $keys) {
+  $select = islandora_prepare_ingest_data_cache_select_query($workflow_id, $step_id, $other_id, $type, array('item_nr', 'dckey', 'dcvalue'));
+  $select = $select->condition('dckey', $keys, 'IN');
+  $dcs = $select->execute();
+  $results = array();
+  while ($dc = $dcs->fetchAssoc()) {
+    $results[$dc['item_nr']][$dc['dckey']] = unserialize($dc['dcvalue']);
+  }
+  return $results;
+}
+
+/**
  * Count data cache items from a specific workflow, step, other id and of type.
  */
 function islandora_prepare_ingest_data_cache_count($workflow_id, $other_id) {

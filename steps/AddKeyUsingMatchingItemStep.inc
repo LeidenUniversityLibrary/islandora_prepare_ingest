@@ -118,6 +118,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
         && isset($prevdatastep)) {
       $targetkey = $this->config['target_key_name'];
       $template = $this->config['template'];
+      $templatekeys = $this->_getKeysFromTemplates(array('template'));
       $matchingkey = $this->config['matching_key_name'];
       $currentkey = $this->config['current_key_name'];
 
@@ -132,7 +133,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
       while ($item !== NULL && $limit-- > 0) {
         if (isset($item[$currentkey])) {
           $matchvalue = $item[$currentkey];
-          $matchingitem = $this->findMatchingItem($prevdatastep, $matchingkey, $matchvalue);
+          $matchingitem = $this->findMatchingItem($prevdatastep, $matchingkey, $matchvalue, $templatekeys);
           if ($matchingitem) {
             $newvalue = $this->fillOutTemplate($template, $matchingitem);
             $item[$targetkey] = $newvalue;
@@ -155,18 +156,18 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
     return FALSE;
   }
 
-  private function findMatchingItem($prevdatastep, $matchkey, $matchvalue) {
+  private function findMatchingItem($prevdatastep, $matchkey, $matchvalue, $neededkeys) {
     $cache = &drupal_static(__FUNCTION__);
 
     if (empty($cache[$matchkey])) {
-      $cache[$matchkey] = islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1, $matchkey);
+      $value2id = islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1, $matchkey);
+      $itemdata = islandora_prepare_ingest_data_cache_select_keyvalues_by_itemnr($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1, $neededkeys);
+      foreach ($value2id as $value => $itemid) {
+        $cache[$matchkey][$value] = $itemdata[$itemid];
+      }
     }
     if (isset($cache[$matchkey][$matchvalue])) {
-      $matchitemnr = $cache[$matchkey][$matchvalue];
-      $matchitems = islandora_prepare_ingest_data_cache_select($this->workflowid, $prevdatastep->stepid, $this->otherid, 1, $matchitemnr, $matchitemnr);
-      if (isset($matchitems[$matchitemnr])) {
-        return $matchitems[$matchitemnr];
-      }
+      return $cache[$matchkey][$matchvalue];
     }
     return FALSE;
   }
