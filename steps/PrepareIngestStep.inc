@@ -608,16 +608,42 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function _getKeysFromTemplates($templatekeynames) {
     $results = array();
     foreach ($templatekeynames as $templatekeyname) {
-      $results[$templatekeyname] = array();
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
         $keys = array();
-        if (preg_match_all('/{([a-zA-Z0-9_-]+)}/', $template, $keys)) {
-          $results[$templatekeyname] = $keys[1];
-        }
+        $this->_findKeysInTemplate($template, $keys);
+        $results[$templatekeyname] = $keys;
       }
     }
     return $results;
+  }
+
+  protected function _findKeysInTemplate($template, &$keys) {
+    if (strpos($template, '{') !== FALSE) {
+      //$value = $template;
+      $value = preg_replace_callback(
+         '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
+         function($matches) use (&$keys) {
+           if (isset($matches[2]) && strlen($matches[2]) > 0) {
+             $keys[] = $matches[2];
+           }
+           if (isset($matches[3]) && strlen($matches[3]) > 0) {
+             $keys[] = $matches[3];
+           }
+           if (isset($matches[1]) && strlen($matches[1]) > 0) {
+             $this->_findKeysInTemplate($matches[1], $keys);
+           }
+           if (isset($matches[6]) && strlen($matches[6]) > 0) {
+             $this->_findKeysInTemplate($matches[6], $keys);
+           }
+           if (isset($matches[4]) && strlen($matches[4]) > 0) {
+             $this->_findKeysInTemplate($matches[5], $keys);
+           }
+           return '';
+         },
+         $template
+      );
+    }
   }
 
   protected function _previousDataChangingStep() {
