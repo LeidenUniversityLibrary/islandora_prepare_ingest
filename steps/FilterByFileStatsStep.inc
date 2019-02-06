@@ -291,6 +291,7 @@ class FilterByFileStatsStep extends FilterItemsStep {
         }
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

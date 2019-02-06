@@ -82,6 +82,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected $previousstep;
   protected $previousdatachangingstep;
   private $di_dbstatement;
+  private $di_query;
   private $di_lastdata;
   protected $di_currentitemnr;
   protected $di_type;
@@ -132,6 +133,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $this->di_type, array());
       $selectquery = $selectquery->orderBy('item_nr');
       $selectquery->condition('item_nr', $this->di_currentitemnr, '>=');
+      $this->di_query = $selectquery;
       $this->di_dbstatement = $selectquery->execute();
       $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
     }
@@ -357,11 +359,19 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return (isset($this->config[$keyname]) && (strlen($this->config[$keyname]) > 0));
   }
 
+  protected function clearDataIterator() {
+    if (isset($this->di_dbstatement)) {
+      $this->di_dbstatement->destroy();
+    }
+    unset($this->di_query, $this->di_dbstatement, $this->di_lastdata, $this->di_currentitemnr, $this->di_type);
+  }
+
   protected function resetDataIterator($type = 1) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
     $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $type, array());
     $selectquery = $selectquery->orderBy('item_nr');
+    $this->di_query = $selectquery;
     $this->di_dbstatement = $selectquery->execute();
     $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
     $this->di_currentitemnr = $this->di_lastdata['item_nr'];
@@ -605,39 +615,45 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return $this->_getKeysFromTemplates($templatekeynames);
   }
 
-  protected function _getKeysFromTemplates($templatekeynames) {
+  protected function _getKeysFromTemplates($templatekeynames, $includeoptional = FALSE) {
     $results = array();
     foreach ($templatekeynames as $templatekeyname) {
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
         $keys = array();
-        $this->_findKeysInTemplate($template, $keys);
+        $this->_findKeysInTemplate($template, $keys, $includeoptional);
         $results[$templatekeyname] = $keys;
       }
     }
     return $results;
   }
 
-  protected function _findKeysInTemplate($template, &$keys) {
+  protected function _findKeysInTemplate($template, &$keys, $includeoptional) {
     if (strpos($template, '{') !== FALSE) {
       //$value = $template;
       $value = preg_replace_callback(
          '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
          function($matches) use (&$keys) {
            if (isset($matches[2]) && strlen($matches[2]) > 0) {
-             $keys[] = $matches[2];
+             if ($includeoptional || !((isset($matches[3]) && strlen($matches[3]) > 0) || (isset($matches[4]) && strlen($matches[4]) > 0))) {
+               $keys[] = $matches[2];
+             }
            }
            if (isset($matches[3]) && strlen($matches[3]) > 0) {
-             $keys[] = $matches[3];
+             if ($includeoptional) {
+               $keys[] = $matches[3];
+             }
            }
            if (isset($matches[1]) && strlen($matches[1]) > 0) {
-             $this->_findKeysInTemplate($matches[1], $keys);
+             $this->_findKeysInTemplate($matches[1], $keys, $includeoptional);
            }
            if (isset($matches[6]) && strlen($matches[6]) > 0) {
-             $this->_findKeysInTemplate($matches[6], $keys);
+             $this->_findKeysInTemplate($matches[6], $keys, $includeoptional);
            }
-           if (isset($matches[4]) && strlen($matches[4]) > 0) {
-             $this->_findKeysInTemplate($matches[5], $keys);
+           if (isset($matches[4]) && strlen($matches[5]) > 0) {
+             if ($includeoptional) {
+               $this->_findKeysInTemplate($matches[5], $keys, $includeoptional);
+             }
            }
            return '';
          },

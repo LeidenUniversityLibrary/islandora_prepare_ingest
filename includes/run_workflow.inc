@@ -115,9 +115,9 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($workflowstep, $s
     }
     islandora_prepare_ingest_constants_add_to_stepconfig($stepconfig, $context);
 
-    $prevstep = isset($context['results']['_steps'])?$context['results']['_steps'][count($context['results']['_steps']) -1]:NULL;
+    $prevstep = isset($context['results']['_prevstep'])?$context['results']['_prevstep']:NULL;
     $step = new $stepclass($workflowstep, $stepconfig, $otherid, $prevstep);
-    $context['results']['_steps'][] = $step;
+    $context['results']['_prevstep'] = $step;
     $context['sandbox']['_step'] = $step;
 
     $stepresult = $step->checkConfiguration($context);
@@ -210,34 +210,7 @@ function islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, 
 
   drush_backend_batch_process();
 }
-/*
-function islandora_prepare_ingest_drush_full_run_operation(&$context) {
-  $steps = $context['results']['_steps'];
-  if (empty($context['sandbox'])) {
-    $context['sandbox']['drush'] = TRUE;
-    $context['sandbox']['current'] = 0;
-    $context['sandbox']['maxsteps'] = count($steps);
-  }
-  if (empty($steps) || (isset($context['results']['_has_error']) && $context['results']['_has_error'])) {
-    $context['finished'] = 1;
-    return;
-  }
 
-  $step = $steps[$context['sandbox']['current']];
-  $context['sandbox']['current']++;
-
-  $stepresult = $step->prepareIngest($context);
-
-  if ($stepresult) {
-    $context['results']['_by_type'][$step->id()]['prepare'] = $stepresult;
-  }
-  if (islandora_prepare_ingest_has_error($stepresult)) {
-    $context['results']['_has_error'] = TRUE;
-  }
-
-  $context['finished'] = $context['sandbox']['current'] / $context['sandbox']['maxsteps'];
-}
-*/
 function islandora_prepare_ingest_drush_dry_run_step_batch_finished($success, $results, $operations) {
   $haserror = FALSE;
   if (is_array($results['_by_type']) && count($results['_by_type']) > 0) {

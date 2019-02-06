@@ -194,6 +194,7 @@ class ExtractPartsFromXmlStep extends PrepareIngestStep {
         }
         else {
           $context['finished'] = 1;
+          $prevdatastep->clearDataIterator();
         }
       }
       if (count($results) > 0) {

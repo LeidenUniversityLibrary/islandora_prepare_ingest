@@ -207,6 +207,7 @@ class WriteCsvFileStep extends PrepareIngestFilesStep {
         pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid, TRUE);
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

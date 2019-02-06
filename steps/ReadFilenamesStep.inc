@@ -126,6 +126,7 @@ class ReadFilenamesStep extends PrepareIngestStep {
           $itemnr = $item['item nr'];
           $item = $prevdatastep->nextDataItem();
         }
+        $prevdatastep->clearDataIterator();
         $itemnr++;
       }
 

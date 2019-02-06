@@ -152,6 +152,7 @@ class WriteFileStep extends PrepareIngestFilesStep {
 
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

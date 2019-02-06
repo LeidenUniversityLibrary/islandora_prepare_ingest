@@ -118,7 +118,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
         && isset($prevdatastep)) {
       $targetkey = $this->config['target_key_name'];
       $template = $this->config['template'];
-      $templatekeys = $this->_getKeysFromTemplates(array('template'));
+      $templatekeys = $this->_getKeysFromTemplates(array('template'), TRUE);
       $matchingkey = $this->config['matching_key_name'];
       $currentkey = $this->config['current_key_name'];
 
@@ -150,6 +150,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
         }
         else {
           $context['finished'] = 1;
+          $prevdatastep->clearDataIterator();
         }
       }
     }

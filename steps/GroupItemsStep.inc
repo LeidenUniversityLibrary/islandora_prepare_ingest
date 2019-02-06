@@ -93,6 +93,7 @@ class GroupItemsStep extends PrepareIngestStep {
         $this->saveDataItem($item);
         $itemnr++;
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

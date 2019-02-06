@@ -127,6 +127,8 @@ class EndFilterItemsStep extends PrepareIngestStep {
           $newitem = $prevdatastep->nextDataItem();
         }
       }
+      $prevstartfilterdatastep->clearDataIterator();
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

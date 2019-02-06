@@ -126,6 +126,7 @@ class ReadCsvFileStep extends PrepareIngestStep {
           $itemnr = $item['item nr'];
           $item = $prevdatastep->nextDataItem();
         }
+        $prevdatastep->clearDataIterator();
         $itemnr++;
       }
 

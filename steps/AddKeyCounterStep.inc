@@ -146,6 +146,7 @@ class AddKeyCounterStep extends PrepareIngestStep {
         $this->saveDataItem($item);
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

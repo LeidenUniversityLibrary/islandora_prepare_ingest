@@ -143,6 +143,7 @@ class SortItemsStep extends PrepareIngestStep {
         $allitems[] = $item;
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
 
       // Then sort the items.
       $intcmp = function($a, $b) {

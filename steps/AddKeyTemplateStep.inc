@@ -97,6 +97,7 @@ class AddKeyTemplateStep extends PrepareIngestStep {
         $this->saveDataItem($item);
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

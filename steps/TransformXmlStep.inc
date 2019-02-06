@@ -153,6 +153,7 @@ class TransformXmlStep extends PrepareIngestXmlStep {
         }
         else {
           $context['finished'] = 1;
+          $prevdatastep->clearDataIterator();
         }
       }
       if (count($results) > 0) {

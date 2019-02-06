@@ -182,6 +182,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }

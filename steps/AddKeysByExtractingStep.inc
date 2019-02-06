@@ -25,7 +25,7 @@
  */
 
 class AddKeysByExtractingStep extends PrepareIngestStep {
-  
+
   public function label() {
     $title = t('Add key(s) by extracting');
     if ($this->hasConfigKey('source_key_name')) {
@@ -140,6 +140,7 @@ class AddKeysByExtractingStep extends PrepareIngestStep {
         }
       }
     }
+    $prevdatastep->clearDataIterator();
     return FALSE;
   }
 

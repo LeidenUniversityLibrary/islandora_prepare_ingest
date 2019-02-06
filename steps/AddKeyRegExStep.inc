@@ -119,6 +119,7 @@ class AddKeyRegExStep extends PrepareIngestStep {
         $this->saveDataItem($item);
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
   }
 

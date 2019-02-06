@@ -220,6 +220,7 @@ class FilterItemsStep extends PrepareIngestStep {
         }
         $item = $prevdatastep->nextDataItem();
       }
+      $prevdatastep->clearDataIterator();
     }
     return FALSE;
   }
