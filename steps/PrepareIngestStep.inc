@@ -360,10 +360,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function clearDataIterator() {
-    if (isset($this->di_dbstatement)) {
-      $this->di_dbstatement->destroy();
-    }
-    unset($this->di_query, $this->di_dbstatement, $this->di_lastdata, $this->di_currentitemnr, $this->di_type);
+    unset($this->di_query, $this->di_dbstatement, $this->di_lastdata);
   }
 
   protected function resetDataIterator($type = 1) {
@@ -633,7 +630,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       //$value = $template;
       $value = preg_replace_callback(
          '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
-         function($matches) use (&$keys) {
+         function($matches) use (&$keys, $includeoptional) {
            if (isset($matches[2]) && strlen($matches[2]) > 0) {
              if ($includeoptional || !((isset($matches[3]) && strlen($matches[3]) > 0) || (isset($matches[4]) && strlen($matches[4]) > 0))) {
                $keys[] = $matches[2];
