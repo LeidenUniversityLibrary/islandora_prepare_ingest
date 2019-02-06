@@ -74,31 +74,28 @@ class EndFilterItemsStep extends PrepareIngestStep {
       $prevstartfilterdatastep->resetDataIterator();
       if ($startfilterdatastep === $prevdatastep) {
         // the filter only contains non-data-changing steps, so just use the data from before the filter
-        $item = $prevstartfilterdatastep->nextDataItem(); 
+        $item = $prevstartfilterdatastep->nextDataItem();
         while ($item !== NULL) {
           $this->saveDataItem($item);
-          $item = $prevstartfilterdatastep->nextDataItem(); 
+          $item = $prevstartfilterdatastep->nextDataItem();
         }
       }
       else {
-        // the filter does contain data-changing steps, so do the filtering again on it's children but replace the filtered items with the items of the previous step: 
-        $filterkey = $startfilterdatastep->config['filter_key_name'];
-        $type = $startfilterdatastep->config['filter_type'];
-        $value = $startfilterdatastep->config['filter_value'];
-        $negate = $startfilterdatastep->config['negate'];
-  
+        // the filter does contain data-changing steps, so do the filtering again on it's children but replace the filtered items with the items of the previous step:
+        $filterconfig = $startfilterdatastep->filterConfig();
+
         $prevdatastep->resetDataIterator();
         $currentitemnr = 1;
         $item = $prevstartfilterdatastep->nextDataItem();
         $newitem = $prevdatastep->nextDataItem();
         while ($item !== NULL) {
-          $shouldkeep = $this->_shouldKeep($item, $type, $filterkey, $value, $negate);
+          $shouldkeep = $startfilterdatastep->shouldKeep($item, $filterconfig);
           if ($shouldkeep) {
             // this item was filtered, so replace these filtered items up to a non-filtered item.
             // first find the last filtered item of this part
             $lastfiltereditem = $item;
             $item = $prevstartfilterdatastep->nextDataItem();
-            while ($item != NULL && $this->_shouldKeep($item, $type, $filterkey, $value, $negate)) {
+            while ($item != NULL && $startfilterdatastep->shouldKeep($item, $filterconfig)) {
               $lastfiltereditem = $item;
               $item = $prevstartfilterdatastep->nextDataItem();
             }
@@ -131,23 +128,6 @@ class EndFilterItemsStep extends PrepareIngestStep {
       $prevdatastep->clearDataIterator();
     }
     return FALSE;
-  }
-
-  private function _shouldKeep($item, $type, $filterkey, $value, $negate) {
-    $shouldkeep = FALSE;
-    if ($type === 'exists') {
-      $shouldkeep = isset($item[$filterkey]);
-    }
-    elseif ($type === 'equals') {
-      $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
-    }
-    elseif ($type === 'matches') {
-      $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
-    }
-    if ($negate) {
-      $shouldkeep = !$shouldkeep;
-    }
-    return $shouldkeep;
   }
 
   private function _startFilterDataChangingStep() {

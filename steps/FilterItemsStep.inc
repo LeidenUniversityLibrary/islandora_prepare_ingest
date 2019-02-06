@@ -24,7 +24,7 @@
  *      
  */
 
-class FilterItemsStep extends PrepareIngestStep {
+class FilterItemsStep extends PrepareIngestStep implements PrepareIngestFilteringInterface {
   
   public function label() {
     $title = t('Filter items');
@@ -163,56 +163,12 @@ class FilterItemsStep extends PrepareIngestStep {
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('filter_key_name') && $this->hasConfigKey('filter_type') && isset($prevdatastep)) {
-      $filterkey = $this->config['filter_key_name'];
-      $type = $this->config['filter_type'];
-      $value = $this->config['filter_value'];
-      $negate = $this->config['negate'];
-      if ($type === 'item_nrs') {
-        $ranges = array();
-        $parts = explode(',', $value);
-        foreach ($parts as $part) {
-          $p = explode('-', $part);
-          if (count($p) === 1) {
-            if (is_numeric($p[0])) {
-              $m = intval($p[0]);
-              array_push($ranges, array('min' => $m, 'max' => $m));
-            }
-          }
-          elseif (count($p) === 2) {
-            $min = is_numeric($p[0])?intval($p[0]):1;
-            $max = is_numeric($p[1])?intval($p[1]):PHP_INT_MAX;
-            array_push($ranges, array('min' => $min, 'max' => $max));
-          }
-        }
-      }
-
+      $filterconfig = $this->filterConfig();
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       $currentitemnr = 1;
       while ($item !== NULL) {
-        $shouldkeep = FALSE;
-        if ($type === 'exists') {
-          $shouldkeep = isset($item[$filterkey]);
-        }
-        elseif ($type === 'equals') {
-          $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
-        }
-        elseif ($type === 'matches') {
-          $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
-        }
-        elseif ($type === 'item_nrs') {
-          if (isset($item[$filterkey])) {
-            foreach ($ranges as $range) {
-              if ($item['item nr'] >= $range['min'] && $item['item nr'] <= $range['max']) {
-                $shouldkeep = TRUE;
-                break;
-              }
-            }
-          }
-        }
-        if ($negate) {
-          $shouldkeep = !$shouldkeep;
-        }
+        $shouldkeep = $this->shouldKeep($item, $filterconfig);
         if ($shouldkeep) {
           $item['item nr'] = $currentitemnr;
           $this->saveDataItem($item);
@@ -223,6 +179,65 @@ class FilterItemsStep extends PrepareIngestStep {
       $prevdatastep->clearDataIterator();
     }
     return FALSE;
+  }
+
+  public function filterConfig() {
+    $filterconfig = $this->config;
+    $type = $this->config['filter_type'];
+    $value = $this->config['filter_value'];
+    if ($type === 'item_nrs') {
+      $ranges = array();
+      $parts = explode(',', $value);
+      foreach ($parts as $part) {
+        $p = explode('-', $part);
+        if (count($p) === 1) {
+          if (is_numeric($p[0])) {
+            $m = intval($p[0]);
+            array_push($ranges, array('min' => $m, 'max' => $m));
+          }
+        }
+        elseif (count($p) === 2) {
+          $min = is_numeric($p[0])?intval($p[0]):1;
+          $max = is_numeric($p[1])?intval($p[1]):PHP_INT_MAX;
+          array_push($ranges, array('min' => $min, 'max' => $max));
+        }
+      }
+      $filterconfig['ranges'] = $ranges;
+    }
+    return $filterconfig;
+  }
+
+  public function shouldKeep($item, $filterconfig) {
+    $filterkey = $filterconfig['filter_key_name'];
+    $type = $filterconfig['filter_type'];
+    $value = $filterconfig['filter_value'];
+    $negate = $filterconfig['negate'];
+
+    $shouldkeep = FALSE;
+    if ($type === 'exists') {
+      $shouldkeep = isset($item[$filterkey]);
+    }
+    elseif ($type === 'equals') {
+      $shouldkeep = (isset($item[$filterkey]) && ($item[$filterkey] === $value));
+    }
+    elseif ($type === 'matches') {
+      $shouldkeep = (isset($item[$filterkey]) && preg_match($value, $item[$filterkey]));
+    }
+    elseif ($type === 'item_nrs') {
+      if (isset($item[$filterkey])) {
+        $ranges = $filterconfig['ranges'];
+        foreach ($ranges as $range) {
+          if ($item['item nr'] >= $range['min'] && $item['item nr'] <= $range['max']) {
+            $shouldkeep = TRUE;
+            break;
+          }
+        }
+      }
+    }
+    if ($negate) {
+      $shouldkeep = !$shouldkeep;
+    }
+    return $shouldkeep;
   }
 
   public function verify($context) {

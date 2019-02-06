@@ -24,8 +24,8 @@
  *      
  */
 
-class FilterByFileStatsStep extends FilterItemsStep {
-  
+class FilterByFileStatsStep extends FilterItemsStep implements PrepareIngestFilteringInterface {
+
   public function label() {
     $title = t('Filter by file');
     if ($this->hasConfigKey('filter_key_name')) {
@@ -188,102 +188,14 @@ class FilterByFileStatsStep extends FilterItemsStep {
     if ($this->hasConfigKey('filter_key_name') && $this->hasConfigKey('filter_type') && isset($prevdatastep)) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
-      $type = $this->config['filter_type'];
-      $negate = $this->config['negate'];
+      $filterconfig = $this->filterConfig();
 
       $prevdatastep->resetDataIterator();
       $item = $prevdatastep->nextDataItem();
       $currentitemnr = 1;
       while ($item !== NULL) {
-        $filterkey = $this->fillOutTemplate($this->config['filter_key_name'], $item);
-        $value = $this->fillOutTemplate($this->config['filter_value'], $item);
+        $shouldkeep = $this->shouldKeep($item, $filterconfig);
 
-        $shouldkeep = FALSE;
-        if ($type === 'file_exists') {
-          $shouldkeep = pifs_is_file($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-        }
-        elseif ($type === 'dir_exists') {
-          $shouldkeep = pifs_is_dir($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-        }
-        elseif ($type === 'larger_size') {
-          $units = array(
-            'B' => 1,
-            'bytes' => 1,
-            'kB' => 1000,
-            'KB' => 1024,
-            'MB' => 1000 * 1000,
-            'KiB' => 1024,
-            'MiB' => 1024 * 1024,
-          );
-          $sizevalue = preg_replace_callback('/^(\d+)\s*(B|bytes?|kB|KB|MB|KiB|MiB)$/', function ($matches) use ($units) {
-            return $matches[1] * $units[$matches[2]]; 
-          }, $value);
-          $sizevalue = filter_var($sizevalue, FILTER_VALIDATE_INT, array('options' => array('min_range' => 0)));
-          if ($sizevalue === FALSE) {
-            $results[] = array('text' => t("Size '@size' is not a valid size.",
-              array('@size' => $value)), 'type' => 'run_error');
-          }
-          $sizefile = pifs_filesize($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-          if ($sizefile === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
-              array('@file' => $filterkey)), 'type' => 'run_error');
-          }
-          if (count($results) > 0) {
-            return $results;
-          }
-          $shouldkeep = ($sizefile > $sizevalue); 
-        }
-        elseif ($type === 'larger_file') {
-          $sizefile1 = pifs_filesize($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-          if ($sizefile1 === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
-              array('@file' => $filterkey)), 'type' => 'run_error');
-          }
-          $sizefile2 = pifs_filesize($value, $this->workflowid, $this->stepid, $this->otherid); 
-          if ($sizefile2 === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
-              array('@file' => $value)), 'type' => 'run_error');
-          }
-          if (count($results) > 0) {
-            return $results;
-          }
-          $shouldkeep = ($sizefile1 > $sizefile2); 
-        }
-        elseif ($type === 'older_date') {
-          $mdatevalue = strtotime($value);
-          if ($mdatevalue === FALSE || $mdatevalue === -1) {
-            $results[] = array('text' => t("Date '@date' is not a valid date.",
-              array('@value' => $value)), 'type' => 'run_error');
-          }
-          $mdatefile = pifs_filemtime($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-          if ($mdatefile === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
-              array('@file' => $filterkey)), 'type' => 'run_error');
-          }
-          if (count($results) > 0) {
-            return $results;
-          }
-          $shouldkeep = ($mdatefile > $mdatevalue); 
-        }
-        elseif ($type === 'older_file') {
-          $mdatefile1 = pifs_filemtime($filterkey, $this->workflowid, $this->stepid, $this->otherid);
-          if ($mdatefile1 === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
-              array('@file' => $filterkey)), 'type' => 'run_error');
-          }
-          $mdatefile2 = pifs_filemtime($value, $this->workflowid, $this->stepid, $this->otherid);
-          if ($mdatefile2 === FALSE) {
-            $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
-              array('@file' => $value)), 'type' => 'run_error');
-          }
-          if (count($results) > 0) {
-            return $results;
-          }
-          $shouldkeep = ($mdatefile1 > $mdatefile2); 
-        }
-        if ($negate) {
-          $shouldkeep = !$shouldkeep;
-        }
         if ($shouldkeep) {
           $item['item nr'] = $currentitemnr;
           $this->saveDataItem($item);
@@ -294,6 +206,101 @@ class FilterByFileStatsStep extends FilterItemsStep {
       $prevdatastep->clearDataIterator();
     }
     return FALSE;
+  }
+
+  public function shouldKeep($item, $filterconfig) {
+    $filterkey = $this->fillOutTemplate($filterconfig['filter_key_name'], $item);
+    $type = $filterconfig['filter_type'];
+    $value = $this->fillOutTemplate($filterconfig['filter_value'], $item);
+    $negate = $filterconfig['negate'];
+
+    $shouldkeep = FALSE;
+    if ($type === 'file_exists') {
+      $shouldkeep = pifs_is_file($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+    }
+    elseif ($type === 'dir_exists') {
+      $shouldkeep = pifs_is_dir($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+    }
+    elseif ($type === 'larger_size') {
+      $units = array(
+        'B' => 1,
+        'bytes' => 1,
+        'kB' => 1000,
+        'KB' => 1024,
+        'MB' => 1000 * 1000,
+        'KiB' => 1024,
+        'MiB' => 1024 * 1024,
+      );
+      $sizevalue = preg_replace_callback('/^(\d+)\s*(B|bytes?|kB|KB|MB|KiB|MiB)$/', function ($matches) use ($units) {
+        return $matches[1] * $units[$matches[2]];
+      }, $value);
+      $sizevalue = filter_var($sizevalue, FILTER_VALIDATE_INT, array('options' => array('min_range' => 0)));
+      if ($sizevalue === FALSE) {
+        $results[] = array('text' => t("Size '@size' is not a valid size.",
+          array('@size' => $value)), 'type' => 'run_error');
+      }
+      $sizefile = pifs_filesize($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+      if ($sizefile === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
+          array('@file' => $filterkey)), 'type' => 'run_error');
+      }
+      if (count($results) > 0) {
+        return $results;
+      }
+      $shouldkeep = ($sizefile > $sizevalue);
+    }
+    elseif ($type === 'larger_file') {
+      $sizefile1 = pifs_filesize($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+      if ($sizefile1 === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
+          array('@file' => $filterkey)), 'type' => 'run_error');
+      }
+      $sizefile2 = pifs_filesize($value, $this->workflowid, $this->stepid, $this->otherid);
+      if ($sizefile2 === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so cannot check size.",
+          array('@file' => $value)), 'type' => 'run_error');
+      }
+      if (count($results) > 0) {
+        return $results;
+      }
+      $shouldkeep = ($sizefile1 > $sizefile2);
+    }
+    elseif ($type === 'older_date') {
+      $mdatevalue = strtotime($value);
+      if ($mdatevalue === FALSE || $mdatevalue === -1) {
+        $results[] = array('text' => t("Date '@date' is not a valid date.",
+          array('@value' => $value)), 'type' => 'run_error');
+      }
+      $mdatefile = pifs_filemtime($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+      if ($mdatefile === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
+          array('@file' => $filterkey)), 'type' => 'run_error');
+      }
+      if (count($results) > 0) {
+        return $results;
+      }
+      $shouldkeep = ($mdatefile > $mdatevalue);
+    }
+    elseif ($type === 'older_file') {
+      $mdatefile1 = pifs_filemtime($filterkey, $this->workflowid, $this->stepid, $this->otherid);
+      if ($mdatefile1 === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
+          array('@file' => $filterkey)), 'type' => 'run_error');
+      }
+      $mdatefile2 = pifs_filemtime($value, $this->workflowid, $this->stepid, $this->otherid);
+      if ($mdatefile2 === FALSE) {
+        $results[] = array('text' => t("File '@file' does not exist, so is does not have a modification date.",
+          array('@file' => $value)), 'type' => 'run_error');
+      }
+      if (count($results) > 0) {
+        return $results;
+      }
+      $shouldkeep = ($mdatefile1 > $mdatefile2);
+    }
+    if ($negate) {
+      $shouldkeep = !$shouldkeep;
+    }
+    return $shouldkeep;
   }
 
   public function verify($context) {

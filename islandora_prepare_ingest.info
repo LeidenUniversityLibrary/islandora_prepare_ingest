@@ -40,3 +40,4 @@ files[] = steps/ValidateCompoundStep.inc
 files[] = steps/FilterByFileStatsStep.inc
 files[] = steps/AddKeyUsingMatchingItemStep.inc
 files[] = steps/WriteCsvFileStep.inc
+files[] = steps/PrepareIngestFilteringInterface.inc
