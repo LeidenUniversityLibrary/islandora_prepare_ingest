@@ -68,13 +68,19 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('directory_name') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('directory_name')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $dirnametemplate = $this->config['directory_name'];
   
       $results = array();
-      $prevdatastep->resetDataIterator();
-      $item = $prevdatastep->nextDataItem();
+      if (isset($prevdatastep)) {
+        $prevdatastep->resetDataIterator();
+        $item = $prevdatastep->nextDataItem();
+      }
+      else {
+        // Do the loop at least once, so this step can be used as the first step of a workflow.
+        $item = array('_dummy' => 'dummy item');
+      }
       while ($item !== NULL) {
         $dirname = $this->fillOutTemplate($dirnametemplate, $item);
         $parentdir = dirname($dirname);
@@ -93,7 +99,7 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
 
         //$this->saveDataItem($item);
 
-        $item = $prevdatastep->nextDataItem();
+        $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
       }
     }
     return FALSE;
