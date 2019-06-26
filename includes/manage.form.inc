@@ -702,7 +702,15 @@ function islandora_prepare_ingest_ajax_files_handler() {
         return json_encode($result);
       }
       else {
-        if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+        if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+          $result = array(
+            'type' => 'file',
+            'content' => pifs_archive_read_content_from_file($entry, $workflowid, $stepid, $otherid, 100000),
+            'archivefilepath' => pifs_archive_get_archivepath($entry),
+          );
+          return json_encode($result);
+        }
+        elseif ($entry['valuetype'] & PIFS_HAS_CONTENT) {
           $result = array('type' => 'file', 'content' => $entry['filevalue']);
           return json_encode($result);
         }

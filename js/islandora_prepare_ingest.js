@@ -987,6 +987,9 @@ function setupDisplayFullValue($context, workflowid, otherid, stepid, type) {
           cellhtml += 'Is a directory';
         }
         else if (fd.hasOwnProperty('content')) {
+          if (fd.hasOwnProperty('archivefilepath')) {
+            cellhtml += 'Part of archive ' + htmlEncode(fd['archivefilepath']) + '<BR/><BR/>';
+          }
           cellhtml += 'Content (' + fd['content'].length + ' bytes):' + '</BR>';
           cellhtml += '<pre>';
           if (fd['content'].length > 10000) {
