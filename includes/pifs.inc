@@ -26,6 +26,7 @@
 
 CONST PIFS_IS_FILE         = 0b00010000; // 16
 CONST PIFS_IS_DIR          = 0b00100000; // 32
+CONST PIFS_FROM_ARCHIVE    = 0b10000000; // 128
 CONST PIFS_OVERWRITTEN     = 0b00000100; // 4
 CONST PIFS_HAS_CONTENT     = 0b00000010; // 2
 CONST PIFS_HAS_REAL        = 0b00000001; // 1
@@ -122,8 +123,15 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
       }
       else if ($entry['valuetype'] & PIFS_HAS_REAL) {
         // There is already a file entry with a relation to a real file from a previous step:
-        if ($dc['valuetype'] & PIFS_HAS_REAL) {
+        if ($dc['valuetype'] & PIFS_FROM_ARCHIVE) {
+          // An archive file always overwrites an existing file.
+          $entry['valuetype'] = $dc['valuetype'];
+          $entry['filevalue'] = $dc['filevalue'];
+          $entry['timestamp'] = $dc['dctimestamp'];
+        }
+        else if ($dc['valuetype'] & PIFS_HAS_REAL) {
           // The pifs file is overwritten by another pifs file with a relation to a real file
+          $entry['valuetype'] = $dc['valuetype'];
           $entry['filevalue'] = $dc['filevalue'];
           $entry['timestamp'] = $dc['dctimestamp'];
         }
@@ -138,13 +146,19 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
           }
           else {
             // no, so first read this content and then add the other content.
-            $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_CONTENT;
-            clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
-            $fh = @fopen($entry['filevalue'], 'r');
-            if ($fh !== FALSE) {
-              $content = fread($fh, filesize($entry['filevalue']));
-              fclose($fh);
+            $content = '';
+            if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+              $content = pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id);
             }
+            else if ($entry['valuetype'] & PIFS_IS_FILE) {
+              clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+              $fh = @fopen($entry['filevalue'], 'r');
+              if ($fh !== FALSE) {
+                $content = fread($fh, filesize($entry['filevalue']));
+                fclose($fh);
+              }
+            }
+            $entry['valuetype'] = PIFS_IS_FILE | PIFS_HAS_CONTENT;
             $entry['filevalue'] = $content . $dc['filevalue'];
             $entry['timestamp'] = $dc['dctimestamp'];
           }
@@ -166,7 +180,7 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
         }
         else if ($dc['valuetype'] & PIFS_HAS_REAL) {
           // The new entry is a pifs file with a relation to a real file. This overwrites the old entry.
-          $entry['valuetype'] = PIFS_IS_FILE & PIFS_HAS_REAL;
+          $entry['valuetype'] = $dc['valuetype'];
           $entry['filevalue'] = $dc['filevalue'];
           $entry['timestamp'] = $dc['dctimestamp'];
         }
@@ -228,7 +242,15 @@ function pifs_filesize($filepath, $workflow_id, $step_id, $other_id) {
     return filesize($filepath);
   }
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
-  if ($entry['valuetype'] & PIFS_IS_FILE) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
+    $sourcefile = pifs_archive_get_temporary_filepath($entry);
+    if ($sourcefile) {
+      clearstatcache(TRUE, $sourcefile); // make sure we get the right size.
+      return filesize($sourcefile);
+    }
+  }
+  else if ($entry['valuetype'] & PIFS_IS_FILE) {
     if ($entry['valuetype'] & PIFS_HAS_REAL) {
       clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
       return filesize($entry['filevalue']);
@@ -247,7 +269,15 @@ function pifs_filemtime($filepath, $workflow_id, $step_id, $other_id) {
     return filemtime($filepath);
   }
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
-  if ($entry['valuetype'] & PIFS_IS_FILE) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
+    $sourcefile = pifs_archive_get_temporary_filepath($entry);
+    if ($sourcefile) {
+      clearstatcache(TRUE, $sourcefile); // make sure we get the right modification date.
+      return filemtime($sourcefile);
+    }
+  }
+  else if ($entry['valuetype'] & PIFS_IS_FILE) {
     if ($entry['valuetype'] & PIFS_HAS_REAL) {
       clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right modification date.
       return filemtime($entry['filevalue']);
@@ -340,7 +370,10 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
       }
     }
     else if ($dc['valuetype'] & PIFS_IS_FILE) {
-      if ($dc['valuetype'] & PIFS_HAS_REAL) {
+      if ($dc['valuetype'] & PIFS_FROM_ARCHIVE) {
+        $success = pifs_archive_persist_entry($dc, $workflow_id, $step_id, $other_id);
+      }
+      else if ($dc['valuetype'] & PIFS_HAS_REAL) {
         $islinked = @link($dc['filevalue'], $dc['path']);
         if ($islinked) {
           $success = TRUE;
@@ -389,11 +422,16 @@ function pifs_entry_read_content($filepath, $workflow_id, $step_id, $other_id) {
       return $entry['filevalue'];
     }
     if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_REAL)) {
-      clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
-      $fh = @fopen($entry['filevalue'], 'r');
-      if ($fh !== FALSE) {
-         $content = fread($fh, filesize($entry['filevalue']));
-         fclose($fh);
+      if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+        $content = pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id);
+      }
+      else {
+        clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+        $fh = @fopen($entry['filevalue'], 'r');
+        if ($fh !== FALSE) {
+           $content = fread($fh, filesize($entry['filevalue']));
+           fclose($fh);
+        }
       }
       return $content;
     }
@@ -480,3 +518,274 @@ function islandora_prepare_ingest_pifs_delete_old($other_id = NULL) {
     ->execute();
 }
 
+/**
+ * Read the contents from a single file within an archive.
+ */
+function pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id, $maxreadlength = PHP_INT_MAX) {
+  $content = '';
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
+    $sourcepath = pifs_archive_get_temporary_filepath($entry);
+    if ($sourcepath) {
+      clearstatcache(TRUE, $sourcepath); // make sure we get the right size.
+      $fh = @fopen($sourcepath, 'r');
+      if ($fh !== FALSE) {
+        $filesize = min(filesize($sourcepath), $maxreadlength);
+        $content = fread($fh, filesize($sourcepath));
+        fclose($fh);
+      }
+    }
+  }
+  return $content;
+}
+
+/**
+ * Write the contents of a single file within an archive to a path.
+ */
+function pifs_archive_persist_entry($entry, $workflow_id, $step_id, $other_id) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
+    $sourcepath = pifs_archive_get_temporary_filepath($entry);
+    if ($sourcepath) {
+      $islinked = @link($sourcepath, $dc['path']);
+      if ($islinked) {
+        return TRUE;
+      }
+      else {
+        $iscopied = @copy($sourcepath, $dc['path']);
+        if ($iscopied) {
+          return TRUE;
+        }
+      }
+    }
+  }
+  return FALSE;
+}
+
+/**
+ * Extract all the contents from an archive into a temporary location so a single entry can be retrieved but only if needed.
+ */
+function pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    $sourcepath = pifs_archive_get_temporary_filepath($entry);
+    if ($sourcepath && !is_file($sourcepath) && !is_dir($sourcepath)) {
+      $archivepath = pifs_archive_get_archivepath($entry);
+      if ($archivepath) {
+        pifs_archive_extract_files($archivepath, $outputdirectory, $workflow_id, $step_id, $other_id);
+      }
+    }
+  }
+}
+
+/**
+ * Extract all the contents from an archive into a temporary location.
+ */
+function pifs_archive_extract_files($archivepath, $outputdirectory, $workflow_id, $step_id, $other_id) {
+  $archiveinfo = pathinfo($archivepath);
+  if ($archiveinfo['extension'] === 'zip') {
+    $filepaths = pifs_archive_unzip_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
+  }
+  else if ($archiveinfo['extension'] === 'gz') {
+    $filepaths = pifs_archive_ungz_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
+  }
+  else if ($archiveinfo['extension'] === 'rar') {
+    $filepaths = pifs_archive_unrar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
+  }
+  else if ($archiveinfo['extension'] === 'tar') {
+    $filepaths = pifs_archive_untar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
+  }
+  else {
+    $filepaths = FALSE;
+  }
+  if ($filepaths && count($filepaths) > 0) {
+    $onlytarfiles = TRUE;
+    $firsttarfile = NULL;
+    foreach ($filepaths as $filepath => $temporary) {
+      if ($filepath === '.') {
+        continue;
+      }
+      $archiveinfo = pathinfo($temporary);
+      if ($archiveinfo['extension'] === 'tar') {
+        $firsttarfile = $temporary;
+      }
+      else {
+        $onlytarfiles = FALSE;
+      }
+    }
+    if ($onlytarfiles) {
+      $filepaths = pifs_archive_untar_to_temporary_directory($firsttarfile, $workflow_id, $step_id, $other_id);
+    }
+  }
+  return $filepaths;
+}
+
+/**
+ * Extract all the contents from an archive into a temporary location and make entries.
+ */
+function pifs_archive_extract_make_entries($archivepath, $outputdirectory, $workflow_id, $step_id, $other_id) {
+  $filepaths = pifs_archive_extract_files($archivepath, $outputdirectory, $workflow_id, $step_id, $other_id);
+  if ($filepaths === FALSE) {
+    return FALSE;
+  }
+  foreach ($filepaths as $filepath => $temporary) {
+    if ($filepath === '.') {
+      continue;
+    }
+    $filevalue = array(
+      'archivepath' => $archivepath,
+      'temporary'   => $temporary,
+    );
+    $targetfile = pifs_cleanup_filepath($outputdirectory . DIRECTORY_SEPARATOR . $filepath);
+    $entry = array(
+      'path'      => $targetfile,
+      'filevalue' => serialize($filevalue),
+    );
+    if (substr($filepath, -1) === DIRECTORY_SEPARATOR) {
+      $entry['valuetype'] = PIFS_IS_DIR | PIFS_HAS_REAL | PIFS_FROM_ARCHIVE;
+    }
+    else {
+      $entry['valuetype'] = PIFS_IS_FILE | PIFS_HAS_REAL | PIFS_FROM_ARCHIVE;
+    }
+    pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
+  }
+  return TRUE;
+}
+
+/**
+ * Extract all the contents from a zip archive into a temporary location.
+ */
+function pifs_archive_unzip_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id) {
+  if (!class_exists('ZipArchive')) {
+    return FALSE;
+  }
+  $tmpdir = pifs_cleanup_filepath( file_directory_temp() . DIRECTORY_SEPARATOR . 'pifs_unzipped_' . $workflow_id . '_' . $step_id . '_' . $other_id );
+  $zip = new ZipArchive();
+  if ($zip->open($archivepath) !== TRUE) {
+    return FALSE;
+  }
+  $filepaths = array('.' => $tmpdir);
+  if (!is_dir($tmpdir)) {
+    mkdir($tmpdir);
+  }
+  if (!$zip->extractTo($tmpdir)) {
+    return FALSE;
+  }
+  $count = $zip->numFiles;
+  for ($i = 0; $i < $count; $i++) {
+    $name = $zip->getNameIndex($i);
+    $realpath = pifs_cleanup_filepath($tmpdir . DIRECTORY_SEPARATOR . $name);
+    $filepaths[$name] = $realpath;
+  }
+  return $filepaths;
+}
+
+/**
+ * Extract all the contents from a rar archive into a temporary location.
+ */
+function pifs_archive_unrar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id) {
+  if (!class_exists('RarArchive')) {
+    return FALSE;
+  }
+  $tmpdir = pifs_cleanup_filepath( file_directory_temp() . DIRECTORY_SEPARATOR . 'pifs_unrarred_' . $workflow_id . '_' . $step_id . '_' . $other_id );
+  $rar_file = RarArchive::open($archivepath);
+  if ($rar_file === FALSE) {
+    return FALSE;
+  }
+  $filepaths = array('.' => $tmpdir);
+  if (!is_dir($tmpdir)) {
+    mkdir($tmpdir);
+  }
+  $entries = $rar_file->getEntries();
+  if ($entries === FALSE) {
+    return FALSE;
+  }
+  foreach ($entries as $entry) {
+    $name = $entry->getName();
+    $filepaths[$name] = pifs_cleanup_filepath($tmpdir . DIRECTORY_SEPARATOR . $name);
+    $entry->extract($tmpdir);
+  }
+  $rar_file->close();
+
+  return $filepaths;
+}
+
+/**
+ * Extract all the contents from a gz archive into a temporary location.
+ */
+function pifs_archive_ungz_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id) {
+  return pifs_archive_unphar_to_temporary_directory($archivepath, 'pifs_ungzed_', 'decompress', $workflow_id, $step_id, $other_id);
+}
+
+/**
+ * Extract all the contents from a tar archive into a temporary location.
+ */
+function pifs_archive_untar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id) {
+  return pifs_archive_unphar_to_temporary_directory($archivepath, 'pifs_untarred_', 'extractTo', $workflow_id, $step_id, $other_id);
+}
+
+/**
+ * Extract all the contents from a phar archive into a temporary location.
+ */
+function pifs_archive_unphar_to_temporary_directory($archivepath, $tmpprefix, $unarchivefunc, $workflow_id, $step_id, $other_id) {
+  if (!class_exists('PharData')) {
+    return FALSE;
+  }
+  $basetmpdir = pifs_cleanup_filepath( file_directory_temp() . DIRECTORY_SEPARATOR . $tmpprefix . $workflow_id . '_' . $step_id . '_' . $other_id );
+  $i = 0;
+  $tmpdir = $basetmpdir . "_$i";
+  do {
+    $i++;
+    $tmpdir = $basetmpdir . "_$i";
+  } while (!@mkdir($tmpdir) && $i < 1000);
+  if (!($i < 1000)) {
+    return FALSE;
+  }
+  $filepaths = array('.' => $tmpdir);
+  $tmparchivepath = $tmpdir . DIRECTORY_SEPARATOR . basename($archivepath);
+  try {
+    if (!copy($archivepath, $tmparchivepath)) {
+      return FALSE;
+    }
+    $phar = new PharData($tmparchivepath);
+    if ($unarchivefunc === 'decompress') {
+      $phar->decompress();
+    }
+    else if ($unarchivefunc === 'extractTo') {
+      $phar->extractTo($tmpdir);
+    }
+    if (!unlink($tmparchivepath)) {
+      return FALSE;
+    }
+  }
+  catch (Exception $e) {
+    return FALSE;
+  }
+  $fullpaths = pifs_full_filenames_from_directory($tmpdir, 0, 0, 0, '', TRUE, TRUE);
+  foreach ($fullpaths as $fullpath) {
+    $name = substr($fullpath, strlen($tmpdir) + 1);
+    $filepaths[$name] = $fullpath;
+  }
+  return $filepaths;
+}
+
+/**
+ * Get temporary filepath within extracted archive.
+ */
+function pifs_archive_get_temporary_filepath($entry) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    $filevalue = unserialize($entry['filevalue']);
+    return isset($filevalue['temporary'])?$filevalue['temporary']:FALSE;
+  }
+  return FALSE;
+}
+
+/**
+ * Get the original archive path.
+ */
+function pifs_archive_get_archivepath($entry) {
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    $filevalue = unserialize($entry['filevalue']);
+    return isset($filevalue['archivepath'])?$filevalue['archivepath']:FALSE;
+  }
+  return FALSE;
+}
