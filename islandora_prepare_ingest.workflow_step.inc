@@ -180,6 +180,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Files and directories'),
     'class name' => 'WriteCsvFileStep',
   );
+  $info['extract_archive'] = array(
+    'name' => t('Extract an archive'),
+    'type group' => t('Files and directories'),
+    'class name' => 'ExtractArchiveStep',
+  );
 
   return $info;
 }
