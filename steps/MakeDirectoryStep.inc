@@ -81,6 +81,7 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
         // Do the loop at least once, so this step can be used as the first step of a workflow.
         $item = array('_dummy' => 'dummy item');
       }
+      $madedirs = array();
       while ($item !== NULL) {
         $dirname = $this->fillOutTemplate($dirnametemplate, $item);
         $parentdir = dirname($dirname);
@@ -95,7 +96,10 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
         if (count($results) > 0) {
           return $results;
         }
-        pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid);
+        if (!isset($madedirs[$dirname])) {
+          pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid);
+        }
+        $madedirs[$dirname] = 1;
 
         //$this->saveDataItem($item);
 
