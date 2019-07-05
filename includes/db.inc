@@ -5,7 +5,7 @@
  * Database interface.
  *
  *
- *  Copyright 2017-2018 Leiden University Library
+ *  Copyright 2017-2019 Leiden University Library
  *
  *  This file is part of islandora_prepare_ingest.
  *
@@ -33,6 +33,9 @@ function islandora_prepare_ingest_select_workflows($type = NULL, $negate = FALSE
     ->fields('workflow');
   if ($type) {
     $select = $select->condition('type', $type, $negate?'<>':'=');
+  }
+  else {
+    $select = $select->condition('type', array('full', 'partial', 'active'), 'IN');
   }
   $workflows = $select->execute();
   while ($workflow = $workflows->fetchAssoc()) {
