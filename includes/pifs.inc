@@ -27,6 +27,7 @@
 CONST PIFS_IS_FILE         = 0b00010000; // 16
 CONST PIFS_IS_DIR          = 0b00100000; // 32
 CONST PIFS_FROM_ARCHIVE    = 0b10000000; // 128
+CONST PIFS_IS_REMOVED      = 0b00001000; // 8
 CONST PIFS_OVERWRITTEN     = 0b00000100; // 4
 CONST PIFS_HAS_CONTENT     = 0b00000010; // 2
 CONST PIFS_HAS_REAL        = 0b00000001; // 1
@@ -123,7 +124,13 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
       }
       else if ($entry['valuetype'] & PIFS_HAS_REAL) {
         // There is already a file entry with a relation to a real file from a previous step:
-        if ($dc['valuetype'] & PIFS_FROM_ARCHIVE) {
+        if ($dc['valuetype'] & PIFS_IS_REMOVED) {
+          // The file is removed, this also removes an existing file.
+          $entry['valuetype'] = $dc['valuetype'];
+          $entry['filevalue'] = $dc['filevalue'];
+          $entry['timestamp'] = $dc['dctimestamp'];
+        }
+        else if ($dc['valuetype'] & PIFS_FROM_ARCHIVE) {
           // An archive file always overwrites an existing file.
           $entry['valuetype'] = $dc['valuetype'];
           $entry['filevalue'] = $dc['filevalue'];
@@ -147,7 +154,10 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
           else {
             // no, so first read this content and then add the other content.
             $content = '';
-            if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+            if ($entry['valuetype'] & PIFS_IS_REMOVED) {
+              // previous file entry is removed, so content stays empty.
+            }
+            else if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
               $content = pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id);
             }
             else if ($entry['valuetype'] & PIFS_IS_FILE) {
@@ -166,7 +176,13 @@ function pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id) {
       }
       else if ($entry['valuetype'] & PIFS_HAS_CONTENT) {
         // There is already a file entry with content from a previous step:
-        if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
+        if ($dc['valuetype'] & PIFS_IS_REMOVED) {
+          // The new entry is removed, so remove filevalue.
+          $entry['valuetype'] = $dc['valuetype'];
+          $entry['filevalue'] = '';
+          $entry['timestamp'] = $dc['dctimestamp'];
+        }
+        else if ($dc['valuetype'] & PIFS_HAS_CONTENT) {
           if ($dc['valuetype'] & PIFS_OVERWRITTEN) {
             // The new entry is also content, but overwritten, so replace.
             $entry['filevalue'] = $dc['filevalue'];
@@ -210,6 +226,13 @@ function pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, $ty
   $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
   $select->orderBy('step.weight', 'DESC');
   $entry = $select->execute()->fetchAssoc();
+  if ($entry === FALSE) {
+    return NULL;
+  }
+  if ($entry['valuetype'] & PIFS_IS_REMOVED) {
+    // Removed files or directories are neither file or directory.
+    return FALSE;
+  }
   if ($type === 'file') {
     return ($entry['valuetype'] & PIFS_IS_FILE);
   }
@@ -221,28 +244,40 @@ function pifs_entry_is_of_type($filepath, $workflow_id, $step_id, $other_id, $ty
 
 function pifs_is_file($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  if (is_file($filepath)) {
-    return TRUE;
+  $result = pifs_entry_is_file($filepath, $workflow_id, $step_id, $other_id);
+  if ($result === NULL) {
+    if (is_file($filepath)) {
+      return TRUE;
+    }
   }
-  return pifs_entry_is_file($filepath, $workflow_id, $step_id, $other_id);
+  return $result;
 }
 
 function pifs_is_dir($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  if (is_dir($filepath)) {
-    return TRUE;
+  $rsult = pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
+  if ($result === NULL) {
+    if (is_dir($filepath)) {
+      return TRUE;
+    }
   }
-  return pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
+  return $result;
 }
 
 function pifs_filesize($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  if (is_file($filepath)) {
-    clearstatcache(TRUE, $filepath); // make sure we get the right size.
-    return filesize($filepath);
-  }
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
-  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+  if ($entry === NULL) {
+    if (is_file($filepath)) {
+      clearstatcache(TRUE, $filepath); // make sure we get the right size.
+      return filesize($filepath);
+    }
+    return FALSE;
+  }
+  if ($entry['valuetype'] & PIFS_IS_REMOVED) {
+    return FALSE;
+  }
+  else if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
     pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
     $sourcefile = pifs_archive_get_temporary_filepath($entry);
     if ($sourcefile) {
@@ -264,12 +299,18 @@ function pifs_filesize($filepath, $workflow_id, $step_id, $other_id) {
 
 function pifs_filemtime($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  if (is_file($filepath)) {
-    clearstatcache(TRUE, $filepath); // make sure we get the right modification date.
-    return filemtime($filepath);
-  }
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
-  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+  if ($entry === NULL) {
+    if (is_file($filepath)) {
+      clearstatcache(TRUE, $filepath); // make sure we get the right modification date.
+      return filemtime($filepath);
+    }
+    return FALSE;
+  }
+  if ($entry['valuetype'] & PIFS_IS_REMOVED) {
+    return FALSE;
+  }
+  else if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
     pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
     $sourcefile = pifs_archive_get_temporary_filepath($entry);
     if ($sourcefile) {
@@ -292,7 +333,8 @@ function pifs_filemtime($filepath, $workflow_id, $step_id, $other_id) {
 function pifs_entry_mkdir($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
 
-  if (pifs_entry_exists($filepath, $workflow_id, $step_id, $other_id)) {
+  $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
+  if (($entry !== NULL) && (!($entry['valuetype'] & PIFS_IS_REMOVED))) {
     // TODO should raise error when this is not a directory?
     return;
   }
@@ -327,9 +369,11 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   }
   $sourceentry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
   if ($sourceentry !== NULL) {
-    $entry = $sourceentry;
-    $entry['path'] = $targetfile;
-    pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
+    if (!($entry['valuetype'] & PIFS_IS_REMOVED)) {
+      $entry = $sourceentry;
+      $entry['path'] = $targetfile;
+      pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
+    }
   }
   elseif (is_file($sourcefile)) {
     $entry = array(
@@ -361,7 +405,33 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
   $dcs = $select->execute();
   while ($dc = $dcs->fetchAssoc()) {
     $success = FALSE;
-    if ($dc['valuetype'] & PIFS_IS_DIR) {
+    if ($dc['valuetype'] & PIFS_IS_REMOVED) {
+      if ($dc['valuetype'] & PIFS_IS_FILE) {
+        if (is_file($dc['path'])) {
+          $success = @unlink($dc['path']);
+        }
+        else {
+          if (!is_dir($dc['path'])) {
+            $success = TRUE;
+          }
+        }
+      }
+      else if ($dc['valuetype'] & PIFS_IS_DIR) {
+        if (is_dir($dc['path'])) {
+          // As a security policy we don't actually remove directories, but rename them.
+          $removeddir = $dc['path'] . '.removed';
+          if (!is_dir($removeddir) && !is_file($removeddir)) {
+            $success = @rename($dc['path'], $dc['path'] . '.removed');
+          }
+        }
+        else {
+          if (!is_file($dc['path'])) {
+            $success = TRUE;
+          }
+        }
+      }
+    }
+    else if ($dc['valuetype'] & PIFS_IS_DIR) {
       if (!is_dir($dc['path'])) {
         $success = mkdir($dc['path']);
       }
@@ -418,7 +488,10 @@ function pifs_entry_read_content($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
   if ($entry !== NULL) {
-    if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_CONTENT)) {
+    if ($entry['valuetype'] & PIFS_IS_REMOVED) {
+      return NULL;
+    }
+    else if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_CONTENT)) {
       return $entry['filevalue'];
     }
     if (($entry['valuetype'] & PIFS_IS_FILE) && ($entry['valuetype'] & PIFS_HAS_REAL)) {
@@ -483,7 +556,10 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
     $newfilename = $dc['path'];
     if ($recursive || (strpos($newfilename, DIRECTORY_SEPARATOR, $origlength + 1) === FALSE)) {
       // either recursive, or should not have a directory separator after the length of the original directory path.
-      if ($dc['valuetype'] & PIFS_IS_DIR) {
+      if ($dc['valuetype'] & PIFS_IS_REMOVED) {
+        unset($filenames[$newfilename]);
+      }
+      else if ($dc['valuetype'] & PIFS_IS_DIR) {
         if ($includedirectories) {
           $filenames[$newfilename] = 1;
         }
