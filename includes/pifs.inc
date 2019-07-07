@@ -385,6 +385,24 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   }
 }
 
+function pifs_entry_recursive_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id) {
+  $sourcefile = pifs_cleanup_filepath($sourcefile);
+  $targetfile = pifs_cleanup_filepath($targetfile);
+  if (pifs_is_dir($sourcefile, $workflow_id, $step_id, $other_id)) {
+    if (!pifs_is_dir($targetfile, $workflow_id, $step_id, $other_id)) {
+      pifs_entry_mkdir($targetfile, $workflow_id, $step_id, $other_id);
+    }
+    $inners = pifs_full_filenames_from_directory($sourcefile, $workflow_id, $step_id, $other_id, '', FALSE, TRUE);
+    foreach ($inners as $inner) {
+      $newto = $targetfile . DIRECTORY_SEPARATOR . basename($targetfile);
+      pifs_entry_recursive_copy($inner, $newto, $workflow_id, $step_id, $other_id);
+    }
+  }
+  else {
+    pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $other_id);
+  }
+}
+
 function pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id) {
   $sourcefile = pifs_cleanup_filepath($sourcefile);
   $sourceentry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
@@ -399,6 +417,19 @@ function pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id) {
     );
   }
   pifs_store_entry($sourceentry, $workflow_id, $step_id, $other_id);
+}
+
+function pifs_entry_recursive_remove($sourcefile, $workflow_id, $step_id, $other_id) {
+  $sourcefile = pifs_cleanup_filepath($sourcefile);
+  if (pifs_is_dir($sourcefile, $workflow_id, $step_id, $other_id)) {
+    $inners = pifs_full_filenames_from_directory($sourcefile, $workflow_id, $step_id, $other_id, '', FALSE, TRUE);
+    foreach ($inners as $inner) {
+      pifs_entry_recursive_remove($inner, $workflow_id, $step_id, $other_id);
+    }
+  }
+  else {
+    pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id);
+  }
 }
 
 function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $do_append = true) {
@@ -419,6 +450,7 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
     ->condition('other_id', $other_id)
     ->condition('step_id', $step_id);
   $dcs = $select->execute();
+  $removeddirs = array();
   while ($dc = $dcs->fetchAssoc()) {
     $success = FALSE;
     if ($dc['valuetype'] & PIFS_IS_REMOVED) {
@@ -434,12 +466,7 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
       }
       else if ($dc['valuetype'] & PIFS_IS_DIR) {
         if (is_dir($dc['path'])) {
-          // As a security policy we don't actually remove directories, but move them to the tmp directory.
-          $removeddir = $dc['path'] . '.removed';
-          if (!is_dir($removeddir) && !is_file($removeddir)) {
-            $todir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . basename($dc['path']) . '.removed_' . time();
-            $success = @rename($dc['path'], $todir);
-          }
+          $removeddirs[$dc['path']] = 1;
         }
         else {
           if (!is_file($dc['path'])) {
@@ -449,6 +476,10 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
       }
     }
     else if ($dc['valuetype'] & PIFS_IS_DIR) {
+      if (isset($removeddirs[$dc['path']])) {
+        // If the dir was previously marked as removed, unmark it.
+        unset($removeddirs[$dc['path']]);
+      }
       if (!is_dir($dc['path'])) {
         $success = mkdir($dc['path']);
       }
@@ -496,6 +527,12 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
     }
     if (!$success) {
       $results[] = array('text' => t("Failed to persist '@file'.", array('@file' => $dc['path'])), 'type' => 'run_error');
+    }
+  }
+  // remove the directories last...
+  foreach ($removeddirs as $removeddir) {
+    if (!rmdir($removeddir)) {
+      $results[] = array('text' => t("Failed to remove '@file'.", array('@file' => $removeddir)), 'type' => 'run_error');
     }
   }
   return $results;
