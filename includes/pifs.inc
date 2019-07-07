@@ -385,6 +385,22 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   }
 }
 
+function pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id) {
+  $sourcefile = pifs_cleanup_filepath($sourcefile);
+  $sourceentry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
+  if ($sourceentry !== NULL) {
+    $sourceentry['valuetype'] = $sourceentry['valuetype'] | PIFS_IS_REMOVED;
+  }
+  else {
+    $sourceentry = array(
+      'path'      => $sourcefile,
+      'valuetype' => (is_file($sourcefile)?PIFS_IS_FILE:PIFS_IS_DIR) | PIFS_HAS_REAL | PIFS_IS_REMOVED,
+      'filevalue' => $sourcefile
+    );
+  }
+  pifs_store_entry($sourceentry, $workflow_id, $step_id, $other_id);
+}
+
 function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $do_append = true) {
   $targetfile = pifs_cleanup_filepath($targetfile);
   $entry = array(
@@ -418,10 +434,11 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
       }
       else if ($dc['valuetype'] & PIFS_IS_DIR) {
         if (is_dir($dc['path'])) {
-          // As a security policy we don't actually remove directories, but rename them.
+          // As a security policy we don't actually remove directories, but move them to the tmp directory.
           $removeddir = $dc['path'] . '.removed';
           if (!is_dir($removeddir) && !is_file($removeddir)) {
-            $success = @rename($dc['path'], $dc['path'] . '.removed');
+            $todir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . basename($dc['path']) . '.removed_' . time();
+            $success = @rename($dc['path'], $todir);
           }
         }
         else {
