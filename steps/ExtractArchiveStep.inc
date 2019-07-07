@@ -34,6 +34,9 @@ class ExtractArchiveStep extends PrepareIngestFilesStep {
     if ($this->hasConfigKey('target_filepath')) {
       $title .= ' ' . t('to "@fp"', array('@fp' => $this->config['target_filepath']));
     }
+    if ($this->hasConfigKey('remove') && $this->config['remove']) {
+      $title .= ' ' . t('then remove archive');
+    }
     if ($this->hasConfigKey('source_skip_missing')) {
       if ($this->config['source_skip_missing'] === '1') {
         $title .= ' ' . t('and skip missing source files');
@@ -69,6 +72,11 @@ class ExtractArchiveStep extends PrepareIngestFilesStep {
         'label' => t('Target filepath'),
         'description' => t('This should hold an absolute path to an existing directory in which the archive is extracted.'),
         'type' => 'templatestring',
+      ),
+      'remove' => array(
+        'label' => t('Remove archive'),
+        'description' => t('When checked the archive(s) at the source filepath will be removed after successful extracting.'),
+        'type' => 'boolean',
       ),
     );
   }
@@ -110,8 +118,13 @@ class ExtractArchiveStep extends PrepareIngestFilesStep {
         // Do the loop at least once, so this step can be used as the first step of a workflow.
         $item = array('_dummy' => 'dummy item');
       }
+      $done = array();
       while ($item !== NULL) {
         $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
+        if (isset($done[$sourcefilepath])) {
+          continue;
+        }
+        $done[$sourcefilepath] = 1;
         if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           if ($skipmissing === '1') {
             $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
@@ -142,6 +155,10 @@ class ExtractArchiveStep extends PrepareIngestFilesStep {
           $results[] = array('text' => t("Cannot extract archive '@archive'.",
                     array('@archive' => $sourcefilepath)), 'type' => 'run_error');
           return $results;
+        }
+
+        if ($this->hasConfigKey('remove') && $this->config['remove']) {
+          pifs_entry_remove($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
         }
 
         $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
