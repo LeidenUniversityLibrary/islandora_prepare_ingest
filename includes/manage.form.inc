@@ -697,28 +697,29 @@ function islandora_prepare_ingest_ajax_files_handler() {
 
     if (isset($query['path'])) {
       $entry = pifs_entry_for_filepath($query['path'], $workflowid, $stepid, $otherid);
-      if ($entry['valuetype'] & PIFS_IS_DIR) {
-        $result = array('type' => 'directory');
-        return json_encode($result);
+      $result = NULL;
+      if ($entry !== NULL) {
+        if ($entry['valuetype'] & PIFS_IS_DIR) {
+          $result = array('type' => 'directory');
+        }
+        else {
+          if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+            $result = array(
+              'type' => 'file',
+              'content' => pifs_archive_read_content_from_file($entry, $workflowid, $stepid, $otherid, 100000),
+              'archivefilepath' => pifs_archive_get_archivepath($entry),
+            );
+          }
+          elseif ($entry['valuetype'] & PIFS_HAS_CONTENT) {
+            $result = array('type' => 'file', 'content' => $entry['filevalue']);
+          }
+          elseif ($entry['valuetype'] & PIFS_HAS_REAL) {
+            $result = array('type' => 'file', 'realfilepath' => $entry['filevalue']);
+          }
+        }
+        $result['removed'] = ($entry['valuetype'] & PIFS_IS_REMOVED)?TRUE:FALSE;
       }
-      else {
-        if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
-          $result = array(
-            'type' => 'file',
-            'content' => pifs_archive_read_content_from_file($entry, $workflowid, $stepid, $otherid, 100000),
-            'archivefilepath' => pifs_archive_get_archivepath($entry),
-          );
-          return json_encode($result);
-        }
-        elseif ($entry['valuetype'] & PIFS_HAS_CONTENT) {
-          $result = array('type' => 'file', 'content' => $entry['filevalue']);
-          return json_encode($result);
-        }
-        elseif ($entry['valuetype'] & PIFS_HAS_REAL) {
-          $result = array('type' => 'file', 'realfilepath' => $entry['filevalue']);
-          return json_encode($result);
-        }
-      }
+      return json_encode($result);
     }
     else {
       $count = pifs_count_of_all_filepaths_for_entries($workflowid, $stepid, $otherid);
