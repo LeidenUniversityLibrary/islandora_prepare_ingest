@@ -75,7 +75,9 @@ function pifs_count_of_all_filepaths_for_entries($workflow_id, $step_id, $other_
   $select->fields('pifs', array('path'));
   $select->condition('pifs.workflow_id', $workflow_id)
     ->condition('pifs.other_id', $other_id);
-  $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  if ($step_id !== NULL) {
+    $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
+  }
   $select->distinct();
   return $select->countQuery()->execute()->fetchField();
 }
@@ -255,7 +257,7 @@ function pifs_is_file($filepath, $workflow_id, $step_id, $other_id) {
 
 function pifs_is_dir($filepath, $workflow_id, $step_id, $other_id) {
   $filepath = pifs_cleanup_filepath($filepath);
-  $rsult = pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
+  $result = pifs_entry_is_dir($filepath, $workflow_id, $step_id, $other_id);
   if ($result === NULL) {
     if (is_dir($filepath)) {
       return TRUE;
@@ -528,9 +530,11 @@ function pifs_persist_entries($workflow_id, $step_id, $other_id, $exists_action 
     }
   }
   // remove the directories last...
-  foreach ($removeddirs as $removeddir) {
-    if (!rmdir($removeddir)) {
-      $results[] = array('text' => t("Failed to remove '@file'.", array('@file' => $removeddir)), 'type' => 'run_error');
+  foreach ($removeddirs as $removeddir => $doit) {
+    if ($doit && is_dir($removeddir)) {
+      if (!rmdir($removeddir)) {
+        $results[] = array('text' => t("Failed to remove '@file'.", array('@file' => $removeddir)), 'type' => 'run_error');
+      }
     }
   }
   return $results;

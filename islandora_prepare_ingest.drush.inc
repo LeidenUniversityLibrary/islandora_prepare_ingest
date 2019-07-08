@@ -64,6 +64,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/constants');
+  module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
   $workflowid = drush_get_option('workflow');
   if (!isset($workflowid)) {
@@ -130,8 +131,7 @@ function drush_islandora_prepare_ingest_prepare_ingest() {
       $otherid = "drush$workflowid";
     }
     islandora_prepare_ingest_drush_dry_run_workflow($workflowid, $otherid, $additionalconfig);
-
-    if (islandora_prepare_ingest_data_cache_count($workflowid, $otherid) > 0) {
+    if (islandora_prepare_ingest_data_cache_count($workflowid, $otherid) > 0 || pifs_count_of_all_filepaths_for_entries($workflowid, NULL, $otherid) > 0) {
       $context = array();
       $context['sandbox']['drush'] = TRUE;
 
