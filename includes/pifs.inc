@@ -394,7 +394,7 @@ function pifs_entry_recursive_copy($sourcefile, $targetfile, $workflow_id, $step
     }
     $inners = pifs_full_filenames_from_directory($sourcefile, $workflow_id, $step_id, $other_id, '', FALSE, TRUE);
     foreach ($inners as $inner) {
-      $newto = $targetfile . DIRECTORY_SEPARATOR . basename($targetfile);
+      $newto = $targetfile . DIRECTORY_SEPARATOR . basename($inner);
       pifs_entry_recursive_copy($inner, $newto, $workflow_id, $step_id, $other_id);
     }
   }
@@ -427,9 +427,7 @@ function pifs_entry_recursive_remove($sourcefile, $workflow_id, $step_id, $other
       pifs_entry_recursive_remove($inner, $workflow_id, $step_id, $other_id);
     }
   }
-  else {
-    pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id);
-  }
+  pifs_entry_remove($sourcefile, $workflow_id, $step_id, $other_id);
 }
 
 function pifs_entry_write_content($targetfile, $content, $workflow_id, $step_id, $other_id, $do_append = true) {
