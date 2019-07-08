@@ -597,6 +597,7 @@ function pifs_full_filenames_from_directory($directorypath, $workflow_id, $step_
         }
       }
     }
+    closedir($dh);
   }
   $origlength = strlen($directorypath);
   $stepweight = _pifs_step_weight($workflow_id, $step_id);
