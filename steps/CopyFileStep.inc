@@ -86,6 +86,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
           'move_file' => t('Move file'),
           'move_dir' => t('Move directory'),
         ),
+        'optional' => true,
       ),
       'source_filepath' => array(
         'label' => t('Source filepath'),
@@ -144,7 +145,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('source_filepath') && $this->hasConfigKey('target_filepath') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('source_filepath') && $this->hasConfigKey('target_filepath')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $sourcetemplate = $this->config['source_filepath'];
       $targettemplate = $this->config['target_filepath'];
@@ -152,8 +153,14 @@ class CopyFileStep extends PrepareIngestFilesStep {
       $action = isset($this->config['action'])?$this->config['action']:'';
 
       $results = array();
-      $prevdatastep->resetDataIterator();
-      $item = $prevdatastep->nextDataItem();
+      if (isset($prevdatastep)) {
+        $prevdatastep->resetDataIterator();
+        $item = $prevdatastep->nextDataItem();
+      }
+      else {
+        // Do the loop at least once, so this step can be used as the first step of a workflow.
+        $item = array('_dummy' => 'dummy item');
+      }
       while ($item !== NULL) {
         $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
         $sourceisdir = pifs_is_dir($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
@@ -162,12 +169,17 @@ class CopyFileStep extends PrepareIngestFilesStep {
             ||
             (($action === 'copy_dir' || $action === 'move_dir') && !$sourceisdir)) {
           if ($skipmissing === '1') {
-            $item = $prevdatastep->nextDataItem();
+            $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
             continue;
           }
           elseif ($skipmissing === 'skip_item') {
-            $prevdatastep->skipDataItemInNextSteps($item);
-            $item = $prevdatastep->nextDataItem();
+            if (isset($prevdatastep)) {
+              $prevdatastep->skipDataItemInNextSteps($item);
+              $item = $prevdatastep->nextDataItem();
+            }
+            else {
+              $item = NULL;
+            }
             continue;
           }
           else {
@@ -194,12 +206,17 @@ class CopyFileStep extends PrepareIngestFilesStep {
           $report_error = true;
           if ($this->hasConfigKey('target_exists_action')) {
             if ($this->config['target_exists_action'] === 'keep_old') {
-              $item = $prevdatastep->nextDataItem();
+              $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
               continue;
             }
             elseif ($this->config['target_exists_action'] === 'skip_item') {
-              $prevdatastep->skipDataItemInNextSteps($item);
-              $item = $prevdatastep->nextDataItem();
+              if (isset($prevdatastep)) {
+                $prevdatastep->skipDataItemInNextSteps($item);
+                $item = $prevdatastep->nextDataItem();
+              }
+              else {
+                $item = NULL;
+              }
               continue;
             }
             elseif ($this->config['target_exists_action'] === 'keep_new') {
@@ -234,7 +251,7 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
         //$this->saveDataItem($item);
 
-        $item = $prevdatastep->nextDataItem();
+        $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
       }
     }
     return FALSE;
