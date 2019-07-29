@@ -35,18 +35,64 @@
 function islandora_prepare_ingest_manage_form(array $form, array &$form_state) {
   module_load_include('inc', 'islandora_prepare_ingest', 'includes/db');
 
-  $workflows = islandora_prepare_ingest_select_workflows();
-
-  $options = array();
-  foreach ($workflows as $workflow) {
-    $options[$workflow['id']] = array(
-      'name' => l($workflow['name'], 'admin/islandora/prepare_ingest/edit/' . $workflow['id']),
-      'type' => $workflow['type'],
-      'checked' => $workflow['checked']?t('Checked'):'',
-      'copy' => l(t('copy'),'admin/islandora/prepare_ingest/copy/' . $workflow['id']),
-      'export' => l(t('export'),'admin/islandora/prepare_ingest/export/' . $workflow['id']),
-    );
+  $type = array('full', 'partial');
+  if (isset($_SESSION['filterbytype'])) {
+    if ($_SESSION['filterbytype'] === 'all') {
+      $type = NULL;
+    }
+    else {
+      $type = explode(',', $_SESSION['filterbytype']);
+    }
   }
+  $workflows = islandora_prepare_ingest_select_workflows($type);
+  $options = array();
+  $checkedfilter = NULL;
+  if (isset($_SESSION['filterbychecked']) && $_SESSION['filterbychecked'] !== 'all') {
+    $checkedfilter = ($_SESSION['filterbychecked'] === 'checked');
+  }
+  foreach ($workflows as $workflow) {
+    if ($checkedfilter === NULL || $workflow['checked'] == $checkedfilter) {
+      $options[$workflow['id']] = array(
+        'name' => l($workflow['name'], 'admin/islandora/prepare_ingest/edit/' . $workflow['id']),
+        'type' => $workflow['type'],
+        'checked' => $workflow['checked']?t('Checked'):'',
+        'copy' => l(t('copy'),'admin/islandora/prepare_ingest/copy/' . $workflow['id']),
+        'export' => l(t('export'),'admin/islandora/prepare_ingest/export/' . $workflow['id']),
+      );
+    }
+  }
+  $form['filter'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Filter workflows'),
+    '#collapsible' => TRUE,
+    '#collapsed' => ((!isset($_SESSION['filterbytype']) || $_SESSION['filterbytype'] === 'full,partial') && (!isset($_SESSION['filterbychecked']) || $_SESSION['filterbychecked'] === 'all')),
+  );
+  $form['filter']['bytype'] = array(
+    '#type' => 'select',
+    '#title' => t('Filter by type'),
+    '#options' => array(
+      'full,partial' => t('Full and partial workflows'),
+      'full' => t('Full workflows only'),
+      'partial' => t('Partial workflows only'),
+      'all' => t('All workflows'),
+    ),
+    '#default_value' => isset($_SESSION['filterbytype']) ? $_SESSION['filterbytype'] : 0,
+  );
+  $form['filter']['bychecked'] = array(
+    '#type' => 'select',
+    '#title' => t('Filter by checked'),
+    '#options' => array(
+      'all' => t('Checked and unchecked'),
+      'checked' => t('Checked only'),
+      'unchecked' => t('Unchecked only'),
+    ),
+    '#default_value' => isset($_SESSION['filterbychecked']) ? $_SESSION['filterbychecked'] : 0,
+  );
+  $form['filter']['filter'] = array(
+    '#type' => 'submit',
+    '#value' => t('Filter'),
+    '#submit' => array('islandora_prepare_ingest_manage_filter'),
+  );
   $form['table'] = array(
     '#type' => 'tableselect',
     '#header' => array(
@@ -137,6 +183,11 @@ function islandora_prepare_ingest_manage_delete_selected_workflows(array $form, 
 
 function islandora_prepare_ingest_manage_add_workflow(array $form, array &$form_state) {
   $form_state['redirect'] = 'admin/islandora/prepare_ingest/make';
+}
+
+function islandora_prepare_ingest_manage_filter(array $form, array &$form_state) {
+  $_SESSION['filterbytype'] = isset($form_state['input']['bytype']) ? $form_state['input']['bytype'] : NULL;
+  $_SESSION['filterbychecked'] = isset($form_state['input']['bychecked']) ? $form_state['input']['bychecked'] : NULL;
 }
 
 /**
