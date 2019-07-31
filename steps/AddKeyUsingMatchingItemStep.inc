@@ -124,7 +124,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
 
       if (!isset($context['sandbox']['total_items'])) {
         $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
-
+        drupal_static_reset('ipi_findmatching');
         $prevdatastep->resetDataIterator();
       }
 
@@ -157,7 +157,7 @@ class AddKeyUsingMatchingItemStep extends PrepareIngestStep {
   }
 
   private function findMatchingItem($prevdatastep, $matchkey, $matchvalue, $neededkeys) {
-    $cache = &drupal_static(__FUNCTION__);
+    $cache = &drupal_static('ipi_findmatching');
 
     if (empty($cache[$matchkey])) {
       $value2id = islandora_prepare_ingest_data_cache_select_keyvalue_by_itemnr($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1, $matchkey);
