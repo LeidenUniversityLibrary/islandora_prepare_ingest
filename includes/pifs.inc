@@ -680,12 +680,12 @@ function pifs_archive_persist_entry($entry, $workflow_id, $step_id, $other_id) {
     pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
     $sourcepath = pifs_archive_get_temporary_filepath($entry);
     if ($sourcepath) {
-      $islinked = @link($sourcepath, $dc['path']);
+      $islinked = @link($sourcepath, $entry['path']);
       if ($islinked) {
         return TRUE;
       }
       else {
-        $iscopied = @copy($sourcepath, $dc['path']);
+        $iscopied = @copy($sourcepath, $entry['path']);
         if ($iscopied) {
           return TRUE;
         }
