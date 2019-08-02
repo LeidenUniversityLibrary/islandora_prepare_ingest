@@ -85,7 +85,7 @@ function pifs_count_of_all_filepaths_for_entries($workflow_id, $step_id, $other_
 function pifs_filepaths_for_entries($workflow_id, $step_id, $other_id, $min, $max) {
   $stepweight = _pifs_step_weight($workflow_id, $step_id);
   $select = db_select('islandora_prepare_ingest_pifs', 'pifs');
-  $select->fields('pifs', array('path', 'valuetype'));
+  $select->fields('pifs', array('path'));
   $select->condition('pifs.workflow_id', $workflow_id)
     ->condition('pifs.other_id', $other_id);
   $select->join('islandora_prepare_ingest_step', 'step', 'step.id = pifs.step_id AND step.workflow_id = :workflowid AND step.weight <= :weight', array(':workflowid' => $workflow_id, ':weight' => $stepweight));
@@ -97,7 +97,8 @@ function pifs_filepaths_for_entries($workflow_id, $step_id, $other_id, $min, $ma
   $results = array();
   $itemnr = $min;
   while ($dc = $dcs->fetchAssoc()) {
-    $results[] = array('item nr' => $itemnr, 'filepath' => $dc['path'], 'removed' => ($dc['valuetype'] & PIFS_IS_REMOVED)?TRUE:FALSE);
+    $entry = pifs_entry_for_filepath($dc['path'], $workflow_id, $step_id, $other_id);
+    $results[] = array('item nr' => $itemnr, 'filepath' => $entry['path'], 'removed' => ($entry['valuetype'] & PIFS_IS_REMOVED)?TRUE:FALSE);
     $itemnr++;
   }
   return $results;
