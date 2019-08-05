@@ -75,6 +75,8 @@ class ParseXmlStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');

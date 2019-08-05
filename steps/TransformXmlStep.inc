@@ -83,6 +83,8 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   }
 
   public function dryRun(&$context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
       if (!isset($context['sandbox']['total_items'])) {
