@@ -716,16 +716,16 @@ function pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_i
  */
 function pifs_archive_extract_files($archivepath, $outputdirectory, $workflow_id, $step_id, $other_id) {
   $archiveinfo = pathinfo($archivepath);
-  if ($archiveinfo['extension'] === 'zip') {
+  if (isset($archiveinfo['extension']) && $archiveinfo['extension'] === 'zip') {
     $filepaths = pifs_archive_unzip_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
   }
-  else if ($archiveinfo['extension'] === 'gz') {
+  else if (isset($archiveinfo['extension']) && $archiveinfo['extension'] === 'gz') {
     $filepaths = pifs_archive_ungz_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
   }
-  else if ($archiveinfo['extension'] === 'rar') {
+  else if (isset($archiveinfo['extension']) && $archiveinfo['extension'] === 'rar') {
     $filepaths = pifs_archive_unrar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
   }
-  else if ($archiveinfo['extension'] === 'tar') {
+  else if (isset($archiveinfo['extension']) && $archiveinfo['extension'] === 'tar') {
     $filepaths = pifs_archive_untar_to_temporary_directory($archivepath, $workflow_id, $step_id, $other_id);
   }
   else {
@@ -739,7 +739,7 @@ function pifs_archive_extract_files($archivepath, $outputdirectory, $workflow_id
         continue;
       }
       $archiveinfo = pathinfo($temporary);
-      if ($archiveinfo['extension'] === 'tar') {
+      if (isset($archiveinfo['extension']) && $archiveinfo['extension'] === 'tar') {
         $firsttarfile = $temporary;
       }
       else {
