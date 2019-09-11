@@ -192,8 +192,8 @@ class CopyFileStep extends PrepareIngestFilesStep {
         if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
         }
-        else {
-          if ($action === 'copy_dir' || $action === 'move_dir') {
+        if ($action === 'copy_dir' || $action === 'move_dir') {
+          if (pifs_is_file($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
             $results[] = array('text' => t("Target '@file' is a file but should be a directory.",
                       array('@type' => $type, '@file' => $sourcefilepath)), 'type' => 'run_error');
           }
