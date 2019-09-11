@@ -185,6 +185,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Files and directories'),
     'class name' => 'ExtractArchiveStep',
   );
+  $info['add_key_from_file'] = array(
+    'name' => t('Add key from file'),
+    'type group' => t('Add key'),
+    'class name' => 'AddKeyFromFile',
+  );
 
   return $info;
 }
