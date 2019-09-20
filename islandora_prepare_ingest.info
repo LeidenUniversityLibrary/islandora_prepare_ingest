@@ -42,3 +42,4 @@ files[] = steps/AddKeyUsingMatchingItemStep.inc
 files[] = steps/WriteCsvFileStep.inc
 files[] = steps/ExtractArchiveStep.inc
 files[] = steps/AddKeyFromFile.inc
+files[] = steps/ValidateNewspaperStep.inc

@@ -190,6 +190,11 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Add key'),
     'class name' => 'AddKeyFromFile',
   );
+  $info['validate_newspaper'] = array(
+    'name' => t('Validate Newspaper'),
+    'type group' => t('Validation'),
+    'class name' => 'ValidateNewspaperStep',
+  );
 
   return $info;
 }
