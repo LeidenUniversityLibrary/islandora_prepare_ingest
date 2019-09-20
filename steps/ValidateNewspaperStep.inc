@@ -45,6 +45,7 @@ class ValidateNewspaperStep extends PrepareIngestValidateStep {
       $newspaperissueoptionalds2mimes = array(
         'MODS' => array('application/xml', 'text/xml'),
         'TN'   => array('image/jpeg', 'image/png', 'image/gif'),
+        'PDF'  => array('application/pdf'),
       );
   
       $pagerequiredds2mimes = array(
