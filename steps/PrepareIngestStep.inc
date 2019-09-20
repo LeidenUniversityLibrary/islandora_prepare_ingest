@@ -120,6 +120,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   * Magic sleep function to keep from serializing the di_dbstatement and di_lastdata.
   **/
   public function __sleep() {
+dd((memory_get_usage()/1024/1024), get_class($this) . "->sleep memory MB before");
     return array('name', 'config', 'workflowid', 'stepid', 'otherid', 'weight', 'previousstep', 'previousdatachangingstep', 'di_currentitemnr', 'di_type');
   }
 
@@ -127,6 +128,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   * Magic wakeup function to refresh di_dbstatement and di_lastdata.
   **/
   public function __wakeup() {
+dd((memory_get_usage()/1024/1024), get_class($this) . "->wakeup memory MB before");
     if (isset($this->di_currentitemnr, $this->di_type)) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
@@ -137,6 +139,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       $this->di_dbstatement = $selectquery->execute();
       $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
     }
+dd((memory_get_usage()/1024/1024), get_class($this) . "->wakeup memory MB after");
   }
 
  /**
@@ -364,6 +367,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   }
 
   protected function resetDataIterator($type = 1) {
+dd((memory_get_usage()/1024/1024), get_class($this) . "->resetDataIterator memory MB before");
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
     $selectquery = islandora_prepare_ingest_data_cache_select_query($this->workflowid, $this->stepid, $this->otherid, $type, array());
@@ -373,6 +377,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     $this->di_lastdata = $this->di_dbstatement->fetchAssoc();
     $this->di_currentitemnr = $this->di_lastdata['item_nr'];
     $this->di_type = $type;
+dd((memory_get_usage()/1024/1024), get_class($this) . "->resetDataIterator memory MB after");
   }
 
   protected function nextDataItem() {

@@ -73,12 +73,14 @@ class EndFilterItemsStep extends PrepareIngestStep {
       $prevstartfilterdatastep = $startfilterdatastep->_previousDataChangingStep();
       $prevstartfilterdatastep->resetDataIterator();
       if ($startfilterdatastep === $prevdatastep) {
+dd((memory_get_usage()/1024/1024), 'end filter 1');
         // the filter only contains non-data-changing steps, so just use the data from before the filter
         $item = $prevstartfilterdatastep->nextDataItem();
         while ($item !== NULL) {
           $this->saveDataItem($item);
           $item = $prevstartfilterdatastep->nextDataItem();
         }
+dd((memory_get_usage()/1024/1024), 'end filter 2');
       }
       else {
         // the filter does contain data-changing steps, so do the filtering again on it's children but replace the filtered items with the items of the previous step:
@@ -89,6 +91,7 @@ class EndFilterItemsStep extends PrepareIngestStep {
         $item = $prevstartfilterdatastep->nextDataItem();
         $newitem = $prevdatastep->nextDataItem();
         while ($item !== NULL) {
+dd((memory_get_usage()/1024/1024), 'end filter 3');
           $shouldkeep = $startfilterdatastep->shouldKeep($item, $filterconfig);
           if ($shouldkeep) {
             // this item was filtered, so replace these filtered items up to a non-filtered item.
@@ -96,34 +99,43 @@ class EndFilterItemsStep extends PrepareIngestStep {
             $lastfiltereditem = $item;
             $item = $prevstartfilterdatastep->nextDataItem();
             while ($item != NULL && $startfilterdatastep->shouldKeep($item, $filterconfig)) {
+dd((memory_get_usage()/1024/1024), 'end filter 4');
               $lastfiltereditem = $item;
               $item = $prevstartfilterdatastep->nextDataItem();
+dd((memory_get_usage()/1024/1024), 'end filter 5');
             }
             // replace the items that should be kept (when the filter started) with the items from the end of the filter.
             while ($newitem !== NULL) {
+dd((memory_get_usage()/1024/1024), 'end filter 6');
               $newitem['item nr'] = $currentitemnr;
               $this->saveDataItem($newitem);
               $currentitemnr++;
               $newitem = $prevdatastep->nextDataItem();
+dd((memory_get_usage()/1024/1024), 'end filter 7');
               if ($newitem['_UID_'] === $lastfiltereditem['_UID_']) {
                 break;
               }
             }
           }
           else {
+dd((memory_get_usage()/1024/1024), 'end filter 8');
             $item['item nr'] = $currentitemnr;
             $this->saveDataItem($item);
             $currentitemnr++;
             $item = $prevstartfilterdatastep->nextDataItem();
+dd((memory_get_usage()/1024/1024), 'end filter 9');
           }
         }
         while ($newitem !== NULL) {
+dd((memory_get_usage()/1024/1024), 'end filter 10');
           $newitem['item nr'] = $currentitemnr;
           $this->saveDataItem($newitem);
           $currentitemnr++;
           $newitem = $prevdatastep->nextDataItem();
+dd((memory_get_usage()/1024/1024), 'end filter 11');
         }
       }
+dd((memory_get_usage()/1024/1024), 'end filter 12');
       $prevstartfilterdatastep->clearDataIterator();
       $prevdatastep->clearDataIterator();
     }
