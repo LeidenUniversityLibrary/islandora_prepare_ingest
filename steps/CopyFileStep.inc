@@ -28,6 +28,22 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
   public function label() {
     $title = t('Copy file');
+    if ($this->hasConfigKey('action')) {
+      switch ($this->config['action']) {
+        case '':
+          $title = t('Copy file');
+          break;
+        case 'copy_dir':
+          $title = t('Copy directory');
+          break;
+        case 'move_file':
+          $title = t('Move file');
+          break;
+        case 'move_dir':
+          $title = t('Move directory');
+          break;
+      }
+    }
     if ($this->hasConfigKey('source_filepath')) {
       $title .= ' ' . t('from "@fp"', array('@fp' => $this->config['source_filepath']));
     }
@@ -60,6 +76,18 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
   public function arguments() {
     return array(
+      'action' => array(
+        'label' => t('Copy or move'),
+        'description' => t('Copy or move a file or a directory.'),
+        'type' => 'select',
+        'options' => array(
+          '' => t('Copy file'),
+          'copy_dir' => t('Copy directory'),
+          'move_file' => t('Move file'),
+          'move_dir' => t('Move directory'),
+        ),
+        'optional' => true,
+      ),
       'source_filepath' => array(
         'label' => t('Source filepath'),
         'description' => t('This should hold an absolute path to an existing file.'),
@@ -117,46 +145,78 @@ class CopyFileStep extends PrepareIngestFilesStep {
 
   public function dryRun(&$context) {
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('source_filepath') && $this->hasConfigKey('target_filepath') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('source_filepath') && $this->hasConfigKey('target_filepath')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
       $sourcetemplate = $this->config['source_filepath'];
       $targettemplate = $this->config['target_filepath'];
       $skipmissing = $this->config['source_skip_missing'];
+      $action = isset($this->config['action'])?$this->config['action']:'';
 
       $results = array();
-      $prevdatastep->resetDataIterator();
-      $item = $prevdatastep->nextDataItem();
+      if (isset($prevdatastep)) {
+        $prevdatastep->resetDataIterator();
+        $item = $prevdatastep->nextDataItem();
+      }
+      else {
+        // Do the loop at least once, so this step can be used as the first step of a workflow.
+        $item = array('_dummy' => 'dummy item');
+      }
       while ($item !== NULL) {
         $sourcefilepath = $this->fillOutTemplate($sourcetemplate, $item);
-        if (!pifs_is_file($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+        $sourceisdir = pifs_is_dir($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
+        $sourceisfile = pifs_is_file($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
+        if ((($action === '' || $action === 'move_file') && !$sourceisfile)
+            ||
+            (($action === 'copy_dir' || $action === 'move_dir') && !$sourceisdir)) {
           if ($skipmissing === '1') {
-            $item = $prevdatastep->nextDataItem();
+            $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
             continue;
           }
           elseif ($skipmissing === 'skip_item') {
-            $prevdatastep->skipDataItemInNextSteps($item);
-            $item = $prevdatastep->nextDataItem();
+            if (isset($prevdatastep)) {
+              $prevdatastep->skipDataItemInNextSteps($item);
+              $item = $prevdatastep->nextDataItem();
+            }
+            else {
+              $item = NULL;
+            }
             continue;
           }
           else {
-            $results[] = array('text' => t("File '@file' does not exist.",
-                      array('@file' => $sourcefilepath)), 'type' => 'run_error');
+            $type = ($action === '' || $action === 'move_file')?t('File'):t('Directory');
+            $results[] = array('text' => t("@type '@file' does not exist.",
+                      array('@type' => $type, '@file' => $sourcefilepath)), 'type' => 'run_error');
           }
         }
         $targetfilepath = $this->fillOutTemplate($targettemplate, $item);
         if ((substr($targetfilepath, -1) === DIRECTORY_SEPARATOR) || pifs_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
           $targetfilepath = $targetfilepath . DIRECTORY_SEPARATOR . basename($sourcefilepath);
         }
-        if (pifs_is_file($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+        if ($action === 'copy_dir' || $action === 'move_dir') {
+          if (pifs_is_file($targetfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
+            $results[] = array('text' => t("Target '@file' is a file but should be a directory.",
+                      array('@type' => $type, '@file' => $sourcefilepath)), 'type' => 'run_error');
+          }
+        }
+        $targetisfile = pifs_is_file($targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
+        $targetisdir = pifs_is_dir($targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
+        if ((($action === '' || $action === 'move_file') && $targetisfile)
+            ||
+            (($action === 'copy_dir' || $action === 'move_dir') && $targetisdir)) {
           $report_error = true;
           if ($this->hasConfigKey('target_exists_action')) {
             if ($this->config['target_exists_action'] === 'keep_old') {
-              $item = $prevdatastep->nextDataItem();
+              $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
               continue;
             }
             elseif ($this->config['target_exists_action'] === 'skip_item') {
-              $prevdatastep->skipDataItemInNextSteps($item);
-              $item = $prevdatastep->nextDataItem();
+              if (isset($prevdatastep)) {
+                $prevdatastep->skipDataItemInNextSteps($item);
+                $item = $prevdatastep->nextDataItem();
+              }
+              else {
+                $item = NULL;
+              }
               continue;
             }
             elseif ($this->config['target_exists_action'] === 'keep_new') {
@@ -170,17 +230,28 @@ class CopyFileStep extends PrepareIngestFilesStep {
         }
         $targetdirectory = dirname($targetfilepath);
         if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->stepid, $this->otherid)) {
-          $results[] = array('text' => t("Directory '@directory' for file '@file' should exist, but does not.",
+          $results[] = array('text' => t("Directory '@directory' for '@file' should exist, but does not.",
                     array('@directory' => $targetdirectory, '@file' => $targetfilepath)), 'type' => 'run_error');
         }
         if (count($results) > 0) {
           return $results;
         }
-        pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
+        if ($action === '' || $action === 'move_file') {
+          pifs_entry_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
+        }
+        else if ($action === 'copy_dir' || $action === 'move_dir') {
+          pifs_entry_recursive_copy($sourcefilepath, $targetfilepath, $this->workflowid, $this->stepid, $this->otherid);
+        }
+        if ($action === 'move_file') {
+          pifs_entry_remove($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
+        }
+        else if ($action === 'move_dir') {
+          pifs_entry_recursive_remove($sourcefilepath, $this->workflowid, $this->stepid, $this->otherid);
+        }
 
         //$this->saveDataItem($item);
 
-        $item = $prevdatastep->nextDataItem();
+        $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
       }
     }
     return FALSE;

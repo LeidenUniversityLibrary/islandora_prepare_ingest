@@ -180,6 +180,21 @@ function islandora_prepare_ingest_workflow_step_info() {
     'type group' => t('Files and directories'),
     'class name' => 'WriteCsvFileStep',
   );
+  $info['extract_archive'] = array(
+    'name' => t('Extract an archive'),
+    'type group' => t('Files and directories'),
+    'class name' => 'ExtractArchiveStep',
+  );
+  $info['add_key_from_file'] = array(
+    'name' => t('Add key from file'),
+    'type group' => t('Add key'),
+    'class name' => 'AddKeyFromFile',
+  );
+  $info['validate_newspaper'] = array(
+    'name' => t('Validate Newspaper'),
+    'type group' => t('Validation'),
+    'class name' => 'ValidateNewspaperStep',
+  );
 
   return $info;
 }

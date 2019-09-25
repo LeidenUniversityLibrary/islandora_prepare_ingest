@@ -75,20 +75,25 @@ class ParseXmlStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $prevdatastep = $this->_previousDataChangingStep();
-    if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
+    if ($this->hasConfigKey('filepath') && $this->hasConfigKey('xml_key_name')) {
       module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
       if (!isset($context['sandbox']['total_items'])) {
-        $context['sandbox']['total_items'] = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
-
-        $prevdatastep->resetDataIterator();
+        $totalitems = 0;
+        if (isset($prevdatastep)) {
+          $totalitems = islandora_prepare_ingest_data_cache_per_step_count($prevdatastep->workflowid, $prevdatastep->stepid, $prevdatastep->otherid, 1);
+          $prevdatastep->resetDataIterator();
+        }
+        $context['sandbox']['total_items'] = $totalitems;
       }
       $filepathtemplate = $this->config['filepath'];
       $xmlkey = $this->config['xml_key_name'];
 
       $results = array();
-      $item = $prevdatastep->nextDataItem();
+      $item = isset($prevdatastep)?$prevdatastep->nextDataItem():array('_dummy' => 'dummy item');
       $limit = 10;
       while ($item !== NULL && $limit-- > 0) {
         $filepath = $this->fillOutTemplate($filepathtemplate, $item);
@@ -123,15 +128,19 @@ class ParseXmlStep extends PrepareIngestStep {
                array('@file' => $filepath, '@message' => $message)), 'type' => 'run_error');
         }
 
+        if (!isset($prevdatastep)) {
+          $item = array();
+          $item['item nr'] = 1;
+        }
         $item[$xmlkey] = $domdoc->saveXML();
-
         $this->saveDataItem($item);
+
         if ($limit > 0) {
-          $item = $prevdatastep->nextDataItem();
+          $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
         }
       }
       if ($context['sandbox']['total_items'] > 0) {
-        if ($item !== NULL) {
+        if ($item !== NULL && isset($item['item nr'])) {
           $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
         }
         else {

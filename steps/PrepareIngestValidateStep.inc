@@ -38,6 +38,7 @@ interface PrepareIngestValidateStepInterface {
 
   function modifyIngestOptions(&$options);
 
+  function retrieveParent();
 }
 
 class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareIngestValidateStepInterface {
@@ -124,6 +125,19 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
   public function modifyIngestOptions(&$options) {
     return;
   }
+ 
+  public function retrieveParent() {
+    $collection = drush_prompt(dt('Give a collection to ingest into'));
+    $obj = NULL;
+    if (islandora_is_valid_pid($collection)) {
+      $obj = islandora_object_load($collection);
+    }
+    if (!($obj && in_array('islandora:collectionCModel', $obj->models))) {
+      drush_log(dt('Invalid collection given.'), 'warning');
+      $collection = FALSE;
+    }
+    return $collection;
+  }
 
   public function prepareIngest(&$context) {
     if (isset($context['sandbox']['drush']) && $context['sandbox']['drush']) {
@@ -131,7 +145,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
       $type = $this->typeString();
 
       $namespace = FALSE; 
-      $collection = FALSE;
+      $parent = FALSE;
       if (module_load_include('inc', 'islandora', 'includes/utilities')) {
         if (variable_get('islandora_namespace_restriction_enforced', FALSE)) {
           $namespaces = islandora_get_allowed_namespaces();
@@ -147,15 +161,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
         }
       }
       if ($namespace) {
-        $collection = drush_prompt(dt('Give a collection to ingest into'));
-        $obj = NULL;
-        if (islandora_is_valid_pid($collection)) {
-          $obj = islandora_object_load($collection);
-        }
-        if (!($obj && in_array('islandora:collectionCModel', $obj->models))) {
-           drush_log(dt('Invalid collection given.'), 'warning');
-           $collection = FALSE;
-        }
+        $parent = $this->retrieveParent();
       }
       global $base_url;
       global $user;
@@ -168,7 +174,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
         'uri' => $base_url . '/',
         'user' => $user->name,
         'namespace' => $namespace,
-        'parent' => $collection,
+        'parent' => $parent,
         'content_models' => $models,
         'type' => 'directory',
         'target' => $filepath,
@@ -184,7 +190,7 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
       $this->modifyIngestOptions($preprocessoptions);
 
       $didpreprocess = FALSE;
-      if ($collection && $namespace) {
+      if ($parent && $namespace) {
         if (drush_confirm(dt('Preprocess the files at "@filepath" as @type?', array('@filepath' => $filepath, '@type' => $type)))) {
           drush_log(dt('Starting preprocessing...'), 'ok');
           $results = drush_invoke_process('@self', $preprocesscommand, $args, $preprocessoptions);
@@ -209,8 +215,8 @@ class PrepareIngestValidateStep extends PrepareIngestStep implements PrepareInge
         }
       }
       else {
-        if (!$collection) {
-          $preprocessoptions['parent'] = 'COLLECTIONID';
+        if (!$parent) {
+          $preprocessoptions['parent'] = 'PARENTID';
         }
         if (!$namespace) {
           $preprocessoptions['namespace'] = 'NAMESPACE';

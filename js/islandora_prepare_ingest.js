@@ -766,6 +766,9 @@ function showDataCache(element, data, workflowid, otherid, stepid, type, show, s
           else {
             shortvalue = value;
           }
+          if (d.hasOwnProperty('removed') && d['removed']) {
+            shortvalue = '<s>' + shortvalue + '</s>';
+          }
           cellhtml += '</SPAN><SPAN class="upi_shortvalue">' + shortvalue + '</SPAN>';
         }
         else if (value.length > maxLengthKeyValue) {
@@ -983,10 +986,22 @@ function setupDisplayFullValue($context, workflowid, otherid, stepid, type) {
       var url = '/admin/islandora/prepare_ingest/ajax/files';
       jQuery.getJSON(url, query, function(fd) {
         var cellhtml = path + '<BR/><BR/>';
-        if (fd.hasOwnProperty('type') && fd['type'] === 'directory') {
+        if (fd.hasOwnProperty('removed') && fd['removed']) {
+          if (fd.hasOwnProperty('type') && fd['type'] === 'directory') {
+            cellhtml += 'Directory';
+          }
+          else {
+            cellhtml += 'File';
+          }
+          cellhtml += ' is removed';
+        }
+        else if (fd.hasOwnProperty('type') && fd['type'] === 'directory') {
           cellhtml += 'Is a directory';
         }
         else if (fd.hasOwnProperty('content')) {
+          if (fd.hasOwnProperty('archivefilepath')) {
+            cellhtml += 'Part of archive ' + htmlEncode(fd['archivefilepath']) + '<BR/><BR/>';
+          }
           cellhtml += 'Content (' + fd['content'].length + ' bytes):' + '</BR>';
           cellhtml += '<pre>';
           if (fd['content'].length > 10000) {

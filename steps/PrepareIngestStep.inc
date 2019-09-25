@@ -415,7 +415,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
   protected function fillOutTemplate($template, $keyvalues) {
     if (strpos($template, '{') !== FALSE) {
       $template = preg_replace_callback(
-         '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
+         '/(?<!{){(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
          function($matches) use ($keyvalues) {
            $prefix = isset($matches[1])?$matches[1]:'';
            $postfix = isset($matches[6])?$matches[6]:'';
@@ -622,7 +622,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     if (strpos($template, '{') !== FALSE) {
       //$value = $template;
       $value = preg_replace_callback(
-         '/{(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
+         '/(?<!{){(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
          function($matches) use (&$keys) {
            if (isset($matches[2]) && strlen($matches[2]) > 0) {
              $keys[] = $matches[2];

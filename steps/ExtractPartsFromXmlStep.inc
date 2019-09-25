@@ -132,6 +132,8 @@ class ExtractPartsFromXmlStep extends PrepareIngestStep {
   }
 
   public function dryRun(&$context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
+
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('source_xml_key_name') && $this->hasConfigKey('target_key_name') && $this->hasConfigKey('xpath') && isset($prevdatastep)) {
       if (!isset($context['sandbox']['total_items'])) {
