@@ -421,10 +421,10 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
            $postfix = isset($matches[6])?$matches[6]:'';
            $prefix = $this->fillOutTemplate($prefix, $keyvalues);
            $postfix = $this->fillOutTemplate($postfix, $keyvalues);
-           if (isset($keyvalues[$matches[2]]) && strlen($keyvalues[$matches[2]]) > 0) {
+           if (isset($matches[2], $keyvalues[$matches[2]]) && strlen($keyvalues[$matches[2]]) > 0) {
              return $prefix . $keyvalues[$matches[2]] . $postfix;
            }
-           elseif (isset($keyvalues[$matches[3]]) && strlen($keyvalues[$matches[3]]) > 0) {
+           elseif (isset($matches[3], $keyvalues[$matches[3]]) && strlen($keyvalues[$matches[3]]) > 0) {
              return $prefix . $keyvalues[$matches[3]] . $postfix;
            }
            elseif (isset($matches[4])) {
