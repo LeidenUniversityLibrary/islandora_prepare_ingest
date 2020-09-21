@@ -121,7 +121,7 @@ class TransformXmlStep extends PrepareIngestXmlStep {
           $xsltproc = new XSLTProcessor;
           if ($xsltproc->importStyleSheet($xsldoc)) { // attach the xsl rules
             foreach ($item as $key => $value) {
-              $xsltproc->setParameter('', $key, $value);
+              $xsltproc->setParameter('', $key, htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
             }
             $content = $xsltproc->transformToXML($xmldoc);
             if ($content !== FALSE) {
