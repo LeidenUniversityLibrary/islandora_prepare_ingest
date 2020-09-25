@@ -601,43 +601,49 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
     return $results;
   }
 
-  protected function _getInputKeysFromTemplates($templatekeynames) {
-    return $this->_getKeysFromTemplates($templatekeynames);
+  protected function _getInputKeysFromTemplates($templatekeynames, $includeoptionalkeys = TRUE) {
+    return $this->_getKeysFromTemplates($templatekeynames, $includeoptionalkeys);
   }
 
-  protected function _getKeysFromTemplates($templatekeynames) {
+  protected function _getKeysFromTemplates($templatekeynames, $includeoptionalkeys = TRUE) {
     $results = array();
     foreach ($templatekeynames as $templatekeyname) {
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
         $keys = array();
-        $this->_findKeysInTemplate($template, $keys);
+        $this->_findKeysInTemplate($template, $keys, $includeoptionalkeys = TRUE);
         $results[$templatekeyname] = $keys;
       }
     }
     return $results;
   }
 
-  protected function _findKeysInTemplate($template, &$keys) {
+  protected function _findKeysInTemplate($template, &$keys, $includeoptionalkeys = TRUE) {
     if (strpos($template, '{') !== FALSE) {
       //$value = $template;
       $value = preg_replace_callback(
          '/(?<!{){(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
          function($matches) use (&$keys) {
            if (isset($matches[2]) && strlen($matches[2]) > 0) {
-             $keys[] = $matches[2];
+             if ($includeoptionalkeys || (!(isset($matches[3]) && strlen($matches[3]) > 0) && !(isset($matches[4]) && strlen($matches[4]) > 0))) {
+               $keys[] = $matches[2];
+             }
            }
            if (isset($matches[3]) && strlen($matches[3]) > 0) {
-             $keys[] = $matches[3];
+             if ($includeoptionalkeys) {
+               $keys[] = $matches[3];
+             }
            }
            if (isset($matches[1]) && strlen($matches[1]) > 0) {
-             $this->_findKeysInTemplate($matches[1], $keys);
+             $this->_findKeysInTemplate($matches[1], $keys, $includeoptionalkeys);
            }
            if (isset($matches[6]) && strlen($matches[6]) > 0) {
-             $this->_findKeysInTemplate($matches[6], $keys);
+             $this->_findKeysInTemplate($matches[6], $keys, $includeoptionalkeys);
            }
            if (isset($matches[4]) && strlen($matches[4]) > 0) {
-             $this->_findKeysInTemplate($matches[5], $keys);
+             if ($includeoptionalkeys) {
+               $this->_findKeysInTemplate($matches[5], $keys, $includeoptionalkeys);
+             }
            }
            return '';
          },

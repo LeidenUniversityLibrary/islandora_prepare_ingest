@@ -64,7 +64,7 @@ class AddKeyTemplateStep extends PrepareIngestStep {
   }
 
   public function inputKeys() {
-    return $this->_getInputKeysFromTemplates(array('template'));
+    return $this->_getInputKeysFromTemplates(array('template'), FALSE);
   }
 
   public function _outputKeyKeys() {

@@ -76,7 +76,7 @@ class AddKeyRegExStep extends PrepareIngestStep {
   }
 
   public function inputKeys() {
-    $result = $this->_getInputKeysFromTemplates(array('replacement'));
+    $result = $this->_getInputKeysFromTemplates(array('replacement'), FALSE);
     if ($this->hasConfigKey('source_key_name')) {
       $result['source_key_name'] = array($this->config['source_key_name']);
     }
