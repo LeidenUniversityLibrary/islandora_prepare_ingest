@@ -84,6 +84,11 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
       $madedirs = array();
       while ($item !== NULL) {
         $dirname = $this->fillOutTemplate($dirnametemplate, $item);
+        if (isset($madedirs[$dirname])) {
+           $item = isset($prevdatastep)?$prevdatastep->nextDataItem():NULL;
+           continue;
+        }
+        $madedirs[$dirname] = 1;
         $parentdir = dirname($dirname);
         if (pifs_file_exists($dirname, $this->workflowid, $this->stepid, $this->otherid) && !pifs_is_dir($dirname, $this->workflowid, $this->stepid, $this->otherid)) {
           $results[] = array('text' => t("'@directory' already exists but is not a directory.",
@@ -96,10 +101,8 @@ class MakeDirectoryStep extends PrepareIngestFilesStep {
         if (count($results) > 0) {
           return $results;
         }
-        if (!isset($madedirs[$dirname])) {
-          pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid);
-        }
-        $madedirs[$dirname] = 1;
+
+        pifs_entry_mkdir($dirname, $this->workflowid, $this->stepid, $this->otherid);
 
         //$this->saveDataItem($item);
 

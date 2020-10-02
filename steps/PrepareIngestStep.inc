@@ -623,7 +623,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       //$value = $template;
       $value = preg_replace_callback(
          '/(?<!{){(?:"""(.*?)"""<)?([a-zA-Z0-9_-]+)(?:\|([a-zA-Z0-9_-]+)|\|("""(.*?)"""))?(?:>"""(.*?)""")?}/',
-         function($matches) use (&$keys) {
+         function($matches) use (&$keys, $includeoptionalkeys) {
            if (isset($matches[2]) && strlen($matches[2]) > 0) {
              if ($includeoptionalkeys || (!(isset($matches[3]) && strlen($matches[3]) > 0) && !(isset($matches[4]) && strlen($matches[4]) > 0))) {
                $keys[] = $matches[2];
