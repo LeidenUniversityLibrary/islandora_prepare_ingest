@@ -136,7 +136,7 @@ function islandora_prepare_ingest_dry_run_step_batch_operation($workflowstep, $s
     // Don't do dry run of the step if previous steps had any errors.
     return;
   }
-  $context['message'] = t("Doing step !stepnr: !steplabel", array('!stepnr' => $step->weight(), '!steplabel' => $step->label()));
+  $context['message'] = t("Doing step !stepnr at !time: !steplabel", array('!stepnr' => $step->weight(), '!time' => date('H:i:s'), '!steplabel' => $step->label()));
   $stepresult = $step->dryRun($context);
   if ($stepresult) {
     if (isset($context['results']['_by_type'][$step->id()]['dryrun'])) {
