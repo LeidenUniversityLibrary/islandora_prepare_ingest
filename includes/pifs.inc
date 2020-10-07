@@ -374,6 +374,9 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   if ($sourceentry !== NULL) {
     if (!($entry['valuetype'] & PIFS_IS_REMOVED)) {
       $entry = $sourceentry;
+      if ($entry['valuetype'] & PIFS_HAS_REAL) {
+        $entry['filevalue'] = $sourceentry['path'];
+      }
       $entry['path'] = $targetfile;
       pifs_store_entry($entry, $workflow_id, $step_id, $other_id);
     }
@@ -556,11 +559,19 @@ function pifs_entry_read_content($filepath, $workflow_id, $step_id, $other_id) {
         $content = pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id);
       }
       else {
-        clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
-        $fh = @fopen($entry['filevalue'], 'r');
+        clearstatcache(TRUE, $entry['path']); // make sure we get the right size.
+        $fh = @fopen($entry['path'], 'r');
         if ($fh !== FALSE) {
-           $content = fread($fh, filesize($entry['filevalue']));
+           $content = fread($fh, filesize($entry['path']));
            fclose($fh);
+        }
+        else {
+          clearstatcache(TRUE, $entry['filevalue']); // make sure we get the right size.
+          $fh = @fopen($entry['filevalue'], 'r');
+          if ($fh !== FALSE) {
+            $content = fread($fh, filesize($entry['filevalue']));
+            fclose($fh);
+          }
         }
       }
       return $content;
