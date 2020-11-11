@@ -611,7 +611,7 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
       if ($this->hasConfigKey($templatekeyname)) {
         $template = $this->config[$templatekeyname];
         $keys = array();
-        $this->_findKeysInTemplate($template, $keys, $includeoptionalkeys = TRUE);
+        $this->_findKeysInTemplate($template, $keys, $includeoptionalkeys);
         $results[$templatekeyname] = $keys;
       }
     }
