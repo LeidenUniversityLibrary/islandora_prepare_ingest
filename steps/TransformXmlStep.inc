@@ -26,7 +26,7 @@
 
 
 class TransformXmlStep extends PrepareIngestXmlStep {
-  
+
   public function label() {
     $title = t('Transform XML');
     if ($this->hasConfigKey('xml_key_name')) {
@@ -85,6 +85,20 @@ class TransformXmlStep extends PrepareIngestXmlStep {
   public function dryRun(&$context) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/data_cache');
 
+    $error = NULL;
+    error_reporting(E_ALL);
+    $errfunc = function($errno, $errstr) use (&$error) {
+      $prefix = 'XSLTProcessor::transformToXml(): ';
+      if (substr($errstr, 0, strlen($prefix)) === $prefix) {
+        $error = substr($errstr, strlen($prefix));
+        set_error_handler(NULL);
+      }
+      else {
+        return FALSE;
+      }
+    };
+    set_error_handler($errfunc);
+
     $prevdatastep = $this->_previousDataChangingStep();
     if ($this->hasConfigKey('target_filepath') && $this->hasConfigKey('xml_key_name') && isset($prevdatastep)) {
       if (!isset($context['sandbox']['total_items'])) {
@@ -96,7 +110,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
       $xslkey = $this->config['xsl_key_name'];
       $targetfilepathtemplate = $this->config['target_filepath'];
       $results = array();
-      $prevuseerr = libxml_use_internal_errors(true);
 
       $results = array();
       $item = $prevdatastep->nextDataItem();
@@ -124,7 +137,7 @@ class TransformXmlStep extends PrepareIngestXmlStep {
               $xsltproc->setParameter('', $key, htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8'));
             }
             $content = $xsltproc->transformToXML($xmldoc);
-            if ($content !== FALSE) {
+            if ($content) {
               $targetfilepath = $this->fillOutTemplate($targetfilepathtemplate, $item);
               $targetdirectory = dirname($targetfilepath);
               if (!pifs_is_dir($targetdirectory, $this->workflowid, $this->stepid, $this->otherid)) {
@@ -139,16 +152,24 @@ class TransformXmlStep extends PrepareIngestXmlStep {
               }
               pifs_entry_write_content($targetfilepath, $content, $this->workflowid, $this->stepid, $this->otherid);
             }
+            else {
+              if (!$error) {
+                $error = 'Unknown error.';
+              }
+              $results[] =  array('text' => t("Transform failed for item at @nr: @error", array('@nr' => $item['item nr'], '@error' => $error)), 'type' => 'run_error');
+            }
           }
           else {
-            $results[] =  array('text' => t("Transform failed for item at @nr", array('@nr' => $current)), 'type' => 'run_error');
+            $results[] =  array('text' => t("Transform failed to import stylesheet for item at @nr", array('@nr' => $item['item nr'])), 'type' => 'run_error');
           }
+        }
+        if (count($results) > 0) {
+          return $results;
         }
         if ($limit > 0) {
           $item = $prevdatastep->nextDataItem();
         }
       }
-      libxml_clear_errors();
       if ($context['sandbox']['total_items'] > 0) {
         if ($item !== NULL) {
           $context['finished'] = $item['item nr'] / $context['sandbox']['total_items'];
@@ -156,9 +177,6 @@ class TransformXmlStep extends PrepareIngestXmlStep {
         else {
           $context['finished'] = 1;
         }
-      }
-      if (count($results) > 0) {
-        return $results;
       }
     }
     return FALSE;
