@@ -324,7 +324,7 @@ function setUpButtonsAndFields($context) {
           $prevFields.each(function(i, element) {
 	    var outputvalue = jQuery(element).val();
             if (jQuery(element).hasClass('keys')) {
-              var keys = outputvalue.split(";");
+              var keys = outputvalue.split(/;|[\r\n]+/);
               for (var i=0; i<keys.length; i++) {
                 if (keys[i].length > 0) {
                   menuMaker(keys[i], 'key');

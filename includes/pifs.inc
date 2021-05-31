@@ -664,6 +664,26 @@ function islandora_prepare_ingest_pifs_delete_old($other_id = NULL) {
 }
 
 /**
+ * Get (temporary) filepath for a single file, possibly from within an archive.
+ */
+function pifs_get_filepath($filepath, $workflow_id, $step_id, $other_id) {
+  $sourcepath = NULL;
+  $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
+
+  if ($entry == NULL) {
+    $sourcepath = $filepath;
+  }
+  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+    pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
+    $sourcepath = pifs_archive_get_temporary_filepath($entry);
+  }
+  else if ($entry['valuetype'] & PIFS_HAS_REAL) {
+    $sourcepath = $entry['filevalue'];
+  }
+  return $sourcepath;
+}
+
+/**
  * Read the contents from a single file within an archive.
  */
 function pifs_archive_read_content_from_file($entry, $workflow_id, $step_id, $other_id, $maxreadlength = PHP_INT_MAX) {

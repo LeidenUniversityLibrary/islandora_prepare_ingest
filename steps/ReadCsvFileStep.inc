@@ -28,38 +28,58 @@
 class ReadCsvFileStep extends PrepareIngestStep {
   
   public function label() {
-    $title = t('Add items by reading CSV file');
+    $title = t('Add items by reading @type file', array('@type' => $this->readableFileString()));
     if ($this->hasConfigKey('csv_filepath')) {
       $title .= ' ' . t('located at "@value"', array('@value' => $this->config['csv_filepath']));
     }
-    if ($this->hasConfigKey('column_keys')) {
+    if ($this->hasConfigKey('column_keys') && !($this->hasConfigKey('has_header') && $this->config['has_header'] === 'use')) {
       $title .= ' ' . t('and place the values in the keys "@value"', array('@value' => $this->config['column_keys']));
     }
-    if ($this->hasConfigKey('has_header') && $this->config['has_header']) {
-      $title .= ' ' . t('but skip header');
+    if ($this->hasConfigKey('has_header')) {
+      if ($this->config['has_header'] === '1') {
+        $title .= ' ' . t('but skip header');
+      }
+      elseif ($this->config['has_header'] === 'use') {
+        $title .= ' ' . t('and place the values using the header as keys');
+      }
     }
     $title .= '.';
 
     return $title;
   }
 
+  private function readableFileString() {
+    if (class_exists('PHPExcel_IOFactory')) {
+      return 'CSV/Excel';
+    }
+    else {
+      return 'CSV';
+    }
+  }
+
   public function arguments() {
     return array(
       'csv_filepath' => array(
-        'label' => t('CSV filepath'),
-        'description' => t('Specify the absolute path to the CSV file.'),
+        'label' => t('@type filepath', array('@type' => $this->readableFileString())),
+        'description' => t('Specify the absolute path to the @type file.', array('@type' => $this->readableFileString())),
         'type' => 'filepath',
         'allow_constants' => TRUE,
       ),
       'column_keys' => array(
         'label' => t('Column keys'),
-        'description' => t('Define the output keys of the CSV file, separated by semicolons.'),
+        'description' => t('Define the output keys of the @type file, separated by semicolons.', array('@type' => $this->readableFileString())),
         'type' => 'keys',
       ),
       'has_header' => array(
         'label' => t('Has header'),
-        'description' => t('Does the CSV file have a header.'),
-        'type' => 'boolean',
+        'description' => t('Does the @type file have a header.', array('@type' => $this->readableFileString())),
+        'type' => 'select',
+        'options' => array(
+          '' => t('Choose value'),
+          0 => t('No header'),
+          1 => t('Has header but skip it'),
+          'use' => t('Has header and use it as output keys'),
+        ),
       ),
     );
   }
@@ -88,15 +108,17 @@ class ReadCsvFileStep extends PrepareIngestStep {
   }
 
   public function checkConfiguration($context) {
+    module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
     $result = parent::checkConfiguration($context);
 
     $csvfilepath = $this->config['csv_filepath'];
     $columnkeys = $this->config['column_keys'];
-    if (!is_file($csvfilepath)) {
+    if (!pifs_is_file($csvfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
       $result[] = array('text' => t("File not found at '@fp'.",
                 array('@fp' => $csvfilepath)), 'type' => 'run_error');
     }
-    if (preg_match('/^[a-zA-Z0-9_-]+(;[a-zA-Z0-9_-]+)*$/', $columnkeys) === 0) {
+    if (preg_match('/^[a-zA-Z0-9_-]+((?:;|[\r\n]+)[a-zA-Z0-9_-]+)*$/', $columnkeys) === 0) {
       $result[] = array('text' => t("@key should contain keynames (containing letters, numbers and/or dashes) separated by semicolons, but is '@keys'.",
                 array('@key' => $this->arguments()['column_keys']['label'], '@keys' => $columnkeys)), 'type' => 'run_error');
     }
@@ -105,12 +127,14 @@ class ReadCsvFileStep extends PrepareIngestStep {
 
   public function dryRun(&$context) {
     if ($this->hasConfigKey('csv_filepath') && $this->hasConfigKey('column_keys')) {
+      module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
+
       $prevdatastep = $this->_previousDataChangingStep();
 
       $csvfilepath = $this->config['csv_filepath'];
-      $columnkeys = explode(';', $this->config['column_keys']);
+      $columnkeys = preg_split('/;|[\r\n]+/', $this->config['column_keys']);
       $hasheader = $this->config['has_header'];
-      if (!is_file($csvfilepath)) {
+      if (!pifs_is_file($csvfilepath, $this->workflowid, $this->stepid, $this->otherid)) {
         $result[] = array('text' => t("File not found at '@fp'.",
                   array('@fp' => $csvfilepath)), 'type' => 'run_error');
         return $result;
@@ -129,48 +153,115 @@ class ReadCsvFileStep extends PrepareIngestStep {
         $itemnr++;
       }
 
-      // then add items from csv
-      ini_set("auto_detect_line_endings", "1");
-      $linenr = 0;
-      $delimit = "\t";
-      if (($fh = fopen($csvfilepath, "r")) !== FALSE) {
-	while (($csvdata = fgetcsv($fh, 0, $delimit)) !== FALSE) {
-	  $linenr++;
-	  if ($linenr == 1) {
-	    // Treat header special.
-	    if (count($csvdata) == 1) {
-	      $delimit = ",";
-	      $csvdata = str_getcsv($csvdata[0], $delimit);
-	    }
-	    if (count($csvdata) == 1) {
-	      $delimit = ";";
-	      $csvdata = str_getcsv($csvdata[0], $delimit);
-	    }
-	    if ($hasheader) {
-	      // This is a header, so skip it.
-	      continue;
-	    }
-	  }
-          if (count($csvdata) === 1 && $csvdata[0] === NULL) {
-            // Skip empty lines.
+      $realfilepath = pifs_get_filepath($csvfilepath, $this->workflowid, $this->stepid, $this->otherid);
+      if (class_exists('PHPExcel_IOFactory')) {
+        try {
+          $identity = PHPExcel_IOFactory::identify($realfilepath);
+        }
+        catch(Exception $e) {
+          $results[] = array('text' => t("Cannot read file @file with error: @error.",
+                        array('@file' => $csvfilepath, '@error' => $e->getMessage())), 'type' => 'run_error');
+          return $results;
+        }
+        if ($identity !== 'CSV') {
+          return $this->readExcelFile($realfilepath, $itemnr, $columnkeys, $hasheader);
+        }
+      }
+      return $this->readCsvFile($realfilepath, $itemnr, $columnkeys, $hasheader);
+    }
+  }
+
+  private function readCsvFile($csvfilepath, &$itemnr, $columnkeys, $hasheader) {
+    // then add items from csv
+    ini_set("auto_detect_line_endings", "1");
+    $linenr = 0;
+    $delimit = "\t";
+    if (($fh = fopen($csvfilepath, "r")) !== FALSE) {
+      while (($csvdata = fgetcsv($fh, 0, $delimit)) !== FALSE) {
+        $linenr++;
+        if ($linenr == 1) {
+          // Treat header special.
+          if (count($csvdata) == 1) {
+            $delimit = ",";
+            $csvdata = str_getcsv($csvdata[0], $delimit);
+          }
+          if (count($csvdata) == 1) {
+            $delimit = ";";
+            $csvdata = str_getcsv($csvdata[0], $delimit);
+          }
+          if ($hasheader === '1') {
+            // This is a header, so skip it.
             continue;
           }
-	  $item = array();
-	  foreach ($columnkeys as $columnindex => $columnkey) {
-            if (isset($csvdata[$columnindex])) {
-	      $item[$columnkey] = $csvdata[$columnindex];
-            }
-            else {
-	      $item[$columnkey] = '';
-            }
-	  }
-          $item['item nr'] = $itemnr;
-          $this->saveDataItem($item);
-          $itemnr++;
-	}
+          elseif ($hasheader === 'use') {
+            $columnkeys = array_map(function ($v) { return preg_replace('/[^a-zA-Z0-9_-]+/', '', $v); }, $csvdata);
+            continue;
+          }
+        }
+        if (count($csvdata) === 1 && $csvdata[0] === NULL) {
+          // Skip empty lines.
+          continue;
+        }
+        $item = array();
+        foreach ($columnkeys as $columnindex => $columnkey) {
+          if (isset($csvdata[$columnindex])) {
+            $item[$columnkey] = $csvdata[$columnindex];
+          }
+          else {
+            $item[$columnkey] = '';
+          }
+        }
+        $item['item nr'] = $itemnr;
+        $this->saveDataItem($item);
+        $itemnr++;
       }
     }
     return FALSE;
+  }
+
+  private function readExcelFile($csvfilepath, &$itemnr, $columnkeys, $hasheader) {
+    $results = array();
+    try {
+      $identity = PHPExcel_IOFactory::identify($csvfilepath);
+
+      $excelreader = PHPExcel_IOFactory::createReader($identity);
+
+      $excelreader->setReadDataOnly(true);
+      $excelobj = $excelreader->load($csvfilepath);
+    }
+    catch(Exception $e) {
+      $results[] = array('text' => t("Cannot read file @file with error: @error.",
+                    array('@file' => $csvfilepath, '@error' => $e->getMessage())), 'type' => 'run_error');
+      return $results;
+    }
+    $usecolumnkeys = $columnkeys;
+    $worksheet = $excelobj->getActiveSheet();
+    foreach ($worksheet->getRowIterator() as $ri => $row) {
+      $cellIterator = $row->getCellIterator();
+      $cellIterator->setIterateOnlyExistingCells(false);
+
+      $item = array();
+      foreach ($cellIterator as $cs => $cell) {
+        $ci = PHPExcel_Cell::columnIndexFromString($cs) - 1;
+        if ($hasheader !== '0' && $ri === 1) {
+          if ($hasheader === 'use') {
+            $usecolumnkeys[$ci] = preg_replace('/[^a-zA-Z0-9_-]+/', '', $cell->getValue());
+          }
+        }
+        else {
+          if (isset($usecolumnkeys[$ci])) {
+            $columnkey = $usecolumnkeys[$ci];
+            $item[$columnkey] = $cell->getValue();
+          }
+        }
+      }
+      if (count($item) === 0) {
+        continue;
+      }
+      $item['item nr'] = $itemnr;
+      $this->saveDataItem($item);
+      $itemnr++;
+    }
   }
 
   public function verify($context) {

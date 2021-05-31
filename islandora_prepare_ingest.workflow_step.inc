@@ -111,7 +111,7 @@ function islandora_prepare_ingest_workflow_step_info() {
     'class name' => 'ExtractPartsFromXmlStep',
   );
   $info['read_csv_file'] = array(
-    'name' => t('Add items by reading CSV file'),
+    'name' => t('Add items by reading CSV/Excel file'),
     'type group' => t('Add items'),
     'class name' => 'ReadCsvFileStep',
   );

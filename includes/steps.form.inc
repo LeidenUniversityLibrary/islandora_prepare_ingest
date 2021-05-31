@@ -239,6 +239,12 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
       '#title' => $title,
       '#description' => array_key_exists('description', $argvalues)?$argvalues['description']:'',
     );
+    $attrs = array(
+      'autocomplete' => 'off',
+      'autocorrect' => 'off',
+      'autocapitalize' => 'off',
+      'spellcheck' => 'false',
+    );
     if ($argvalues['type'] === 'boolean') {
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'select';
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#options'] = array(
@@ -255,12 +261,7 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 4;
-      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
-        'autocomplete' => 'off',
-        'autocorrect' => 'off',
-        'autocapitalize' => 'off',
-        'spellcheck' => 'false',
-      );
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = $attrs;
     }
     elseif ($argvalues['type'] === 'collection') {
       module_load_include('inc', 'islandora_solution_pack_collection', 'includes/utilities');
@@ -280,15 +281,17 @@ function islandora_prepare_ingest_make_base_step_form($step, $workflowresult) {
         $stepform['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
       }
     }
+    elseif ($argvalues['type'] === 'keys') {
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textarea';
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#cols'] = 100;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#rows'] = 2;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = $attrs;
+    }
     else {
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#type'] = 'textfield';
       $stepform['fields']['step_' . $stepid . '_' . $argname]['#size'] = 60;
-      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = array(
-        'autocomplete' => 'off',
-        'autocorrect' => 'off',
-        'autocapitalize' => 'off',
-        'spellcheck' => 'false',
-      );
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#maxlength'] = 128;
+      $stepform['fields']['step_' . $stepid . '_' . $argname]['#attributes'] = $attrs;
     }
     $stepform['fields']['step_' . $stepid . '_' . $argname]['#default_value'] = $value;
     if (in_array($argname, array_keys($step->inputKeys()))) {

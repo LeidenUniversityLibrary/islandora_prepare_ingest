@@ -477,8 +477,8 @@ class PrepareIngestStep implements PrepareIngestStepInterface {
             }
             break;
           case "keys":
-            if (preg_match("/^[a-zA-Z0-9_;-]+$/", $value) === 0) {
-              $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon, but is '@value'",
+            if (preg_match("/^[a-zA-Z0-9_;\-\n\r]+$/", $value) === 0) {
+              $results[] = array('text' => t("Argument '@key' should be one or more key values separated by a semicolon and/or linebreak, but is '@value'",
                 array('@key' => $argkeytext, '@value' => $value)), 'key' => $argkey, 'type' => 'argument_error');
             }
             break;

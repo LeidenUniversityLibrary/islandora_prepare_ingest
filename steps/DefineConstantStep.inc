@@ -72,6 +72,19 @@ class DefineConstantStep extends PrepareIngestStep {
     if (isset($this->config['name'])) {
       $name = $this->config['name'];
       $value = isset($this->config['value'])?$this->config['value']:'';
+      $prevdatastep = $this->_previousDataChangingStep();
+      if (isset($prevdatastep)) {
+        $prevdatastep->resetDataIterator();
+        $item = $prevdatastep->nextDataItem();
+        if ($item !== NULL) {
+          foreach ($item as $k => $v) {
+            if ($k !== 'item nr') {
+              $key = '{' . $k . '}';
+              $context['results']['_constants'][$key] = $v;
+            }
+          }
+        }
+      }
       $results = islandora_prepare_ingest_constants_set($name, $value, $context);
       if ($results) {
         return $results;
