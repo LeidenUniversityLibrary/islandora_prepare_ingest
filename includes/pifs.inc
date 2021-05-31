@@ -670,14 +670,14 @@ function pifs_get_filepath($filepath, $workflow_id, $step_id, $other_id) {
   $sourcepath = NULL;
   $entry = pifs_entry_for_filepath($filepath, $workflow_id, $step_id, $other_id);
 
-  if ($entry == NULL) {
+  if ($entry === NULL) {
     $sourcepath = $filepath;
   }
-  if ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
+  elseif ($entry['valuetype'] & PIFS_FROM_ARCHIVE) {
     pifs_archive_extract_if_needed($entry, $workflow_id, $step_id, $other_id);
     $sourcepath = pifs_archive_get_temporary_filepath($entry);
   }
-  else if ($entry['valuetype'] & PIFS_HAS_REAL) {
+  elseif ($entry['valuetype'] & PIFS_HAS_REAL) {
     $sourcepath = $entry['filevalue'];
   }
   return $sourcepath;
