@@ -30,6 +30,7 @@ class PrepareIngestXmlStep extends PrepareIngestFilesStep {
   protected function _loadXmlFromValue($xmlvalue, $xmldom, $itemnr, $isFilePath = NULL) {
     module_load_include('inc', 'islandora_prepare_ingest', 'includes/pifs');
 
+    libxml_disable_entity_loader(FALSE);
     if ($isFilePath === NULL) {
       $isFilePath = ((substr($xmlvalue, 0, 1) === '/') && pifs_is_file($xmlvalue, $this->workflowid, $this->stepid, $this->otherid));
     }
