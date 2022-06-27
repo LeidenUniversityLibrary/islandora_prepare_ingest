@@ -46,6 +46,9 @@ class ValidateBookStep extends PrepareIngestValidateStep {
         'MODS' => array('application/xml', 'text/xml'),
         'TN'   => array('image/jpeg', 'image/png', 'image/gif'),
         'PDF'  => array('application/pdf'),
+        'OCR'   => array('text/plain'),
+        'HOCR'  => array('text/html', 'application/xml', 'text/xml', 'application/xhtml+xml'),
+        'ALTO'  => array('application/xml', 'text/xml'),
       );
   
       /* this does not work (yet)
@@ -75,6 +78,7 @@ class ValidateBookStep extends PrepareIngestValidateStep {
         'OCR'   => array('text/plain'),
         'HOCR'  => array('text/html', 'application/xml', 'text/xml', 'application/xhtml+xml'),
         'ALTO'  => array('application/xml', 'text/xml'),
+        'PDF'   => array('application/pdf'),
       );
       /* this does not work (yet)
       $pagemodels = array("islandora:pageCModel");
