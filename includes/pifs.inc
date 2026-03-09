@@ -372,7 +372,7 @@ function pifs_entry_copy($sourcefile, $targetfile, $workflow_id, $step_id, $othe
   }
   $sourceentry = pifs_entry_for_filepath($sourcefile, $workflow_id, $step_id, $other_id);
   if ($sourceentry !== NULL) {
-    if (!($entry['valuetype'] & PIFS_IS_REMOVED)) {
+    if (!(isset($sourceentry['valuetype']) && ($sourceentry['valuetype'] & PIFS_IS_REMOVED))) {
       $entry = $sourceentry;
       if (($entry['valuetype'] & PIFS_HAS_REAL) && !($entry['valuetype'] & PIFS_FROM_ARCHIVE)) {
         $entry['filevalue'] = $sourceentry['path'];
